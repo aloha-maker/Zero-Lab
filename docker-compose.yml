@@ -13,3 +13,13 @@ services:
     # 開発環境用の設定
     environment:
       - NODE_ENV=development
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # バックエンドも魔法のフォルダ連携（ホットリロード）を有効化
+      - ./backend:/app

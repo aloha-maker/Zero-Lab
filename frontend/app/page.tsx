@@ -1,31 +1,92 @@
+"use client";
+
+import { useState } from "react";
+
 export default function Home() {
+  // 入力フォームの状態管理
+  const [base, setBase] = useState(108); // 種族値 (例: ガブリアス)
+  const [iv, setIv] = useState(31);      // 個体値
+  const [ev, setEv] = useState(252);     // 努力値
+  const [level, setLevel] = useState(50); // レベル
+
+  const [result, setResult] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 「計算する」ボタンが押されたときの処理
+  const handleCalculate = async () => {
+    setIsLoading(true);
+    setResult("バックエンドと通信中...");
+
+    try {
+      // 魔法の電話線：PythonのバックエンドへJSONデータを送信！
+      const response = await fetch("http://localhost:8000/api/calculate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          base: base,
+          iv: iv,
+          ev: ev,
+          level: level
+        }),
+      });
+
+      const data = await response.json();
+      if (data.status === "success") {
+        setResult(data.message);
+      } else {
+        setResult("エラーが発生しました: " + data.message);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setResult("サーバーとの通信に失敗しました。Dockerコンテナは起動していますか？");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 p-8 font-sans">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <header className="mb-10 text-center">
           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Zero-Lab</h1>
-          <p className="text-gray-500 mt-2 font-medium">Pokémon Battle Assist AI</p>
+          <p className="text-gray-500 mt-2 font-medium">API通信テスト：HP実数値計算</p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* 左側：画像アップロードとプレビューエリア */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col items-center justify-center min-h-[350px]">
-            <div className="text-gray-300 mb-4">
-              {/* ダミーの画像アイコン */}
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">種族値 (Base)</label>
+              <input type="number" value={base} onChange={(e) => setBase(Number(e.target.value))} className="w-full border border-gray-300 rounded-lg p-2" />
             </div>
-            <p className="text-sm text-gray-500 mb-6 font-medium">対戦画面のスクリーンショットをアップロードする</p>
-            <button className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-md">
-              画像を選択
-            </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">個体値 (IV)</label>
+              <input type="number" value={iv} max={31} onChange={(e) => setIv(Number(e.target.value))} className="w-full border border-gray-300 rounded-lg p-2" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">努力値 (EV)</label>
+              <input type="number" value={ev} max={252} step={4} onChange={(e) => setEv(Number(e.target.value))} className="w-full border border-gray-300 rounded-lg p-2" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">レベル (Level)</label>
+              <input type="number" value={level} max={100} onChange={(e) => setLevel(Number(e.target.value))} className="w-full border border-gray-300 rounded-lg p-2" />
+            </div>
           </div>
 
-          {/* 右側：解析結果とAIの提案エリア */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b-2 border-gray-100 pb-3">AI戦術アドバイス</h2>
-            <div className="flex-1 flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
-              <p>画像をアップロードすると、ここにOCR解析結果とAIの提案が表示されます。</p>
-            </div>
+          <button
+            onClick={handleCalculate}
+            disabled={isLoading}
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-md disabled:opacity-50"
+          >
+            {isLoading ? "通信中..." : "バックエンドで計算する"}
+          </button>
+
+          {/* 結果表示エリア */}
+          <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-200 text-center">
+            <p className="text-lg font-bold text-gray-800">
+              {result || "数値を入力してボタンを押してください"}
+            </p>
           </div>
         </div>
       </div>
