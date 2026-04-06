@@ -18,8 +18,11 @@ export default function Home() {
     setResult("バックエンドと通信中...");
 
     try {
+      // 環境変数があればそれを使い、なければローカル環境を使う
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
       // 魔法の電話線：PythonのバックエンドへJSONデータを送信！
-      const response = await fetch("http://localhost:8000/api/calculate", {
+      const response = await fetch(`${API_URL}/api/calculate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
