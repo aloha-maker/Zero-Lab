@@ -24,16 +24,18 @@ export default function Home() {
           </div>
         </Link>
 
-        {/* ▼▼ 機能カード：ダメージ計算（準備中） ▼▼ */}
-        <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 opacity-70 h-full flex flex-col">
-          <h2 className="text-xl font-bold text-gray-500 mb-2">⚔️ ダメージ計算</h2>
-          <p className="text-sm text-gray-500 flex-grow">
-            技の威力とステータスからダメージ乱数を算出します。
-          </p>
-          <span className="mt-4 text-xs font-bold text-gray-500 bg-gray-200 py-1 px-3 rounded-full w-fit">
-            準備中
-          </span>
-        </div>
+        {/* ▼▼ 機能カード：ダメージ計算（稼働中） ▼▼ */}
+        <Link href="/damage" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
+            <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition">⚔️ ダメージ計算</h2>
+            <p className="text-sm text-gray-600 flex-grow">
+              技の威力とステータスからダメージ乱数を算出します。
+            </p>
+            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
+              稼働中
+            </span>
+          </div>
+        </Link>
 
         {/* ▼▼ 機能カード：ポケモン図鑑（準備中） ▼▼ */}
         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 opacity-70 h-full flex flex-col">

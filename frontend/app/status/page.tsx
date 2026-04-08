@@ -28,18 +28,19 @@ export default function Home() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    base: base,
+                    base_stat: base,
                     iv: iv,
                     ev: ev,
-                    level: level
+                    level: level,
+                    is_hp: true
                 }),
             });
 
             const data = await response.json();
-            if (data.status === "success") {
-                setResult(data.message);
+            if (response.ok && data.real_stat !== undefined) {
+                setResult(`実数値: ${data.real_stat}`);
             } else {
-                setResult("エラーが発生しました: " + data.message);
+                setResult("エラーが発生しました: " + (data.detail ? JSON.stringify(data.detail) : "不明なエラー"));
             }
         } catch (error) {
             console.error("Error:", error);
