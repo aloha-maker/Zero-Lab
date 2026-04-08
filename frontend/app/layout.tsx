@@ -27,8 +27,8 @@ export default function RootLayout({
               <Link href="/status" className="hover:text-blue-400 transition">
                 ステータス計算
               </Link>
-              <Link href="/damage" className="hover:text-blue-400 transition text-gray-400">
-                ダメージ計算(準備中)
+              <Link href="/damage" className="hover:text-blue-400 transition">
+                ダメージ計算
               </Link>
               <Link href="/pokedex" className="hover:text-blue-400 transition text-gray-400">
                 ポケモン図鑑(準備中)
