@@ -37,6 +37,19 @@ export default function Home() {
           </div>
         </Link>
 
+        {/* ▼▼ 機能カード：すばやさ計算（準備中） ▼▼ */}
+        <Link href="/speed" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
+            <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition">⚡ すばやさ計算</h2>
+            <p className="text-sm text-gray-600 flex-grow">
+              素早さの実数値を計算し、順位を自動で並び替えます。
+            </p>
+            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
+              稼働中
+            </span>
+          </div>
+        </Link>
+
         {/* ▼▼ 機能カード：ポケモン図鑑（準備中） ▼▼ */}
         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 opacity-70 h-full flex flex-col">
           <h2 className="text-xl font-bold text-gray-500 mb-2">📖 ポケモン図鑑</h2>
