@@ -51,8 +51,8 @@ export default function Home() {
         </Link>
 
         {/* ▼▼ 機能カード：ポケモン図鑑 ▼▼ */}
-        <Link href="/fetch_pokemon" className="block group h-full">
-          <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 opacity-70 h-full flex flex-col">
+        <Link href="/pokedex" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
             <h2 className="text-xl font-bold text-gray-500 mb-2">📖 ポケモン図鑑</h2>
             <p className="text-sm text-gray-500 flex-grow">
               種族値、タイプ、覚える技などの基本データを検索します。
