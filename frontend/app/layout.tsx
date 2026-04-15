@@ -33,8 +33,8 @@ export default function RootLayout({
               <Link href="/speed" className="hover:text-blue-400 transition">
                 すばやさ計算
               </Link>
-              <Link href="/pokedex" className="hover:text-blue-400 transition text-gray-400">
-                ポケモン図鑑(準備中)
+              <Link href="/pokedex" className="hover:text-blue-400 transition">
+                ポケモン図鑑
               </Link>
             </nav>
           </div>
