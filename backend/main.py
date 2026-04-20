@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 作成したルーター（部品）を読み込む
-from routers import status, damage,fetch_poke_api
+from routers import status, damage,fetch_poke_api,type_matchup
 
 app = FastAPI()
 
@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(status.router)
 app.include_router(damage.router)
 app.include_router(fetch_poke_api.router)
+app.include_router(type_matchup.router)
 
 # サーバーが動いているか確認するためのルート（無くてもOKですがあると便利です）
 @app.get("/")
