@@ -36,6 +36,9 @@ export default function RootLayout({
               <Link href="/pokedex" className="hover:text-blue-400 transition">
                 ポケモン図鑑
               </Link>
+              <Link href="/type-matchup" className="hover:text-blue-400 transition">
+                タイプ相性チェッカー
+              </Link>
             </nav>
           </div>
         </header>
