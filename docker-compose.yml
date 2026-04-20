@@ -1,24 +1,25 @@
-version: '3.8'
-
 services:
-  app:
-    # 現在のディレクトリ(.)にあるDockerfileを使ってビルドします
+  frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
-    
-    # コンテナの名前を指定します
-    container_name: zero-lab-app
-    
-    # ホストの3000番ポートをコンテナの3000番ポートに繋ぎます
-    # 先ほど実行された -p 3000:3000 と同じ役割です
     ports:
       - "3000:3000"
-    
-    # 開発環境向けの便利な設定（ローカルのファイル変更をコンテナに即座に反映します）
     volumes:
-      - ./:/usr/src/app
-      - /usr/src/app/node_modules
-    
-    # 万が一コンテナが落ちてしまっても、自動で再起動するようにします
-    restart: unless-stopped
+      # 【魔法の仕掛け】Linuxのfrontendフォルダと、コンテナ内の/appフォルダを四次元ポケットで繋ぐ
+      - ./frontend:/app
+      # ただし、部品(node_modules)だけはコンテナ専用のものを使うという除外設定
+      - /app/node_modules
+    # 開発環境用の設定
+    environment:
+      - NODE_ENV=development
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # バックエンドも魔法のフォルダ連携（ホットリロード）を有効化
+      - ./backend:/app

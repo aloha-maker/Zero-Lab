@@ -123,3 +123,7 @@ dist/
 
 # Windows specific
 Thumbs.db
+
+# python
+__pycache__
+.venv
