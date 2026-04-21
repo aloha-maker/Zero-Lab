@@ -23,3 +23,5 @@ services:
     volumes:
       # バックエンドも魔法のフォルダ連携（ホットリロード）を有効化
       - ./backend:/app
+    env_file:
+      - ./backend/.env
