@@ -39,6 +39,9 @@ export default function RootLayout({
               <Link href="/type-matchup" className="hover:text-blue-400 transition">
                 タイプ相性チェッカー
               </Link>
+              <Link href="/builds" className="hover:text-blue-400 transition">
+                育成ボックス
+              </Link>
             </nav>
           </div>
         </header>
