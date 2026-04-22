@@ -58,9 +58,9 @@ export default function BuildsPage() {
                             <button onClick={() => handleCopy(build.id)} className="px-3 py-1 bg-green-500 text-white rounded">
                                 コピー
                             </button>
-                            <button className="px-3 py-1 bg-yellow-500 text-white rounded">
+                            <Link href={`/builds/edit/${build.id}`} className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition inline-block">
                                 編集
-                            </button>
+                            </Link>
                             <button onClick={() => handleDelete(build.id)} className="px-3 py-1 bg-red-500 text-white rounded">
                                 削除
                             </button>

@@ -46,12 +46,25 @@ def get_builds():
     res = supabase.table("pokemon_builds").select("*").order("created_at", desc=True).execute()
     return res.data
 
+@router.get("/{build_id}")
+def get_build(build_id: str):
+    """特定の1件を取得 (Read by ID)"""
+    res = supabase.table("pokemon_builds").select("*").eq("id", build_id).execute()
+    if not res.data:
+        raise HTTPException(status_code=404, detail="データが見つかりません")
+    return res.data[0]
+
 @router.put("/{build_id}", response_model=PokemonBuildResponse)
 def update_build(build_id: str, build: PokemonBuildCreate):
     """育成ポケモンの更新 (Update)"""
-    res = supabase.table("pokemon_builds").update(build.dict()).eq("id", build_id).execute()
+    # 辞書形式に変換
+    update_data = build.dict()
+    
+    # Supabaseの更新処理
+    res = supabase.table("pokemon_builds").update(update_data).eq("id", build_id).execute()
+    
     if not res.data:
-        raise HTTPException(status_code=404, detail="対象が見つかりません")
+        raise HTTPException(status_code=404, detail="更新対象が見つかりません")
     return res.data[0]
 
 @router.delete("/{build_id}")
