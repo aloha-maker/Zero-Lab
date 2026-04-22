@@ -42,6 +42,9 @@ export default function RootLayout({
               <Link href="/builds" className="hover:text-blue-400 transition">
                 育成ボックス
               </Link>
+              <Link href="/parties" className="hover:text-blue-400 transition">
+                パーティ管理
+              </Link>
             </nav>
           </div>
         </header>

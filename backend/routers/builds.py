@@ -4,7 +4,10 @@ from typing import List, Optional, Dict
 from supabase import create_client, Client
 import os
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/api/builds",
+    tags=["Builds"]
+)
 
 # Supabase接続設定（環境変数から取得）
 SUPABASE_URL = os.getenv("SUPABASE_URL", "your_supabase_url")
@@ -40,11 +43,17 @@ def create_build(build: PokemonBuildCreate):
          raise HTTPException(status_code=400, detail="登録に失敗しました")
     return res.data[0]
 
-@router.get("/", response_model=List[PokemonBuildResponse])
+@router.get("/")
 def get_builds():
-    """育成ポケモンの一覧取得 (Read)"""
-    res = supabase.table("pokemon_builds").select("*").order("created_at", desc=True).execute()
-    return res.data
+    """育成済みポケモン一覧を取得（パーティ選択用）"""
+    try:
+        # id, pokemon_id, pokemon_name などの必要なカラムだけ取得
+        response = supabase.table("pokemon_builds").select("id, pokemon_id, pokemon_name").execute()
+        
+        # フロントエンドが data.data を参照している場合、この形式で返す
+        return {"status": "success", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{build_id}")
 def get_build(build_id: str):
