@@ -44,7 +44,7 @@ export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
 
     // 育成済みポケモン一覧を取得
     useEffect(() => {
-        fetch('http://localhost:8000/api/builds') // 育成済み一覧を取得するAPI（別途実装前提）
+        fetch('http://localhost:8000/api/v1/builds') // 育成済み一覧を取得するAPI（別途実装前提）
             .then(res => res.json())
             .then(data => setAvailableBuilds(data.data || []));
     }, []);
@@ -55,7 +55,7 @@ export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
             .map((id, index) => (id ? { build_id: id, slot_index: index + 1 } : null))
             .filter(m => m !== null);
 
-        const url = isEdit ? `http://localhost:8000/api/parties/${initialData?.id}` : 'http://localhost:8000/api/parties';
+        const url = isEdit ? `http://localhost:8000/api/v1/parties/${initialData?.id}` : 'http://localhost:8000/api/v1/parties';
         const method = isEdit ? 'PUT' : 'POST';
 
         const res = await fetch(url, {

@@ -105,7 +105,7 @@ export default function NewBuildPage() {
         setSaving(true);
         try {
             // POSTリクエストで新規登録
-            const res = await fetch(`http://localhost:8000/api/builds/`, {
+            const res = await fetch(`http://localhost:8000/api/v1/builds/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),

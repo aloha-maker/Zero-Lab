@@ -16,9 +16,17 @@ export default function BuildsPage() {
     const [builds, setBuilds] = useState<PokemonBuild[]>([]);
 
     const fetchBuilds = async () => {
-        const res = await fetch("http://localhost:8000/api/builds/");
-        const data = await res.json();
-        setBuilds(data);
+        const res = await fetch("http://localhost:8000/api/v1/builds");
+        const json = await res.json();
+
+        // ✅ バックエンドが {"status": "success", "data": [...]} を返すので、.data をセットする
+        if (json.status === "success") {
+            setBuilds(json.data);
+        } else {
+            // エラーハンドリング
+            console.error("データの取得に失敗しました");
+            setBuilds([]);
+        }
     };
 
     useEffect(() => {
@@ -27,12 +35,12 @@ export default function BuildsPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("削除しますか？")) return;
-        await fetch(`http://localhost:8000/api/builds/${id}`, { method: "DELETE" });
+        await fetch(`http://localhost:8000/api/v1/builds/${id}`, { method: "DELETE" });
         fetchBuilds();
     };
 
     const handleCopy = async (id: string) => {
-        await fetch(`http://localhost:8000/api/builds/${id}/copy`, { method: "POST" });
+        await fetch(`http://localhost:8000/api/v1/builds/${id}/copy`, { method: "POST" });
         fetchBuilds(); // リストを更新してコピーを表示
     };
 

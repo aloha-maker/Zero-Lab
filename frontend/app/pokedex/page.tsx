@@ -33,7 +33,7 @@ export default function PokedexPage() {
     const [errorMsg, setErrorMsg] = useState("");
 
     // FastAPIサーバーのURL（環境に合わせて変更してください）
-    const API_BASE_URL = "http://localhost:8000/api/pokemon";
+    const API_BASE_URL = "http://localhost:8000/api/v1/pokemon";
 
     // --- APIからポケモンを検索して追加 ---
     const searchAndAddPokemon = async (e: React.FormEvent) => {

@@ -15,7 +15,7 @@ class DamageRequest(BaseModel):
     effectiveness: float
 
 # エンドポイントの定義（@app.post ではなく @router.post になります）
-@router.post("/api/damage")
+@router.post("/")
 def calculate_damage(req: DamageRequest):
     # --- ここは以前書いた計算ロジックをそのままペースト ---
     step1 = math.trunc(2 * req.level / 5) + 2

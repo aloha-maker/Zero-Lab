@@ -14,7 +14,7 @@ class StatusRequest(BaseModel):
     level: int = 50       # レベル
     nature_modifier: float = 1.0 # 性格補正（1.1 = 上昇, 1.0 = 無補正, 0.9 = 下降）
 
-@router.post("/api/calculate")
+@router.post("/")
 def calculate_status(req: StatusRequest):
     """
     ポケモンの実数値を計算するエンドポイント

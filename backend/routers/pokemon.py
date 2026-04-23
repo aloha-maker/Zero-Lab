@@ -36,7 +36,7 @@ def get_localized_name(names_list: list, target_lang: str, default_name: str) ->
             return name_entry["name"]
     return default_name
 
-@router.get("/api/pokemon/{name_or_id}", response_model=PokemonInfo)
+@router.get("/{name_or_id}", response_model=PokemonInfo)
 async def get_pokemon(
     name_or_id: str = Path(..., description="検索したいポケモンの英語名または図鑑番号")
 ):

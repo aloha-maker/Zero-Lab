@@ -4,10 +4,7 @@ from typing import List, Optional, Dict
 from supabase import create_client, Client
 import os
 
-router = APIRouter(
-    prefix="/api/builds",
-    tags=["Builds"]
-)
+router = APIRouter()
 
 # Supabase接続設定（環境変数から取得）
 SUPABASE_URL = os.getenv("SUPABASE_URL", "your_supabase_url")

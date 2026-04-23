@@ -36,7 +36,7 @@ async def fetch_type_data(type_name: str) -> dict:
         except Exception as e:
             raise HTTPException(status_code=500, detail="PokeAPIからのデータ取得に失敗しました。")
 
-@router.post("/api/type-matchup", response_model=TypeMatchupResponse)
+@router.post("/", response_model=TypeMatchupResponse)
 async def calculate_matchup(req: TypeMatchupRequest):
     attacker = req.attacker_type.lower()
     # 空文字を除外して防御側のタイプリストを作成
