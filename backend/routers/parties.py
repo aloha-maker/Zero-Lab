@@ -11,10 +11,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 # 接続情報がない場合はエラーを回避しつつ、初期化を遅延させるなど適宜対応してください
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-router = APIRouter(
-    prefix="/api/parties",
-    tags=["Parties"]
-)
+router = APIRouter()
 
 # --- Pydantic スキーマ ---
 

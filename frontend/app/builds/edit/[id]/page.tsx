@@ -41,7 +41,7 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
     useEffect(() => {
         const fetchExistingData = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/api/builds/${id}?t=${new Date().getTime()}`, { cache: 'no-store' });
+                const res = await fetch(`http://localhost:8000/api/v1/builds/${id}?t=${new Date().getTime()}`, { cache: 'no-store' });
                 if (!res.ok) throw new Error("取得失敗");
 
                 const current = await res.json();
@@ -144,7 +144,7 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
         e.preventDefault();
         setSaving(true);
         try {
-            const res = await fetch(`http://localhost:8000/api/builds/${id}`, {
+            const res = await fetch(`http://localhost:8000/api/v1/builds/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),

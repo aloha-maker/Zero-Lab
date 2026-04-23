@@ -9,7 +9,7 @@ export default function PartyListPage() {
     const fetchParties = async () => {
         try {
             // ポート番号を含めたフルパスで取得（前回の手順に合わせる場合）
-            const res = await fetch('http://localhost:8000/api/parties/');
+            const res = await fetch('http://localhost:8000/api/v1/parties/');
             const json = await res.json();
 
             console.log("Fetched Data:", json); // デバッグ用に確認
@@ -30,7 +30,7 @@ export default function PartyListPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("このパーティを削除しますか？")) return;
-        await fetch(`http://localhost:8000/api/parties/${id}`, { method: 'DELETE' });
+        await fetch(`http://localhost:8000/api/v1/parties/${id}`, { method: 'DELETE' });
         fetchParties();
     };
 

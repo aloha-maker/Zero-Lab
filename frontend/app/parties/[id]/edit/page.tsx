@@ -10,7 +10,7 @@ export default function EditPartyPage() {
 
     useEffect(() => {
         // 既存のパーティ情報を取得
-        fetch(`http://localhost:8000/api/parties/${id}`)
+        fetch(`http://localhost:8000/api/v1/parties/${id}`)
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {

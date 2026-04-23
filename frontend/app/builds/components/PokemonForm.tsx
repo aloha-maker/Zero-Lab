@@ -11,7 +11,7 @@ export function PokemonForm() {
         const updateStats = async () => {
             // 実際のバックエンドのURLに合わせる（例: http://localhost:8000）
             try {
-                const res = await fetch(`http://localhost:8000/api/status/calculate?pokemon_name=${selectedPokemon}&item_name=${selectedItem}`);
+                const res = await fetch(`http://localhost:8000/api/v1/status/?pokemon_name=${selectedPokemon}&item_name=${selectedItem}`);
                 if (res.ok) {
                     const data = await res.json();
                     setStats(data);

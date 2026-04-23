@@ -38,7 +38,7 @@ export default function TypeMatchupPage() {
         setResult(null);
 
         try {
-            const response = await fetch("http://localhost:8000/api/type-matchup", {
+            const response = await fetch("http://localhost:8000/api/v1/type_matchup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
