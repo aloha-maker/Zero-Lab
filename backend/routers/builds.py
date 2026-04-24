@@ -1,7 +1,6 @@
-# backend/routers/builds.py
 from fastapi import APIRouter
 from typing import List
-from schemas.pokemon import PokemonBuildCreate, PokemonBuildResponse, BuildSummary
+from schemas.builds import PokemonBuildCreate, PokemonBuildResponse, BuildSummary
 from services.builds import BuildService
 
 router = APIRouter()
@@ -10,7 +9,7 @@ router = APIRouter()
 def create_build(build: PokemonBuildCreate):
     return BuildService.create_build(build.dict())
 
-@router.get("/", response_model=dict) # レスポンス形式を既存のフロントエンドに合わせる
+@router.get("/", response_model=dict)
 def get_builds():
     data = BuildService.get_all_summaries()
     return {"status": "success", "data": data}

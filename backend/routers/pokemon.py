@@ -8,5 +8,4 @@ router = APIRouter()
 async def get_pokemon(
     name_or_id: str = Path(..., description="検索したいポケモンの英語名または図鑑番号")
 ):
-    # ロジックはservices層に委譲し、結果をそのまま返す
     return await fetch_pokemon_data(name_or_id)
