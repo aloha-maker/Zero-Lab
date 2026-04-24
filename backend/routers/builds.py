@@ -1,97 +1,32 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
-from supabase import create_client, Client
-import os
+# backend/routers/builds.py
+from fastapi import APIRouter
+from typing import List
+from schemas.pokemon import PokemonBuildCreate, PokemonBuildResponse, BuildSummary
+from services.builds import BuildService
 
 router = APIRouter()
 
-# Supabase接続設定（環境変数から取得）
-SUPABASE_URL = os.getenv("SUPABASE_URL", "your_supabase_url")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your_supabase_key")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# Pydanticスキーマ定義
-class PokemonBuildBase(BaseModel):
-    pokemon_id: int
-    pokemon_name: str
-    nickname: Optional[str] = ""
-    nature: str
-    ability: str
-    item: str
-    tera_type: str
-    moves: List[str] = Field(default_factory=list, max_items=4)
-    evs: Dict[str, int] = Field(default_factory=lambda: {"H":0, "A":0, "B":0, "C":0, "D":0, "S":0})
-    ivs: Dict[str, int] = Field(default_factory=lambda: {"H":31, "A":31, "B":31, "C":31, "D":31, "S":31})
-    memo: Optional[str] = ""
-
-class PokemonBuildCreate(PokemonBuildBase):
-    pass
-
-class PokemonBuildResponse(PokemonBuildBase):
-    id: str
-
 @router.post("/", response_model=PokemonBuildResponse)
 def create_build(build: PokemonBuildCreate):
-    """育成ポケモンの登録 (Create)"""
-    data = build.dict()
-    res = supabase.table("pokemon_builds").insert(data).execute()
-    if not res.data:
-         raise HTTPException(status_code=400, detail="登録に失敗しました")
-    return res.data[0]
+    return BuildService.create_build(build.dict())
 
-@router.get("/")
+@router.get("/", response_model=dict) # レスポンス形式を既存のフロントエンドに合わせる
 def get_builds():
-    """育成済みポケモン一覧を取得（パーティ選択用）"""
-    try:
-        # id, pokemon_id, pokemon_name などの必要なカラムだけ取得
-        response = supabase.table("pokemon_builds").select("id, pokemon_id, pokemon_name").execute()
-        
-        # フロントエンドが data.data を参照している場合、この形式で返す
-        return {"status": "success", "data": response.data}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    data = BuildService.get_all_summaries()
+    return {"status": "success", "data": data}
 
-@router.get("/{build_id}")
+@router.get("/{build_id}", response_model=PokemonBuildResponse)
 def get_build(build_id: str):
-    """特定の1件を取得 (Read by ID)"""
-    res = supabase.table("pokemon_builds").select("*").eq("id", build_id).execute()
-    if not res.data:
-        raise HTTPException(status_code=404, detail="データが見つかりません")
-    return res.data[0]
+    return BuildService.get_build_by_id(build_id)
 
 @router.put("/{build_id}", response_model=PokemonBuildResponse)
 def update_build(build_id: str, build: PokemonBuildCreate):
-    """育成ポケモンの更新 (Update)"""
-    # 辞書形式に変換
-    update_data = build.dict()
-    
-    # Supabaseの更新処理
-    res = supabase.table("pokemon_builds").update(update_data).eq("id", build_id).execute()
-    
-    if not res.data:
-        raise HTTPException(status_code=404, detail="更新対象が見つかりません")
-    return res.data[0]
+    return BuildService.update_build(build_id, build.dict())
 
 @router.delete("/{build_id}")
 def delete_build(build_id: str):
-    """育成ポケモンの削除 (Delete)"""
-    res = supabase.table("pokemon_builds").delete().eq("id", build_id).execute()
-    return {"message": "削除完了"}
+    return BuildService.delete_build(build_id)
 
 @router.post("/{build_id}/copy", response_model=PokemonBuildResponse)
 def copy_build(build_id: str):
-    """育成ポケモンのコピー (Copy)"""
-    # 既存データを取得
-    existing = supabase.table("pokemon_builds").select("*").eq("id", build_id).execute()
-    if not existing.data:
-        raise HTTPException(status_code=404, detail="コピー元が見つかりません")
-    
-    copy_data = existing.data[0]
-    # IDと作成日時を除外して新規登録
-    copy_data.pop("id", None)
-    copy_data.pop("created_at", None)
-    copy_data["nickname"] = f"{copy_data.get('nickname', copy_data['pokemon_name'])}のコピー"
-    
-    res = supabase.table("pokemon_builds").insert(copy_data).execute()
-    return res.data[0]
+    return BuildService.copy_build(build_id)
