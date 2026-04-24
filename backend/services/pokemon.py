@@ -4,9 +4,9 @@ import asyncio
 from fastapi import HTTPException
 from async_lru import alru_cache
 from schemas.pokemon import PokemonInfo
+from core.config import settings
 
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
-TARGET_LANGUAGE = os.getenv("POKEAPI_LANGUAGE", "ja")
 
 # タイムアウトの設定 (接続に5秒、データ受信に10秒)
 timeout = httpx.Timeout(10.0, connect=5.0)
@@ -20,6 +20,7 @@ def get_localized_name(names_list: list, target_lang: str, default_name: str) ->
 # LRUキャッシュを利用して、同じポケモンに対する2回目以降の取得をメモリから返す (最大256件)
 @alru_cache(maxsize=256)
 async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
+    lang = settings.TARGET_LANGUAGE
     query = str(name_or_id).lower()
     
     # タイムアウトを設定したHTTPクライアントを利用
@@ -67,18 +68,18 @@ async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
 
         if species_res.status_code == 200:
             names_list = species_res.json().get("names", [])
-            localized_name = get_localized_name(names_list, TARGET_LANGUAGE, base_name)
+            localized_name = get_localized_name(names_list, lang, base_name)
             english_name = get_localized_name(names_list, "en", base_name)
         
         for type_res in type_responses:
             if type_res.status_code == 200:
                 t_data = type_res.json()
-                localized_types.append(get_localized_name(t_data.get("names", []), TARGET_LANGUAGE, t_data.get("name")))
+                localized_types.append(get_localized_name(t_data.get("names", []), lang, t_data.get("name")))
         
         for ability_res in ability_responses:
             if ability_res.status_code == 200:
                 a_data = ability_res.json()
-                localized_abilities.append(get_localized_name(a_data.get("names", []), TARGET_LANGUAGE, a_data.get("name")))
+                localized_abilities.append(get_localized_name(a_data.get("names", []), lang, a_data.get("name")))
 
         weight_kg = pokemon_data.get("weight", 0) / 10.0
         height_m = pokemon_data.get("height", 0) / 10.0

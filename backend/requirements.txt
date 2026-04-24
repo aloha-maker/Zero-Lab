@@ -6,3 +6,4 @@ Pillow
 httpx
 supabase
 async-lru
+pydantic-settings>=2.0.0
