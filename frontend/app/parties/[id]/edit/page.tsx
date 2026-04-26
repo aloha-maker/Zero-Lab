@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import PartyForm from '@/components/PartyForm';
+import PartyForm from '@/app/parties/components/PartyForm';
+import type { PartyResponse } from '@/app/types/api';
 
 export default function EditPartyPage() {
     const { id } = useParams();
-    const [initialData, setInitialData] = useState(null);
+    const [initialData, setInitialData] = useState<PartyResponse | null>(null);
 
     useEffect(() => {
         // 既存のパーティ情報を取得

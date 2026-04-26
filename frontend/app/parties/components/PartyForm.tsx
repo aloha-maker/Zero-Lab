@@ -2,25 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface Build {
-    id: string;
-    pokemon_id: number;
-    pokemon_name: string;
-}
-
-interface PartyMember {
-    build_id: string;
-    slot_index: number;
-}
+import type { PartyCreateRequest, PartyResponse, PartyMember, PokemonBuildResponse } from '@/app/types/api';
 
 interface PartyFormProps {
-    initialData?: {
-        id?: string;
-        name: string;
-        description: string;
-        members: PartyMember[];
-    };
+    initialData?: PartyResponse;
     isEdit?: boolean;
 }
 
@@ -29,31 +14,35 @@ export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
     const [name, setName] = useState(initialData?.name || '');
     const [description, setDescription] = useState(initialData?.description || '');
     const [selectedBuilds, setSelectedBuilds] = useState<(string | null)[]>(() => {
-        // 1. まず「手紙（メンバー一覧）」がどこにあるか特定する
-        //    DBからの取得時は party_members、フォーム入力時は members
-        const mList = initialData?.members || (initialData as any)?.party_members || [];
+        // DBからの取得時は party_members、フォーム入力時は members
+        const mList: PartyMember[] = initialData?.members || (initialData as any)?.party_members || [];
 
-        // 2. 6枠の配列を作成し、該当する slot_index があれば build_id を入れる
+        // 6枠の配列を作成し、該当する slot_index があれば build_id を入れる
         return Array(6).fill(null).map((_, i) => {
             const slotNumber = i + 1;
-            const found = mList.find((m: any) => m.slot_index === slotNumber);
+            const found = mList.find((m) => m.slot_index === slotNumber);
             return found ? found.build_id : null;
         });
     });
-    const [availableBuilds, setAvailableBuilds] = useState<Build[]>([]);
+    const [availableBuilds, setAvailableBuilds] = useState<PokemonBuildResponse[]>([]);
 
     // 育成済みポケモン一覧を取得
     useEffect(() => {
-        fetch('http://localhost:8000/api/v1/builds') // 育成済み一覧を取得するAPI（別途実装前提）
+        fetch('http://localhost:8000/api/v1/builds')
             .then(res => res.json())
             .then(data => setAvailableBuilds(data.data || []));
     }, []);
 
-
     const handleSave = async () => {
-        const members = selectedBuilds
+        const members: PartyMember[] = selectedBuilds
             .map((id, index) => (id ? { build_id: id, slot_index: index + 1 } : null))
-            .filter(m => m !== null);
+            .filter((m): m is PartyMember => m !== null);
+
+        const payload: PartyCreateRequest = {
+            name,
+            description,
+            members,
+        };
 
         const url = isEdit ? `http://localhost:8000/api/v1/parties/${initialData?.id}` : 'http://localhost:8000/api/v1/parties';
         const method = isEdit ? 'PUT' : 'POST';
@@ -61,7 +50,7 @@ export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
         const res = await fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, description, members }),
+            body: JSON.stringify(payload),
         });
 
         if (res.ok) {
