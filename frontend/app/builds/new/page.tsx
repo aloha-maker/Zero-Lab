@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+// 変更点1: 共通の型とエラーレスポンス型をインポート
+import type { BuildCreateRequest, ApiErrorResponse } from "@/app/types/api";
 
-// よく使われる性格のステータス補正
 const NATURE_MODIFIERS: Record<string, [string, string]> = {
     "いじっぱり": ["A", "C"], "ひかえめ": ["C", "A"], "おくびょう": ["S", "A"], "ようき": ["S", "C"],
     "ずぶとい": ["B", "A"], "わんぱく": ["B", "C"], "おだやか": ["D", "A"], "しんちょう": ["D", "C"],
@@ -16,12 +17,12 @@ const NATURE_MODIFIERS: Record<string, [string, string]> = {
 export default function NewBuildPage() {
     const router = useRouter();
     const [saving, setSaving] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    // PokeAPIから取得した種族値を保持するステート
     const [baseStats, setBaseStats] = useState({ H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 });
 
-    // 初期データの設定
-    const [formData, setFormData] = useState({
+    // 変更点2: formDataに BuildCreateRequest 型を指定
+    const [formData, setFormData] = useState<BuildCreateRequest>({
         pokemon_id: 0,
         pokemon_name: "",
         nickname: "",
@@ -103,24 +104,35 @@ export default function NewBuildPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
+        setErrorMsg(null); // エラーリセット
+
         try {
-            // POSTリクエストで新規登録
-            const res = await fetch(`http://localhost:8000/api/v1/builds/`, {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const res = await fetch(`${API_URL}/api/v1/builds/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
             });
 
-            if (res.ok) {
-                alert("新規登録しました！");
-                router.push("/builds");
-                router.refresh();
-            } else {
-                const errData = await res.json();
-                alert(`登録失敗: ${errData.detail || "不明なエラー"}`);
+            // 変更点3: 詳細なエラーハンドリング
+            if (!res.ok) {
+                const errorData = (await res.json()) as ApiErrorResponse;
+                let errorMessage = "登録に失敗しました";
+                if (typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                    errorMessage = "入力内容に誤りがあります（" + errorData.detail.map(err => err.msg).join(", ") + "）";
+                }
+                throw new Error(errorMessage);
             }
-        } catch (error) {
-            alert("通信エラーが発生しました");
+
+            alert("新規登録しました！"); // 成功時はわかりやすくアラートを残すのもアリです
+            router.push("/builds");
+            router.refresh();
+
+        } catch (error: any) {
+            console.error("登録エラー:", error);
+            setErrorMsg(error.message || "通信エラーが発生しました");
         } finally {
             setSaving(false);
         }
@@ -132,6 +144,13 @@ export default function NewBuildPage() {
     return (
         <div className="p-8 max-w-4xl mx-auto bg-gray-100 min-h-screen">
             <h1 className="text-3xl font-bold mb-6 text-gray-800 border-b-2 border-green-500 pb-2">ポケモンの新規登録</h1>
+
+            {/* エラーメッセージの表示エリア */}
+            {errorMsg && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg">
+                    <p className="font-medium">{errorMsg}</p>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-xl shadow-lg">
 

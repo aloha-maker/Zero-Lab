@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
 
 export default function Home() {
     // 入力フォームの状態管理
@@ -17,6 +18,15 @@ export default function Home() {
         setIsLoading(true);
         setResult("バックエンドと通信中...");
 
+        const requestData: StatusRequest = {
+            base_stat: base,
+            iv: iv,
+            ev: ev,
+            level: level,
+            is_hp: true,
+            nature_modifier: 1.0
+        };
+
         try {
             // 環境変数があればそれを使い、なければローカル環境を使う
             const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -24,27 +34,27 @@ export default function Home() {
             // 魔法の電話線：PythonのバックエンドへJSONデータを送信！
             const response = await fetch(`${API_URL}/api/v1/status`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    base_stat: base,
-                    iv: iv,
-                    ev: ev,
-                    level: level,
-                    is_hp: true
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData),
             });
 
-            const data = await response.json();
-            if (response.ok && data.real_stat !== undefined) {
-                setResult(`実数値: ${data.real_stat}`);
-            } else {
-                setResult("エラーが発生しました: " + (data.detail ? JSON.stringify(data.detail) : "不明なエラー"));
+            if (!response.ok) {
+                const errorData = (await response.json()) as ApiErrorResponse;
+                let errorMessage = "通信エラーが発生しました";
+
+                if (typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                    errorMessage = "入力内容に誤りがあります（" + errorData.detail.map(e => e.msg).join(", ") + "）";
+                }
+                throw new Error(errorMessage);
             }
-        } catch (error) {
+
+            const data = (await response.json()) as StatusResponse;
+            setResult(`HP実数値: ${data.real_stat}`);
+        } catch (error: any) {
             console.error("Error:", error);
-            setResult("サーバーとの通信に失敗しました。Dockerコンテナは起動していますか？");
+            setResult(error.message || "サーバーとの通信に失敗しました。Dockerコンテナは起動していますか？");
         } finally {
             setIsLoading(false);
         }
@@ -55,7 +65,6 @@ export default function Home() {
             <div className="max-w-3xl mx-auto">
                 <header className="mb-10 text-center">
                     <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Zero-Lab</h1>
-                    <p className="text-gray-500 mt-2 font-medium">API通信テスト：HP実数値計算</p>
                 </header>
 
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">

@@ -1,176 +1,179 @@
 "use client";
 
 import { useState } from "react";
-
-// --- 型定義 (FastAPIのレスポンスに合わせる) ---
-type PokemonData = {
-    uniqueId: string; // 表示用のユニークID（同じポケモンを複数並べるため）
-    id: number;
-    name: string;
-    english_name: string;
-    types: string[];
-    abilities: string[];
-    base_stats: { [key: string]: number };
-    weight_kg: number;
-    height_m: number;
-    image_url: string | undefined;
-};
-
-// 種族値の表示用マッピング
-const statLabels: { [key: string]: string } = {
-    "hp": "HP",
-    "attack": "こうげき",
-    "defense": "ぼうぎょ",
-    "special-attack": "とくこう",
-    "special-defense": "とくぼう",
-    "speed": "すばやさ"
-};
+// 変更点1: 共通の型とエラーレスポンス型をインポート
+import type { PokemonInfo, ApiErrorResponse } from "@/app/types/api";
 
 export default function PokedexPage() {
-    const [pokemons, setPokemons] = useState<PokemonData[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState("");
 
-    // FastAPIサーバーのURL（環境に合わせて変更してください）
-    const API_BASE_URL = "http://localhost:8000/api/v1/pokemon";
+    // 変更点2: バックエンドと同期した PokemonInfo 型を使用
+    const [pokemon, setPokemon] = useState<PokemonInfo | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    // --- APIからポケモンを検索して追加 ---
-    const searchAndAddPokemon = async (e: React.FormEvent) => {
+    const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
 
-        setIsLoading(true);
-        setErrorMsg("");
+        setLoading(true);
+        setError(null);
+        setPokemon(null);
 
         try {
-            const res = await fetch(`${API_BASE_URL}/${searchQuery.trim().toLowerCase()}`);
-            if (!res.ok) {
-                if (res.status === 404) throw new Error("ポケモンが見つかりませんでした。");
-                throw new Error("データの取得に失敗しました。");
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+            // 検索クエリ（名前または図鑑番号）をパスパラメータとして送信
+            const response = await fetch(`${API_URL}/api/v1/pokemon/${searchQuery.toLowerCase()}`);
+
+            // 変更点3: ApiErrorResponse を用いた詳細なエラーハンドリング
+            if (!response.ok) {
+                const errorData = (await response.json()) as ApiErrorResponse;
+                let errorMessage = "ポケモンの情報の取得に失敗しました";
+
+                if (response.status === 404) {
+                    errorMessage = "指定されたポケモンが見つかりませんでした";
+                } else if (typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                    errorMessage = "入力内容に誤りがあります（" + errorData.detail.map(err => err.msg).join(", ") + "）";
+                }
+                throw new Error(errorMessage);
             }
 
-            const data = await res.json();
+            // 変更点4: レスポンスを PokemonInfo として受け取る
+            const data = (await response.json()) as PokemonInfo;
+            setPokemon(data);
 
-            // Reactでのリスト表示用に一意のIDを付与して追加
-            const newPokemon: PokemonData = {
-                ...data,
-                uniqueId: Math.random().toString(36).substring(2, 9)
-            };
-
-            setPokemons((prev) => [newPokemon, ...prev]); // 新しいものを一番上に追加
-            setSearchQuery("");
         } catch (err: any) {
-            setErrorMsg(err.message);
+            console.error("Error:", err);
+            setError(err.message || "通信エラーが発生しました");
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
-    // ポケモンをリストから削除
-    const removePokemon = (uniqueId: string) => {
-        setPokemons((prev) => prev.filter((p) => p.uniqueId !== uniqueId));
-    };
-
     return (
-        <div className="max-w-4xl mx-auto p-4 space-y-6">
-            <h1 className="text-2xl font-bold text-gray-800">ポケモンデータ検索ツール</h1>
+        <main className="min-h-screen p-4 md:p-8 bg-gray-50">
+            <div className="max-w-4xl mx-auto">
+                <header className="mb-8 text-center">
+                    <h1 className="text-3xl font-bold text-gray-900">ポケモン図鑑</h1>
+                    <p className="text-gray-600 mt-2">PokeAPIから取得した詳細情報を表示します</p>
+                </header>
 
-            {/* 検索フォーム */}
-            <form onSubmit={searchAndAddPokemon} className="bg-white border rounded-lg p-4 shadow-sm space-y-2">
-                <label className="block text-sm font-bold text-gray-700">ポケモンを検索 (英語名 or 図鑑番号)</label>
-                <div className="flex gap-2">
+                {/* 検索フォーム */}
+                <form onSubmit={handleSearch} className="mb-8 flex gap-2">
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="例: pikachu, 25, garchomp"
-                        className="flex-1 border rounded px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="ポケモン名 または 図鑑番号 (例: pikachu, 25)"
+                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                     <button
                         type="submit"
-                        disabled={isLoading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded disabled:opacity-50 transition-colors"
+                        disabled={loading}
+                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition disabled:bg-gray-400"
                     >
-                        {isLoading ? "検索中..." : "検索"}
+                        {loading ? "検索中..." : "検索"}
                     </button>
-                </div>
-                {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}
-            </form>
+                </form>
 
-            {/* 検索結果（カード表示） */}
-            <div className="space-y-4">
-                {pokemons.map((p) => (
-                    <div key={p.uniqueId} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative overflow-hidden">
-                        <button
-                            onClick={() => removePokemon(p.uniqueId)}
-                            className="absolute top-2 right-2 text-gray-400 hover:text-red-500 font-bold p-2 transition-colors"
-                        >
-                            ✕
-                        </button>
+                {/* エラー表示 */}
+                {error && (
+                    <div className="mb-8 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg shadow-sm">
+                        <p className="font-medium">{error}</p>
+                    </div>
+                )}
 
-                        <div className="flex flex-col md:flex-row gap-6">
-                            {/* 左側: 画像と基本情報 */}
-                            <div className="flex flex-col items-center justify-center w-full md:w-1/3 bg-gray-50 rounded-lg p-4">
-                                <span className="text-sm font-bold text-gray-400">No.{p.id}</span>
-                                {p.image_url ? (
-                                    <img src={p.image_url} alt={p.name} className="w-32 h-32 object-contain" />
-                                ) : (
-                                    <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mb-2">No Image</div>
-                                )}
-                                <h2 className="text-xl font-bold text-gray-800 text-center">{p.name}</h2>
-                                <p className="text-xs text-gray-500 text-center mb-3">{p.english_name}</p>
-
-                                <div className="flex gap-1 flex-wrap justify-center">
-                                    {p.types.map((type, idx) => (
-                                        <span key={idx} className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full font-semibold">
-                                            {type}
-                                        </span>
-                                    ))}
+                {/* 検索結果表示 */}
+                {pokemon && (
+                    <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+                        {/* ヘッダー部分 */}
+                        <div className="bg-blue-600 p-6 text-white flex flex-col md:flex-row items-center gap-6">
+                            {pokemon.image_url && (
+                                <div className="bg-white p-2 rounded-full shadow-inner">
+                                    <img src={pokemon.image_url} alt={pokemon.name} className="w-32 h-32 object-contain" />
                                 </div>
+                            )}
+                            <div className="text-center md:text-left">
+                                <span className="text-blue-200 font-mono text-xl">No.{String(pokemon.id).padStart(3, '0')}</span>
+                                <h2 className="text-4xl font-black capitalize">{pokemon.name}</h2>
+                                <p className="text-blue-100 opacity-80 uppercase tracking-widest">{pokemon.english_name}</p>
                             </div>
+                        </div>
 
-                            {/* 右側: 詳細データ（特性・サイズ・種族値） */}
-                            <div className="w-full md:w-2/3 space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-blue-50 rounded p-3">
-                                        <p className="text-xs text-blue-800 font-bold mb-1">特性</p>
-                                        <ul className="text-sm text-gray-700 space-y-1">
-                                            {p.abilities.map((ability, idx) => (
-                                                <li key={idx}>・{ability}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                    <div className="bg-green-50 rounded p-3 flex flex-col justify-center">
-                                        <p className="text-xs text-green-800 font-bold mb-1">サイズ</p>
-                                        <p className="text-sm text-gray-700">高さ: <span className="font-bold">{p.height_m}</span> m</p>
-                                        <p className="text-sm text-gray-700">重さ: <span className="font-bold">{p.weight_kg}</span> kg</p>
-                                    </div>
-                                </div>
-
+                        {/* 詳細スペック */}
+                        <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* 基本データ */}
+                            <div className="space-y-6">
                                 <div>
-                                    <p className="text-sm font-bold text-gray-700 mb-2 border-b pb-1">種族値</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {Object.entries(p.base_stats).map(([statName, statValue]) => (
-                                            <div key={statName} className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded px-2 py-1">
-                                                <span className="text-xs text-gray-600">{statLabels[statName] || statName}</span>
-                                                <span className="text-sm font-bold text-gray-800">{statValue}</span>
-                                            </div>
+                                    <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">タイプ</h3>
+                                    <div className="flex gap-2">
+                                        {pokemon.types.map(type => (
+                                            <span key={type} className="px-4 py-1 rounded-full bg-gray-100 text-gray-700 font-bold capitalize border border-gray-200">
+                                                {type}
+                                            </span>
                                         ))}
                                     </div>
                                 </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-gray-400 uppercase mb-2">特性</h3>
+                                    <ul className="list-disc list-inside text-gray-700 space-y-1">
+                                        {pokemon.abilities.map(ability => (
+                                            <li key={ability} className="capitalize">{ability}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <div className="flex gap-8">
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-400 uppercase mb-1">高さ</h3>
+                                        <p className="text-lg font-bold">{pokemon.height_m} m</p>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-400 uppercase mb-1">重さ</h3>
+                                        <p className="text-lg font-bold">{pokemon.weight_kg} kg</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 種族値グラフ風表示 */}
+                            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                                <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">種族値 (Base Stats)</h3>
+                                <div className="space-y-3">
+                                    {Object.entries(pokemon.base_stats).map(([stat, value]) => (
+                                        <div key={stat}>
+                                            <div className="flex justify-between text-xs font-bold mb-1 uppercase text-gray-600">
+                                                <span>{stat}</span>
+                                                <span>{value}</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div
+                                                    className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                                                    style={{ width: `${Math.min(100, (value / 255) * 100)}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 覚える技（一部のみ表示） */}
+                        <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">覚える技 (主要な技)</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {pokemon.moves.slice(0, 15).map(move => (
+                                    <span key={move} className="px-3 py-1 bg-white border border-gray-200 rounded text-sm text-gray-600 capitalize">
+                                        {move}
+                                    </span>
+                                ))}
+                                {pokemon.moves.length > 15 && <span className="text-gray-400 text-sm italic py-1">and more...</span>}
                             </div>
                         </div>
                     </div>
-                ))}
-
-                {pokemons.length === 0 && (
-                    <div className="text-center text-gray-400 py-16 bg-white border border-dashed border-gray-300 rounded-lg">
-                        上の検索バーからポケモンのデータを取得してください。<br />
-                        (英語名、または図鑑番号で検索できます)
-                    </div>
                 )}
             </div>
-        </div>
+        </main>
     );
 }
