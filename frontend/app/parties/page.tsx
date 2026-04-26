@@ -1,20 +1,20 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import type { PartyResponse } from '@/app/types/api';
 
 export default function PartyListPage() {
-    const [parties, setParties] = useState([]);
+    const [parties, setParties] = useState<PartyResponse[]>([]);
 
     // パーティ一覧を取得
     const fetchParties = async () => {
         try {
-            // ポート番号を含めたフルパスで取得（前回の手順に合わせる場合）
+            // ポート番号を含めたフルパスで取得
             const res = await fetch('http://localhost:8000/api/v1/parties/');
             const json = await res.json();
 
             console.log("Fetched Data:", json); // デバッグ用に確認
 
-            // json ではなく json.data (配列部分) を State に入れる
             if (json.status === "success" && Array.isArray(json.data)) {
                 setParties(json.data);
             } else {
@@ -42,7 +42,7 @@ export default function PartyListPage() {
             </div>
 
             <div className="grid gap-4">
-                {parties.map((party: any) => (
+                {parties.map((party) => (
                     <div key={party.id} className="border p-4 rounded flex justify-between bg-gray-900">
                         <div>
                             <h2 className="text-xl font-bold">{party.name}</h2>
@@ -51,7 +51,7 @@ export default function PartyListPage() {
                         </div>
                         <div className="flex gap-2">
                             <Link href={`/parties/${party.id}/edit`} className="text-blue-400">編集</Link>
-                            <button onClick={() => handleDelete(party.id)} className="text-red-400">削除</button>
+                            <button onClick={() => handleDelete(party.id!)} className="text-red-400">削除</button>
                         </div>
                     </div>
                 ))}

@@ -3,8 +3,9 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+// 変更点1: 更新用の型とエラーレスポンス型をインポート
+import type { BuildUpdateRequest, PokemonBuildResponse, ApiErrorResponse } from "@/app/types/api";
 
-// よく使われる性格のステータス補正（[1.1倍になる項目, 0.9倍になる項目]）
 const NATURE_MODIFIERS: Record<string, [string, string]> = {
     "いじっぱり": ["A", "C"], "ひかえめ": ["C", "A"], "おくびょう": ["S", "A"], "ようき": ["S", "C"],
     "ずぶとい": ["B", "A"], "わんぱく": ["B", "C"], "おだやか": ["D", "A"], "しんちょう": ["D", "C"],
@@ -19,11 +20,12 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-    // PokeAPIから取得した種族値を保持するステート
     const [baseStats, setBaseStats] = useState({ H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 });
 
-    const [formData, setFormData] = useState({
+    // 変更点2: formDataに BuildUpdateRequest 型を指定
+    const [formData, setFormData] = useState<BuildUpdateRequest>({
         pokemon_id: 0,
         pokemon_name: "",
         nickname: "",
@@ -37,14 +39,19 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
         memo: ""
     });
 
-    // 1. Supabaseから既存データを取得
     useEffect(() => {
         const fetchExistingData = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/api/v1/builds/${id}?t=${new Date().getTime()}`, { cache: 'no-store' });
-                if (!res.ok) throw new Error("取得失敗");
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+                const res = await fetch(`${API_URL}/api/v1/builds/${id}?t=${new Date().getTime()}`, { cache: 'no-store' });
 
-                const current = await res.json();
+                if (!res.ok) {
+                    const errorData = (await res.json()) as ApiErrorResponse;
+                    throw new Error(typeof errorData.detail === 'string' ? errorData.detail : "取得失敗");
+                }
+
+                // 変更点3: PokemonBuildResponseとして取得
+                const current = (await res.json()) as PokemonBuildResponse;
 
                 setFormData({
                     pokemon_id: current.pokemon_id || 0,
@@ -54,17 +61,14 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
                     ability: current.ability || "",
                     item: current.item || "",
                     tera_type: current.tera_type || "",
-                    moves: [
-                        current.moves?.[0] || "", current.moves?.[1] || "",
-                        current.moves?.[2] || "", current.moves?.[3] || ""
-                    ],
+                    moves: current.moves || ["", "", "", ""],
                     evs: current.evs || { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
                     ivs: current.ivs || { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
                     memo: current.memo || ""
                 });
-            } catch (error) {
+            } catch (error: any) {
                 console.error("データ取得失敗", error);
-                alert("データの取得に失敗しました。一覧に戻ります。");
+                alert(`データの取得に失敗しました: ${error.message}`);
                 router.push("/builds");
             } finally {
                 setLoading(false);
@@ -143,23 +147,35 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
+        setErrorMsg(null);
+
         try {
-            const res = await fetch(`http://localhost:8000/api/v1/builds/${id}`, {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+            const res = await fetch(`${API_URL}/api/v1/builds/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(formData),
             });
 
-            if (res.ok) {
-                alert("保存しました！");
-                router.push("/builds");
-                router.refresh();
-            } else {
-                const errData = await res.json();
-                alert(`保存失敗: ${errData.detail || "不明なエラー"}`);
+            // 変更点4: 更新時のエラーハンドリング
+            if (!res.ok) {
+                const errorData = (await res.json()) as ApiErrorResponse;
+                let errorMessage = "更新に失敗しました";
+                if (typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                    errorMessage = "入力内容に誤りがあります（" + errorData.detail.map(err => err.msg).join(", ") + "）";
+                }
+                throw new Error(errorMessage);
             }
-        } catch (error) {
-            alert("通信エラーが発生しました");
+
+            alert("更新しました！");
+            router.push("/builds");
+            router.refresh();
+
+        } catch (error: any) {
+            console.error("更新エラー:", error);
+            setErrorMsg(error.message || "通信エラーが発生しました");
         } finally {
             setSaving(false);
         }
@@ -173,6 +189,13 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
     return (
         <div className="p-8 max-w-4xl mx-auto bg-gray-100 min-h-screen">
             <h1 className="text-3xl font-bold mb-6 text-gray-800 border-b-2 border-blue-500 pb-2">育成データの編集</h1>
+
+            {/* エラーメッセージの表示エリア */}
+            {errorMsg && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg">
+                    <p className="font-medium">{errorMsg}</p>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-xl shadow-lg">
 

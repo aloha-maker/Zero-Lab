@@ -1,4 +1,4 @@
-import PartyForm from '@/components/PartyForm';
+import PartyForm from '@/app/parties/components/PartyForm';
 
 export default function NewPartyPage() {
     return (

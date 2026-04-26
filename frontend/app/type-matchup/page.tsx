@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { TypeMatchupRequest, TypeMatchupResponse, ApiErrorResponse } from "@/app/types/api";
 
 // PokeAPIに送信するための英語名と、表示用の日本語名のマッピング
 const POKEMON_TYPES = [
@@ -28,33 +29,48 @@ export default function TypeMatchupPage() {
     const [attackerType, setAttackerType] = useState("normal");
     const [defenderType1, setDefenderType1] = useState("normal");
     const [defenderType2, setDefenderType2] = useState("");
-    const [result, setResult] = useState<{ multiplier: number; message: string } | null>(null);
+
+    const [result, setResult] = useState<TypeMatchupResponse | null>(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [error, setError] = useState<string | null>(null);
 
     const handleCalculate = async () => {
         setLoading(true);
-        setError("");
+        setError(null);
         setResult(null);
 
+        const requestData: TypeMatchupRequest = {
+            attacker_type: attackerType,
+            defender_types: [defenderType1, defenderType2].filter(Boolean),
+        };
+
         try {
-            const response = await fetch("http://localhost:8000/api/v1/type_matchup", {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+            const response = await fetch(`${API_URL}/api/v1/type_matchup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    attacker_type: attackerType,
-                    defender_types: [defenderType1, defenderType2].filter(Boolean), // 空文字列を除外
-                }),
+                body: JSON.stringify(requestData),
             });
 
             if (!response.ok) {
-                throw new Error("相性の計算に失敗しました");
+                const errorData = (await response.json()) as ApiErrorResponse;
+                let errorMessage = "相性の計算に失敗しました";
+
+                if (typeof errorData.detail === 'string') {
+                    errorMessage = errorData.detail;
+                } else if (Array.isArray(errorData.detail)) {
+                    errorMessage = "入力内容に誤りがあります（" + errorData.detail.map(err => err.msg).join(", ") + "）";
+                }
+                throw new Error(errorMessage);
             }
 
-            const data = await response.json();
+            const data = (await response.json()) as TypeMatchupResponse;
             setResult(data);
+
         } catch (err: any) {
-            setError(err.message);
+            console.error("Error:", err);
+            setError(err.message || "通信エラーが発生しました。バックエンドが起動しているか確認してください。");
         } finally {
             setLoading(false);
         }
@@ -127,8 +143,12 @@ export default function TypeMatchupPage() {
                     {loading ? "計算中..." : "相性を判定する"}
                 </button>
 
-                {/* 結果表示 */}
-                {error && <p className="text-red-500 mt-4 font-bold">{error}</p>}
+                {error && (
+                    <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-r-lg">
+                        <p className="font-bold">{error}</p>
+                    </div>
+                )}
+
                 {result && (
                     <div className="mt-8 p-4 bg-blue-50 rounded-lg text-center border border-blue-200">
                         <h2 className="text-xl font-bold text-blue-800 mb-2">判定結果</h2>
