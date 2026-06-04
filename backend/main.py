@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 作成したルーター（部品）を読み込む
-from routers import status, damage,pokemon,type_matchup,builds,parties
+from routers import status, damage,pokemon,type_matchup,builds,parties,battles
 from core.config import settings
 
 app = FastAPI(title=settings.PROJECT_NAME, version="1.0.0")
@@ -23,6 +23,7 @@ app.include_router(pokemon.router, prefix=f"{settings.API_PREFIX}/pokemon", tags
 app.include_router(type_matchup.router, prefix=f"{settings.API_PREFIX}/type_matchup", tags=["type_matchup"])
 app.include_router(builds.router, prefix=f"{settings.API_PREFIX}/builds", tags=["builds"])
 app.include_router(parties.router, prefix=f"{settings.API_PREFIX}/parties", tags=["parties"])
+app.include_router(battles.router, prefix=f"{settings.API_PREFIX}/battles", tags=["battles"])
 
 # サーバーが動いているか確認するためのルート（無くてもOKですがあると便利です）
 @app.get("/")
