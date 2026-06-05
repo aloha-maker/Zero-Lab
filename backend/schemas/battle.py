@@ -48,3 +48,6 @@ class BattleResponse(BattleBase):
 
     class Config:
         from_attributes = True
+
+class BattleResultUpdate(BaseModel):
+    result: str  # 'win', 'lose', 'draw' のいずれか

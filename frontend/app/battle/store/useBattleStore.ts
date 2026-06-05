@@ -12,7 +12,7 @@ interface BattleState {
 
   // --- Actions ---
   // 初期化（パーティ入力画面で6匹を決定した時）
-  initializeMatch: (pokemons: OpponentPokemon[]) => void;
+  initializeMatch: (matchId: string, pokemons: OpponentPokemon[]) => void;
   
   // バトル中のトグル操作（遅延ゼロでUIに反映）
   toggleSelected: (slotOrder: number) => void;
@@ -36,10 +36,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   syncError: false,
   editingSlot: null,
 
-  initializeMatch: (pokemons) => {
-    set({ opponentTeam: pokemons, syncError: false });
-    // TODO: ここで FastAPI の POST /api/battles を叩いて matchId を取得する
-  },
+  initializeMatch: (matchId, pokemons) => set({ matchId, opponentTeam: pokemons, syncError: false }),
 
   toggleSelected: (slotOrder) => {
     set((state) => ({
@@ -89,8 +86,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     set({ isSyncing: true, syncError: false });
     try {
-      // FastAPI のエンドポイントを叩く (例: PUT /api/battles/{matchId}/pokemons)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/battles/${matchId}/pokemons`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/${matchId}/pokemons`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(opponentTeam),
