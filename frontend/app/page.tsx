@@ -89,6 +89,19 @@ export default function Home() {
           </div>
         </Link>
 
+        {/* ▼▼ 機能カード：パーティ（構築）管理 ▼▼ */}
+        <Link href="/parties" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
+            <h2 className="text-xl font-bold text-gray-500 mb-2">📋 パーティ管理</h2>
+            <p className="text-sm text-gray-500 flex-grow">
+              作成したパーティを一覧表示・管理できます。
+            </p>
+            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
+              稼働中
+            </span>
+          </div>
+        </Link>
+
         {/* ▼▼ 今後追加予定：AI解析（準備中） ▼▼ */}
         <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 opacity-70 h-full flex flex-col">
           <h2 className="text-xl font-bold text-gray-500 mb-2">🤖 AI戦術解析 (OCR)</h2>
