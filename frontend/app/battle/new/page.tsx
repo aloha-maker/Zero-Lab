@@ -80,9 +80,7 @@ export default function NewBattlePage() {
     setIsSubmitting(true);
 
     try {
-      const dummyMatchId = crypto.randomUUID();
-
-      const initialPokemons: OpponentPokemon[] = selectedPokemons.map((p, index) => ({
+      const initialPokemons = selectedPokemons.map((p, index) => ({
         base_pokemon_id: p!.id,
         slot_order: index + 1,
         is_selected: false,
@@ -95,9 +93,28 @@ export default function NewBattlePage() {
         moves: [],
       }));
 
-      // Storeに保存してメイン画面へ遷移
-      initializeMatch(initialPokemons);
-      router.push(`/battle/${dummyMatchId}`);
+      // 🌟 ダミーを削除し、FastAPIへPOSTリクエストを送信
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          // Phase1は認証なしのため、ダミーのUUID(ご自身のDBの都合の良いUUID)を入れます
+          user_id: "00000000-0000-0000-0000-000000000000", 
+          opponent_team: initialPokemons
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("🔥バックエンドからのエラー詳細:", response.status, errorText);
+        throw new Error(`Failed to create battle: ${response.status}`);
+      }
+      
+      const data = await response.json();
+
+      // Storeを初期化してメイン画面へ遷移
+      initializeMatch(data.id, data.opponent_pokemons);
+      router.push(`/battle/${data.id}`);
     } catch (error) {
       console.error(error);
       setIsSubmitting(false);
