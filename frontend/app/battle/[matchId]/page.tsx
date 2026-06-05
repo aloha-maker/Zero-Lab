@@ -1,130 +1,233 @@
 'use client';
 
-import { useEffect, useState } from 'react'; // 🌟 useState を追加
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useBattleStore } from '../store/useBattleStore';
-import { PokemonIcon } from '../components/PokemonIcon';
 import { DetailDrawer } from '../components/DetailDrawer';
 
-export default function BattleMainPage() {
-  const router = useRouter();
+// ==========================================
+// 型定義
+// ==========================================
+interface PokemonMaster {
+  id: number;
+  jaName: string;
+  imageUrl: string;
+}
+
+export default function BattleDetailPage() {
   const params = useParams();
   const matchId = params.matchId as string;
+  const router = useRouter();
 
-  // Storeから必要な状態を取得
-  const opponentTeam = useBattleStore((state) => state.opponentTeam);
-  const isSyncing = useBattleStore((state) => state.isSyncing);
-  const syncError = useBattleStore((state) => state.syncError);
+  const {
+    opponentTeam,
+    toggleSelected,
+    toggleFainted,
+    toggleTera,
+    setEditingSlot,
+    editingSlot,
+  } = useBattleStore();
 
-  // 🌟 モーダルの状態管理
-  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
-  const [isSubmittingResult, setIsSubmittingResult] = useState(false);
+  const [pokemonMaster, setPokemonMaster] = useState<Record<number, PokemonMaster>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // 🌟 勝敗登録モーダルの状態管理
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // PokeAPI (GraphQL) からID・日本語名・画像を一括取得してマッピングを作成
   useEffect(() => {
-    if (!opponentTeam || opponentTeam.length === 0) {
-      router.push('/battle/new');
-    }
-  }, [opponentTeam, router]);
+    async function loadPokemonData() {
+      const query = `
+        query {
+          pokemon_v2_pokemon {
+            id
+            name
+            pokemon_v2_pokemonspecy {
+              pokemon_v2_pokemonspeciesnames(where: {language_id: {_eq: 11}}) {
+                name
+              }
+            }
+          }
+        }
+      `;
 
-  // 🌟 対戦結果を送信して終了する関数
-  const handleFinishBattle = async (result: 'win' | 'lose' | 'draw') => {
-    setIsSubmittingResult(true);
+      try {
+        const res = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        });
+
+        if (!res.ok) throw new Error('PokeAPI GraphQL request failed');
+
+        const { data } = await res.json();
+        const mapping: Record<number, PokemonMaster> = {};
+
+        data.pokemon_v2_pokemon.forEach((p: any) => {
+          const jaName = p.pokemon_v2_pokemonspecy?.pokemon_v2_pokemonspeciesnames?.[0]?.name || p.name;
+          mapping[p.id] = {
+            id: p.id,
+            jaName,
+            imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`
+          };
+        });
+
+        setPokemonMaster(mapping);
+      } catch (error) {
+        console.error('🔥 詳細画面でのPokeAPIフェッチに失敗しました:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadPokemonData();
+  }, []);
+
+  // 🌟 勝敗をバックエンドに送信して終了する処理
+  const handleFinishBattle = async (result: 'win' | 'lose') => {
+    setIsSubmitting(true);
     try {
-      // 1. バックエンドに結果を保存
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/${matchId}/result`, {
+      // バックエンドの仕様に合わせて PATCH または PUT で勝敗を更新
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/${matchId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ result }),
+        body: JSON.stringify({ result }) // ※APIスキーマに合わせて `is_win: true` など適宜変更してください
       });
-
-      if (!response.ok) throw new Error('Failed to update result');
-
-      // 2. 次の対戦のために、新しいパーティ入力画面に戻る
-      router.push('/battle/new');
-      
     } catch (error) {
-      console.error(error);
-      alert('結果の保存に失敗しました');
-      setIsSubmittingResult(false);
+      console.error('勝敗の記録に失敗しました:', error);
+    } finally {
+      setIsSubmitting(false);
+      setShowResultModal(false);
+      router.push('/battle/new'); // 入力画面に戻る
     }
   };
 
-  if (!opponentTeam || opponentTeam.length === 0) {
-    return <div className="h-screen bg-gray-900 flex items-center justify-center text-white">読み込み中...</div>;
-  }
+  const currentPokemon = opponentTeam.find((p) => p.slot_order === editingSlot);
+  const currentPokemonMaster = currentPokemon ? pokemonMaster[currentPokemon.base_pokemon_id] : null;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      <header className="flex justify-between items-center p-4 border-b border-gray-800">
-        <h1 className="font-bold text-lg">対戦メモ</h1>
-        <div className="text-sm font-bold bg-gray-800 px-3 py-1 rounded-full">
-          {isSyncing ? (
-            <span className="text-blue-400">☁️ ↻ 同期中...</span>
-          ) : syncError ? (
-            <span className="text-red-400">☁️ ✕ エラー</span>
-          ) : (
-            <span className="text-green-400">☁️ ✓ 保存済</span>
-          )}
-        </div>
-      </header>
-
-      <main className="flex-1 p-4 overflow-y-auto pb-6">
-        <div className="grid grid-cols-2 gap-4">
-          {opponentTeam.map((pokemon) => (
-            <PokemonIcon key={pokemon.slot_order} pokemon={pokemon} />
-          ))}
-        </div>
-      </main>
-
-      <DetailDrawer />
-      
-      {/* 🌟 修正: クリックでモーダルを開く */}
-      <div className="p-4 border-t border-gray-800 bg-gray-900">
-         <button 
-           onClick={() => setIsFinishModalOpen(true)}
-           className="w-full bg-red-900/50 text-red-200 border border-red-800 py-4 rounded-xl font-bold transition-colors hover:bg-red-900/80 active:bg-red-800"
-         >
-            対戦を終了して記録
-         </button>
+    <div className="flex flex-col h-screen bg-gray-900 text-white p-4 overflow-hidden relative">
+      {/* ヘッダーエリア */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-xl font-bold text-blue-400">Zero-Lab: 対戦中メモ</h1>
+        <button
+          onClick={() => setShowResultModal(true)} // 🌟 モーダルを開くように変更
+          className="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+        >
+          対戦終了
+        </button>
       </div>
 
-      {/* 🌟 追加: 対戦結果を選択するモーダル */}
-      {isFinishModalOpen && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-sm border border-gray-700 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <h2 className="text-xl font-bold text-center mb-6 text-white">対戦結果を記録</h2>
-            <div className="flex flex-col gap-3">
-              <button 
-                disabled={isSubmittingResult}
+      {/* 盤面操作エリア（6匹のグリッド表示） */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {opponentTeam.map((p) => {
+          const master = pokemonMaster[p.base_pokemon_id];
+          const pokemonName = master ? master.jaName : `ID: ${p.base_pokemon_id}`;
+          const pokemonImage = master ? master.imageUrl : null;
+
+          return (
+            <div
+              key={p.slot_order}
+              className={`
+                relative aspect-square rounded-lg flex flex-col items-center justify-between p-2 border transition-all select-none
+                ${p.is_fainted ? 'bg-gray-800 border-gray-700 opacity-40' : p.is_selected ? 'bg-gray-700 border-blue-500 ring-2 ring-blue-500/50' : 'bg-gray-800 border-gray-700'}
+              `}
+            >
+              {/* 選出切り替え用の不可視のタップレイヤー */}
+              <div 
+                className="absolute inset-0 cursor-pointer z-0" 
+                onClick={() => toggleSelected(p.slot_order)}
+              />
+
+              {/* 各種ステータス・UI要素 */}
+              <div className="z-10 flex flex-col items-center w-full h-full justify-between pointer-events-none">
+                <div className="flex justify-between w-full pointer-events-auto">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleTera(p.slot_order); }}
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-bold transition-colors ${p.is_tera_used ? 'bg-amber-500 text-black' : 'bg-gray-600 text-white'}`}
+                  >
+                    テラ
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFainted(p.slot_order); }}
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-bold transition-colors ${p.is_fainted ? 'bg-red-600 text-white' : 'bg-gray-600 text-white'}`}
+                  >
+                    ひんし
+                  </button>
+                </div>
+
+                {pokemonImage && (
+                  <div className="relative w-14 h-14 my-0.5">
+                    <Image
+                      src={pokemonImage}
+                      alt={pokemonName}
+                      fill
+                      sizes="56px"
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                )}
+
+                <span className="text-xs font-bold text-center leading-tight truncate w-full px-1">
+                  {isLoading ? 'Loading...' : pokemonName}
+                </span>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); setEditingSlot(p.slot_order); }}
+                  className="pointer-events-auto mt-1 text-[10px] bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-2 py-0.5 rounded-full transition-colors"
+                >
+                  詳細
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 詳細ドロワーUI */}
+      {currentPokemon && (
+        <DetailDrawer
+          isOpen={editingSlot !== null}
+          onClose={() => setEditingSlot(null)}
+          pokemon={currentPokemon}
+          pokemonName={currentPokemonMaster ? currentPokemonMaster.jaName : `ID: ${currentPokemon.base_pokemon_id}`}
+          pokemonImage={currentPokemonMaster ? currentPokemonMaster.imageUrl : undefined}
+        />
+      )}
+
+      {/* 🌟 勝敗登録モーダル */}
+      {showResultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 animate-in fade-in duration-200">
+          <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-lg font-bold text-center mb-6 text-white">対戦結果を記録</h3>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
                 onClick={() => handleFinishBattle('win')}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-colors"
+                disabled={isSubmitting}
+                className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors shadow-lg"
               >
-                勝ち 🏆
+                勝ち
               </button>
-              <button 
-                disabled={isSubmittingResult}
+              <button
                 onClick={() => handleFinishBattle('lose')}
-                className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-colors"
+                disabled={isSubmitting}
+                className="bg-red-600 hover:bg-red-500 active:bg-red-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-colors shadow-lg"
               >
-                負け 💀
-              </button>
-              <button 
-                disabled={isSubmittingResult}
-                onClick={() => handleFinishBattle('draw')}
-                className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 rounded-xl transition-colors"
-              >
-                引き分け 🤝
+                負け
               </button>
             </div>
-            <div className="mt-6">
-              <button 
-                disabled={isSubmittingResult}
-                onClick={() => setIsFinishModalOpen(false)}
-                className="w-full text-gray-400 font-bold py-2 text-sm"
-              >
-                キャンセルして戻る
-              </button>
-            </div>
+
+            <button
+              onClick={() => setShowResultModal(false)}
+              disabled={isSubmitting}
+              className="w-full bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-gray-300 font-bold py-3 rounded-xl transition-colors"
+            >
+              キャンセル
+            </button>
           </div>
         </div>
       )}

@@ -264,7 +264,7 @@ export default function NewBattlePage() {
           disabled={selectedPokemons.includes(null) || isSubmitting || isLoading}
           className="w-full bg-blue-600 disabled:bg-gray-700 text-white font-bold py-4 rounded-xl transition-colors"
         >
-          {isSubmitting ? '準備中...' : '対戦開始 (90秒)'}
+          {isSubmitting ? '準備中...' : '対戦開始'}
         </button>
       </div>
     </div>
