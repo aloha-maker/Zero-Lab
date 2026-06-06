@@ -6,9 +6,9 @@ interface BattleState {
   // --- State ---
   matchId: string | null;
   opponentTeam: OpponentPokemon[];
-  isSyncing: boolean; // FastAPIとの通信中フラグ (☁️↻)
-  syncError: boolean; // 通信エラーフラグ (☁️❌)
-  editingSlot: number | null;// 🌟 追加: 現在詳細メモを開いているポケモンの枠番号
+  isSyncing: boolean;
+  syncError: boolean;
+  editingSlot: number | null;
 
   // --- Actions ---
   // 初期化（パーティ入力画面で6匹を決定した時）
@@ -18,6 +18,7 @@ interface BattleState {
   toggleSelected: (slotOrder: number) => void;
   toggleFainted: (slotOrder: number) => void;
   toggleTera: (slotOrder: number) => void;
+  toggleMega: (slotOrder: number) => void;
   
   // 詳細メモの更新
   updatePokemonDetail: (slotOrder: number, updates: Partial<OpponentPokemon>) => void;
@@ -27,6 +28,7 @@ interface BattleState {
 
   // FastAPIへのバックグラウンド同期
   syncToBackend: () => Promise<void>;
+  
 }
 
 export const useBattleStore = create<BattleState>((set, get) => ({
@@ -68,6 +70,13 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     }));
     get().syncToBackend();
   },
+
+  toggleMega: (slotOrder) =>
+    set((state) => ({
+      opponentTeam: state.opponentTeam.map((p) =>
+        p.slot_order === slotOrder ? { ...p, is_mega_used: !p.is_mega_used } : p
+      ),
+    })),
 
   updatePokemonDetail: (slotOrder, updates) => {
     set((state) => ({
