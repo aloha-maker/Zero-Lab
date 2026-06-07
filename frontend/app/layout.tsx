@@ -24,7 +24,7 @@ export default function RootLayout({
 
             {/* 右側のメニューリンク群 */}
             <nav className="flex gap-6 text-sm font-medium">
-              <Link href="/status" className="hover:text-blue-400 transition">
+              {/* <Link href="/status" className="hover:text-blue-400 transition">
                 ステータス計算
               </Link>
               <Link href="/damage" className="hover:text-blue-400 transition">
@@ -44,7 +44,7 @@ export default function RootLayout({
               </Link>
               <Link href="/parties" className="hover:text-blue-400 transition">
                 パーティ管理
-              </Link>
+              </Link> */}
             </nav>
           </div>
         </header>
