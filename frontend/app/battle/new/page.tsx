@@ -4,7 +4,11 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useBattleStore } from '../store/useBattleStore';
-import { OpponentPokemon } from '../types';
+import { PartySelector } from '../components/PartySelector';
+import { PokemonIcon } from '../components/PokemonIcon';
+import { DetailDrawer } from '../components/DetailDrawer';
+import BattleAdvicePanel from '../components/BattleAdvicePanel';
+import { PokemonBuildResponse } from '../../types/api';
 
 // ==========================================
 // 型定義とユーティリティ関数
@@ -30,7 +34,7 @@ const hiraToKata = (str: string) => {
 
 export default function NewBattlePage() {
   const router = useRouter();
-  const initializeMatch = useBattleStore((state) => state.initializeMatch);
+  const { initializeMatch, myPartyBuilds } = useBattleStore();
   
   // PokeAPIから取得したマスターデータを格納するステート
   const [pokemonMaster, setPokemonMaster] = useState<PokemonMaster[]>([]);
@@ -136,6 +140,7 @@ export default function NewBattlePage() {
   // 对戦開始ボタン押下時の処理
   const handleStartBattle = async () => {
     if (selectedPokemons.includes(null)) return;
+    console.log('myPartyBuilds:', myPartyBuilds);
     setIsSubmitting(true);
 
     try {
@@ -181,6 +186,8 @@ export default function NewBattlePage() {
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white p-4">
       <h1 className="text-xl font-bold mb-4">相手のパーティを入力</h1>
+
+      <PartySelector />
 
       {/* 選択された6匹のスロット */}
       <div className="grid grid-cols-3 gap-3 mb-6">

@@ -1,6 +1,7 @@
 // frontend/app/battle/store/useBattleStore.ts
 import { create } from 'zustand';
 import { OpponentPokemon, BattleMatch } from '../types';
+import { PokemonBuildResponse } from '../../types/api';
 
 interface BattleState {
   // --- State ---
@@ -9,6 +10,8 @@ interface BattleState {
   isSyncing: boolean;
   syncError: boolean;
   editingSlot: number | null;
+  selectedPartyId: string | null;
+  myPartyBuilds: PokemonBuildResponse[];
 
   // --- Actions ---
   // 初期化（パーティ入力画面で6匹を決定した時）
@@ -28,6 +31,9 @@ interface BattleState {
 
   // FastAPIへのバックグラウンド同期
   syncToBackend: () => Promise<void>;
+
+  setSelectedParty: (partyId: string | null, builds: PokemonBuildResponse[]) => void;
+  clearSelectedParty: () => void;
   
 }
 
@@ -37,6 +43,8 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   isSyncing: false,
   syncError: false,
   editingSlot: null,
+  selectedPartyId: null,
+  myPartyBuilds: [],
 
   initializeMatch: (matchId, pokemons) => set({ matchId, opponentTeam: pokemons, syncError: false }),
 
@@ -109,4 +117,14 @@ export const useBattleStore = create<BattleState>((set, get) => ({
       set({ isSyncing: false, syncError: true });
     }
   },
+
+  setSelectedParty: (partyId, builds) => set({
+    selectedPartyId: partyId,
+    myPartyBuilds: builds
+  }),
+
+  clearSelectedParty: () => set({
+    selectedPartyId: null,
+    myPartyBuilds: []
+  }),
 }));
