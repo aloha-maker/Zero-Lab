@@ -202,6 +202,7 @@ export default function BattleDetailPage() {
 
   const {
     opponentTeam,
+    myPartyBuilds,  // ← これが抜けていませんか？
     initializeMatch,
     toggleSelected,
     toggleFainted,
@@ -214,9 +215,6 @@ export default function BattleDetailPage() {
   
   const [showResultModal, setShowResultModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // コライドン(10257), ハバタクカミ(989), ウーラオス(892), パオジアン(986), イーユイ(988), モロバレル(591)
-  const defaultEnemyIds = [10257, 989, 892, 986, 988, 591];
 
   useEffect(() => {
     async function loadPokemonData() {
@@ -266,25 +264,6 @@ export default function BattleDetailPage() {
     loadPokemonData();
   }, []);
 
-  useEffect(() => {
-    if (matchId && opponentTeam.length === 0) {
-      const initialPokemons: OpponentPokemon[] = defaultEnemyIds.map((id, index) => ({
-        base_pokemon_id: id,
-        slot_order: index + 1,
-        is_selected: false,
-        is_fainted: false,
-        is_tera_used: false,
-        is_mega_used: false,
-        tera_type: null,
-        item_id: null,
-        ability_id: null,
-        moves: [],
-      }));
-      initializeMatch(matchId, initialPokemons);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matchId, initializeMatch]);
-
   const handleFinishBattle = async (result: 'win' | 'lose') => {
     setIsSubmitting(true);
     try {
@@ -305,8 +284,8 @@ export default function BattleDetailPage() {
   const currentPokemon = opponentTeam.find((p) => p.slot_order === editingSlot);
   const currentPokemonMaster = currentPokemon ? pokemonMaster[currentPokemon.base_pokemon_id] : null;
 
-  const myPartyNames = ['ミライドン', 'パオジアン', 'ハバタクカミ', 'ウーラオス', 'オーガポン', 'ディンルー'];
-  const enemyPartyNames = defaultEnemyIds.map(id => pokemonMaster[id]?.jaName || '???');
+  const myPartyNames = myPartyBuilds.map(b => b.pokemon_name);
+  const enemyPartyNames = opponentTeam.map(p => pokemonMaster[p.base_pokemon_id]?.jaName || '???');
 
   if (isLoading) {
     return (
