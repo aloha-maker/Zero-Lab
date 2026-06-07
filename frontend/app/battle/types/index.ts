@@ -25,3 +25,19 @@ export interface BattleMatch {
   memo: string | null;
   opponent_pokemons: OpponentPokemon[];
 }
+
+
+export interface BattleAdviceRequest {
+  my_party: string[];       // 自パーティ（6体）
+  enemy_party: string[];    // 相手パーティ（6体）
+  rule: 'single' | 'double';
+  regulation: string;
+}
+
+export interface BattleAdviceResponse {
+  recommended_selection: string[]; // 推奨選出（3体または4体）
+  lead_pokemon: string;            // 初手（リード）
+  reasons: string[];               // 選出理由（箇条書き）
+  threats: string[];               // 警戒すべきポケモン・並び
+  notes: string[];                 // 対戦時の注意点
+}

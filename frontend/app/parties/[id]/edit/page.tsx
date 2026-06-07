@@ -5,13 +5,15 @@ import { useParams } from 'next/navigation';
 import PartyForm from '@/app/parties/components/PartyForm';
 import type { PartyResponse } from '@/app/types/api';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function EditPartyPage() {
     const { id } = useParams();
     const [initialData, setInitialData] = useState<PartyResponse | null>(null);
 
     useEffect(() => {
         // 既存のパーティ情報を取得
-        fetch(`http://localhost:8000/api/v1/parties/${id}`)
+        fetch(`${API_URL}/api/v1/parties/${id}`)
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {

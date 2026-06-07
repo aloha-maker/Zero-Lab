@@ -3,7 +3,6 @@ import os
 from fastapi import HTTPException
 from typing import List, Dict, Any
 
-# 設定の型安全化 (ガイドライン 1.11, 1.12 参照) [cite: 11, 12]
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
