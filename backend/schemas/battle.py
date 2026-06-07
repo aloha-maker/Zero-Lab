@@ -51,3 +51,16 @@ class BattleResponse(BattleBase):
 
 class BattleResultUpdate(BaseModel):
     result: str  # 'win', 'lose', 'draw' のいずれか
+
+class BattleAdviceRequest(BaseModel):
+    my_party: List[str]       # 自パーティ（6体）
+    enemy_party: List[str]    # 相手パーティ（6体）
+    rule: str = "single"      # single or double
+    regulation: str
+
+class BattleAdviceResponse(BaseModel):
+    recommended_selection: List[str]
+    lead_pokemon: str
+    reasons: List[str]
+    threats: List[str]
+    notes: List[str]
