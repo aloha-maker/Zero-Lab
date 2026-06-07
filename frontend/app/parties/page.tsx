@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { PartyResponse } from '@/app/types/api';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function PartyListPage() {
     const [parties, setParties] = useState<PartyResponse[]>([]);
 
@@ -10,7 +12,7 @@ export default function PartyListPage() {
     const fetchParties = async () => {
         try {
             // ポート番号を含めたフルパスで取得
-            const res = await fetch('http://localhost:8000/api/v1/parties/');
+            const res = await fetch(`${API_URL}/api/v1/parties/`);
             const json = await res.json();
 
             console.log("Fetched Data:", json); // デバッグ用に確認
@@ -30,7 +32,7 @@ export default function PartyListPage() {
 
     const handleDelete = async (id: string) => {
         if (!confirm("このパーティを削除しますか？")) return;
-        await fetch(`http://localhost:8000/api/v1/parties/${id}`, { method: 'DELETE' });
+        await fetch(`${API_URL}/api/v1/parties/${id}`, { method: 'DELETE' });
         fetchParties();
     };
 
