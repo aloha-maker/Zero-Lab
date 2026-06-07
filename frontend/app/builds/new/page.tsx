@@ -138,6 +138,42 @@ export default function NewBuildPage() {
         }
     };
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<{id: number, name: string, jaName: string}[]>([]);
+    const [pokemonMaster, setPokemonMaster] = useState<{id: number, name: string, jaName: string}[]>([]);
+
+    useEffect(() => {
+    const fetchMaster = async () => {
+        const query = `query { pokemon_v2_pokemon(limit: 1025) { id name pokemon_v2_pokemonspecy { pokemon_v2_pokemonspeciesnames(where: {language_id: {_eq: 11}}) { name } } } }`;
+        const res = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+        });
+        const { data } = await res.json();
+        setPokemonMaster(data.pokemon_v2_pokemon.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        jaName: p.pokemon_v2_pokemonspecy?.pokemon_v2_pokemonspeciesnames?.[0]?.name || p.name,
+        })));
+    };
+    fetchMaster();
+    }, []);
+
+    useEffect(() => {
+    if (!searchQuery.trim()) { setSearchResults([]); return; }
+    const q = searchQuery.replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+    setSearchResults(pokemonMaster.filter(p =>
+        p.jaName.includes(q) || p.jaName.includes(searchQuery) || p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ).slice(0, 10));
+    }, [searchQuery, pokemonMaster]);
+
+    const handleSelectPokemon = (p: {id: number, name: string, jaName: string}) => {
+    setFormData(prev => ({ ...prev, pokemon_id: p.id, pokemon_name: p.jaName }));
+    setSearchQuery('');
+    setSearchResults([]);
+    };
+
     const inputStyle = "w-full bg-white border-2 border-gray-300 p-2 rounded text-black focus:border-blue-500 outline-none";
     const labelStyle = "block text-sm font-bold mb-1 text-gray-700 uppercase";
 
@@ -158,15 +194,26 @@ export default function NewBuildPage() {
                 <section>
                     <h2 className="text-xl font-bold mb-4 text-green-600 border-l-4 border-green-600 pl-2">基本情報</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="grid grid-cols-3 gap-2">
-                            <div className="col-span-1">
-                                <label className={labelStyle}>図鑑番号</label>
-                                <input type="number" name="pokemon_id" value={formData.pokemon_id} onChange={handleChange} className={inputStyle} required placeholder="例: 6" />
-                            </div>
-                            <div className="col-span-2">
-                                <label className={labelStyle}>ポケモン名</label>
-                                <input type="text" name="pokemon_name" value={formData.pokemon_name} onChange={handleChange} className={inputStyle} required placeholder="例: charizard" />
-                            </div>
+                    <div className="col-span-2 relative">
+                        <label className={labelStyle}>ポケモン検索</label>
+                        <input
+                            type="text"
+                            value={searchQuery || (formData.pokemon_name ? `${formData.pokemon_name} (#${formData.pokemon_id})` : '')}
+                            onChange={(e) => { setSearchQuery(e.target.value); }}
+                            onFocus={() => setSearchQuery('')}
+                            placeholder="名前で検索..."
+                            className={inputStyle}
+                        />
+                        {searchResults.length > 0 && (
+                            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded shadow-lg max-h-48 overflow-y-auto">
+                            {searchResults.map(p => (
+                                <li key={p.id} onClick={() => handleSelectPokemon(p)}
+                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-black text-sm">
+                                {p.jaName} <span className="text-gray-400">#{p.id}</span>
+                                </li>
+                            ))}
+                            </ul>
+                        )}
                         </div>
                         <div>
                             <label className={labelStyle}>ニックネーム</label>

@@ -9,6 +9,8 @@ interface PartyFormProps {
     isEdit?: boolean;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
     const router = useRouter();
     const [name, setName] = useState(initialData?.name || '');
@@ -28,7 +30,7 @@ export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
 
     // 育成済みポケモン一覧を取得
     useEffect(() => {
-        fetch('http://localhost:8000/api/v1/builds')
+        fetch(`${API_URL}/api/v1/builds`)
             .then(res => res.json())
             .then(data => setAvailableBuilds(data.data || []));
     }, []);
@@ -44,7 +46,7 @@ export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
             members,
         };
 
-        const url = isEdit ? `http://localhost:8000/api/v1/parties/${initialData?.id}` : 'http://localhost:8000/api/v1/parties';
+        const url = isEdit ? `${API_URL}/api/v1/parties/${initialData?.id}` : `${API_URL}/api/v1/parties`;
         const method = isEdit ? 'PUT' : 'POST';
 
         const res = await fetch(url, {
