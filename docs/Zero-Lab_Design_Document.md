@@ -4,8 +4,6 @@
 
 本システムは、Next.js（フロントエンド）とFastAPI（バックエンド）を核としたマイクロサービス志向のWebアプリケーションです。Docker Composeを用いて環境を一括管理し、開発効率を高めています。
 
-[Image of System architecture diagram]
-
 - **Frontend**: Next.js (App Router, Tailwind CSS)
 - **Backend**: FastAPI (Python 3.x)
 - **Database**: PostgreSQL
@@ -21,7 +19,10 @@
 | **Type** | `/type_matchup` | GET | タイプ相性判定 |
 | **Builds** | `/builds` | POST/GET | 育成データの保存・取得 |
 | **Parties** | `/parties` | POST/GET | パーティ管理 |
-| **Battles** | `/battles` | POST | 対戦記録の作成 |
+| **Battles** | `/battles` | POST/GET | 対戦記録の作成・履歴の取得 |
+| | `/battles/{battle_id}/pokemons` | PUT | 対戦相手のポケモン構成の同期・更新 |
+| | `/battles/{battle_id}/result` | PATCH | 対戦結果の更新 |
+| | `/battles/advice` | POST | 対戦アドバイスの取得（Gemini API連携） |
 
 ## 3. API仕様書（抜粋）
 
@@ -35,7 +36,14 @@
 
 - **エンドポイント**: `POST /api/battles/`
 - **リクエスト**: `BattleCreate` スキーマ（対戦相手の情報等）
-- **レスポンス**: `201 Created`
+- **レスポンス**: `BattleResponse` スキーマ
+
+### 対戦アドバイス取得（AI連携）
+
+- **エンドポイント**: `POST /api/battles/advice`
+- **リクエスト**: `BattleAdviceRequest` スキーマ
+- **レスポンス**: `BattleAdviceResponse` スキーマ
+- **説明**: Gemini APIを利用し、現在の対戦状況に基づいたアドバイスを生成します。
 
 ## 4. データベース設計 (DDL)
 

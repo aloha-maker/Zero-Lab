@@ -11,6 +11,14 @@ export interface PokemonInfo {
     image_url?: string;
 }
 
+/** GET /pokemon/?rule_id= のレスポンス型（サジェスト候補用） */
+export interface PokemonListItem {
+    pokemon_id: number;
+    name: string;
+    english_name: string;
+    image_url?: string;
+}
+
 export interface StatusRequest {
     is_hp: boolean;
     base_stat: number;
@@ -66,10 +74,9 @@ export interface BuildCreateRequest {
 export interface BuildUpdateRequest extends BuildCreateRequest { }
 
 export interface PokemonBuildResponse extends BuildCreateRequest {
-    id: string; // データベース上で採番されたUUIDなど
+    id: string;
     created_at?: string;
 }
-
 
 export interface ApiValidationError {
     loc: (string | number)[];
@@ -96,4 +103,19 @@ export interface PartyCreateRequest {
 export interface PartyResponse extends PartyCreateRequest {
     id: string;
     created_at?: string;
+}
+
+/** GET /seasons/ のレスポンス型 */
+export interface RuleResponse {
+    id: number;
+    name: string;
+}
+
+export interface SeasonResponse {
+    id: number;
+    name: string;
+    rule_id: number;
+    start_date?: string;
+    end_date?: string;
+    rule?: RuleResponse;
 }

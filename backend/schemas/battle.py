@@ -29,12 +29,14 @@ class OpponentPokemonResponse(OpponentPokemonBase):
         from_attributes = True
 
 class BattleBase(BaseModel):
+    season_id: Optional[int] = None
     result: Optional[str] = None
     my_team: Optional[List[int]] = []
     memo: Optional[str] = None
 
 class BattleCreate(BaseModel):
     user_id: UUID  # 本番環境ではJWTトークンから取得するのがベター
+    season_id: Optional[int] = None
     opponent_team: List[OpponentPokemonCreate] # 初期パーティ6匹
 
 class BattleUpdate(BattleBase):
@@ -43,6 +45,7 @@ class BattleUpdate(BattleBase):
 class BattleResponse(BattleBase):
     id: UUID
     user_id: UUID
+    season_id: Optional[int] = None
     created_at: datetime
     opponent_pokemons: List[OpponentPokemonResponse] = []
 
