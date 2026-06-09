@@ -12,29 +12,30 @@ interface BattleState {
   editingSlot: number | null;
   selectedPartyId: string | null;
   myPartyBuilds: PokemonBuildResponse[];
+  /** 選択中のシーズンID */
+  seasonId: number | null;
+  /** 選択中のシーズンに紐づくルールID（ポケモン候補フィルタに使用） */
+  ruleId: number | null;
 
   // --- Actions ---
-  // 初期化（パーティ入力画面で6匹を決定した時）
   initializeMatch: (matchId: string, pokemons: OpponentPokemon[]) => void;
-  
-  // バトル中のトグル操作（遅延ゼロでUIに反映）
+
   toggleSelected: (slotOrder: number) => void;
   toggleFainted: (slotOrder: number) => void;
   toggleTera: (slotOrder: number) => void;
   toggleMega: (slotOrder: number) => void;
-  
-  // 詳細メモの更新
+
   updatePokemonDetail: (slotOrder: number, updates: Partial<OpponentPokemon>) => void;
-  
-  // ドロワーの開閉アクション
+
   setEditingSlot: (slotOrder: number | null) => void;
 
-  // FastAPIへのバックグラウンド同期
   syncToBackend: () => Promise<void>;
 
   setSelectedParty: (partyId: string | null, builds: PokemonBuildResponse[]) => void;
   clearSelectedParty: () => void;
-  
+
+  /** シーズン選択時に seasonId と ruleId を同時にセット */
+  setSeason: (seasonId: number | null, ruleId: number | null) => void;
 }
 
 export const useBattleStore = create<BattleState>((set, get) => ({
@@ -45,6 +46,8 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   editingSlot: null,
   selectedPartyId: null,
   myPartyBuilds: [],
+  seasonId: null,
+  ruleId: null,
 
   initializeMatch: (matchId, pokemons) => set({ matchId, opponentTeam: pokemons, syncError: false }),
 
@@ -54,7 +57,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
         p.slot_order === slotOrder ? { ...p, is_selected: !p.is_selected } : p
       ),
     }));
-    get().syncToBackend(); // 裏側で同期
+    get().syncToBackend();
   },
 
   toggleFainted: (slotOrder) => {
@@ -69,7 +72,6 @@ export const useBattleStore = create<BattleState>((set, get) => ({
   toggleTera: (slotOrder) => {
     set((state) => ({
       opponentTeam: state.opponentTeam.map((p) => {
-        // テラスタルは1試合に1匹のみ（排他制御）
         if (p.slot_order === slotOrder) {
           return { ...p, is_tera_used: !p.is_tera_used };
         }
@@ -103,14 +105,17 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
     set({ isSyncing: true, syncError: false });
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/${matchId}/pokemons`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(opponentTeam),
-      });
-      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/${matchId}/pokemons`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(opponentTeam),
+        }
+      );
+
       if (!response.ok) throw new Error('Sync failed');
-      
+
       set({ isSyncing: false });
     } catch (error) {
       console.error(error);
@@ -120,11 +125,13 @@ export const useBattleStore = create<BattleState>((set, get) => ({
 
   setSelectedParty: (partyId, builds) => set({
     selectedPartyId: partyId,
-    myPartyBuilds: builds
+    myPartyBuilds: builds,
   }),
 
   clearSelectedParty: () => set({
     selectedPartyId: null,
-    myPartyBuilds: []
+    myPartyBuilds: [],
   }),
+
+  setSeason: (seasonId, ruleId) => set({ seasonId, ruleId }),
 }));
