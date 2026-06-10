@@ -7,16 +7,15 @@ from schemas.pokemon import PokemonInfo, PokemonListItem
 from core.config import settings
 
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
+POKEAPI_GRAPHQL_URL = "https://beta.pokeapi.co/graphql/v1beta"
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-# タイムアウトの設定 (接続に5秒、データ受信に10秒)
-timeout = httpx.Timeout(10.0, connect=5.0)
+timeout = httpx.Timeout(30.0, connect=10.0)
 
 
 def get_localized_name(names_list: list, target_lang: str, default_name: str) -> str:
-    # PokeAPI が返す言語名は小文字（例: "ja-hrkt"）のため、大文字小文字を無視して比較する
     target_lang_lower = target_lang.lower()
     for name_entry in names_list:
         if name_entry["language"]["name"].lower() == target_lang_lower:
@@ -24,14 +23,13 @@ def get_localized_name(names_list: list, target_lang: str, default_name: str) ->
     return default_name
 
 
-# LRUキャッシュを利用して、同じポケモンに対する2回目以降の取得をメモリから返す (最大256件)
 @alru_cache(maxsize=256)
 async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
+    """ポケモン詳細情報を取得する（図鑑ページ用・種族値・技・特性含む）"""
     lang = settings.TARGET_LANGUAGE
     query = str(name_or_id).lower()
 
     async with httpx.AsyncClient(timeout=timeout) as client:
-        # 1. 基本的なポケモン情報の取得
         try:
             pokemon_res = await client.get(f"{POKEAPI_BASE_URL}pokemon/{query}")
             pokemon_res.raise_for_status()
@@ -103,16 +101,63 @@ async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
         )
 
 
+async def _fetch_pokemon_list_by_ids(pokemon_ids: list[int]) -> list[PokemonListItem]:
+    """
+    pokemon_id のリストを受け取り、GraphQL で日本語名・画像だけを一括取得して返す。
+    rule_id 絞り込みと全件取得の両方から呼び出す共通処理。
+    language_id=11 が日本語（ja-Hrkt）に対応。
+    """
+    # IN句で対象IDのみ取得することで通信量を最小化
+    graphql_query = """
+    query($ids: [Int!]!) {
+      pokemon_v2_pokemon(where: {id: {_in: $ids}}, order_by: {id: asc}) {
+        id
+        name
+        pokemon_v2_pokemonspecy {
+          pokemon_v2_pokemonspeciesnames(where: {language_id: {_eq: 11}}) {
+            name
+          }
+        }
+      }
+    }
+    """
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            res = await client.post(
+                POKEAPI_GRAPHQL_URL,
+                json={"query": graphql_query, "variables": {"ids": pokemon_ids}},
+                headers={"Content-Type": "application/json"},
+            )
+            res.raise_for_status()
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=503, detail=f"PokeAPI GraphQLに接続できません: {exc}")
+
+        pokemons = res.json().get("data", {}).get("pokemon_v2_pokemon", [])
+
+    items: list[PokemonListItem] = []
+    for p in pokemons:
+        ja_names = (p.get("pokemon_v2_pokemonspecy") or {}) \
+                    .get("pokemon_v2_pokemonspeciesnames", [])
+        ja_name = ja_names[0]["name"] if ja_names else p["name"]
+        items.append(PokemonListItem(
+            pokemon_id=p["id"],
+            name=ja_name,
+            english_name=p["name"],
+            image_url=f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{p['id']}.png",
+        ))
+
+    return items
+
+
 async def get_pokemon_list_by_rule(rule_id: int) -> list[PokemonListItem]:
     """
     指定ルールで使用可能なポケモン一覧を返す。
-    rule_available_pokemons テーブルから pokemon_id を取得し、
-    各ポケモンの名前・画像を PokeAPI から並列取得する。
+    Supabase から pokemon_id を取得し、GraphQL で日本語名・画像のみ一括取得する軽量実装。
     """
     from supabase import create_client
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    # 1. ルールに紐づく pokemon_id 一覧を取得
     res = supabase.table("rule_available_pokemons") \
         .select("pokemon_id") \
         .eq("rule_id", rule_id) \
@@ -122,21 +167,52 @@ async def get_pokemon_list_by_rule(rule_id: int) -> list[PokemonListItem]:
         return []
 
     pokemon_ids = [row["pokemon_id"] for row in res.data]
+    return await _fetch_pokemon_list_by_ids(pokemon_ids)
 
-    # 2. PokeAPI から並列取得（キャッシュ活用）
-    tasks = [fetch_pokemon_data(str(pid)) for pid in pokemon_ids]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+@alru_cache(maxsize=1)
+async def get_all_pokemon_list() -> list[PokemonListItem]:
+    """
+    全ポケモンの一覧を PokeAPI GraphQL から一括取得して返す。
+    結果は alru_cache でサーバー起動中メモリにキャッシュする（再起動まで再取得しない）。
+    """
+    graphql_query = """
+    query {
+      pokemon_v2_pokemon(order_by: {id: asc}) {
+        id
+        name
+        pokemon_v2_pokemonspecy {
+          pokemon_v2_pokemonspeciesnames(where: {language_id: {_eq: 11}}) {
+            name
+          }
+        }
+      }
+    }
+    """
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            res = await client.post(
+                POKEAPI_GRAPHQL_URL,
+                json={"query": graphql_query},
+                headers={"Content-Type": "application/json"},
+            )
+            res.raise_for_status()
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=503, detail=f"PokeAPI GraphQLに接続できません: {exc}")
+
+        pokemons = res.json().get("data", {}).get("pokemon_v2_pokemon", [])
 
     items: list[PokemonListItem] = []
-    for info in results:
-        if isinstance(info, Exception):
-            print(f"Warning: ポケモン取得失敗: {info}")
-            continue
+    for p in pokemons:
+        ja_names = (p.get("pokemon_v2_pokemonspecy") or {}) \
+                    .get("pokemon_v2_pokemonspeciesnames", [])
+        ja_name = ja_names[0]["name"] if ja_names else p["name"]
         items.append(PokemonListItem(
-            pokemon_id=info.id,
-            name=info.name,
-            english_name=info.english_name,
-            image_url=info.image_url,
+            pokemon_id=p["id"],
+            name=ja_name,
+            english_name=p["name"],
+            image_url=f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{p['id']}.png",
         ))
 
     return items
