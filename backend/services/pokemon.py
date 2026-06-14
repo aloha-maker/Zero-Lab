@@ -1,6 +1,9 @@
 import httpx
 import os
+import csv
+import io
 import asyncio
+from typing import List, Dict, Any
 from fastapi import HTTPException
 from async_lru import alru_cache
 from schemas.pokemon import PokemonInfo, PokemonListItem,SeasonPokemonInfo,SeasonMoveInfo
@@ -9,6 +12,7 @@ from core.config import settings
 
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
 POKEAPI_GRAPHQL_URL = "https://beta.pokeapi.co/graphql/v1beta"
+MEGA_CSV_URL = "https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/pokemon_forms.csv"
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
@@ -280,17 +284,115 @@ async def _fetch_chunk_from_graphql(client: httpx.AsyncClient, ids: list[int]) -
         # 1つのチャンクの失敗で全体を止めないよう、エラー時は空配列を返してフォールバック
         return []
 
+async def fetch_all_mega_forms_from_csv() -> List[Dict[str, Any]]:
+    """CSVからメガシンカである行をすべて抽出する"""
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        res = await client.get(MEGA_CSV_URL)
+        res.raise_for_status()
+        
+        csv_file = io.StringIO(res.text)
+        reader = csv.DictReader(csv_file)
+        
+        mega_forms = []
+        for row in reader:
+            if row.get("is_mega") == "1" and "mega" in row.get("form_identifier", ""):
+                mega_forms.append({
+                    "form_poke_id": int(row["pokemon_id"]),
+                    "identifier": row["identifier"].lower(),
+                    "form_suffix": row["form_identifier"].lower()
+                })
+        return mega_forms
 
-async def get_active_season_pokemon_details() -> list[PokemonInfo]:
+async def fetch_mega_pokemon_data_from_pokeapi(
+    base_pokemon_dict: Dict[str, Any], 
+    form_poke_id: int, 
+    form_suffix: str
+) -> Dict[str, Any]:
     """
-    【高速化版】
-    `asyncio.gather` (Promise.all と同等) を使用し、
-    PokeAPIのデータを小分けにして一斉に並列取得する。
+    【GraphQL辞書構造 模倣版】
+    元のGraphQL辞書構造を完全に保ったまま、タイプと種族値をメガシンカ後のデータに上書きした
+    新しい辞書オブジェクトを生成して返却する。
+    """
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        # PokeAPIからメガシンカの姿のデータを直接取得
+        print(form_poke_id)
+        response = await client.get(f"{POKEAPI_BASE_URL}/pokemon/{form_poke_id}")
+        response.raise_for_status()
+        data = response.json()
+        
+        # 1. メガシンカ後のタイプ構造を、元のGraphQLのネスト構造に合わせて組み立て
+        mega_types_graphql = []
+        for t_info in data.get("types", []):
+            eng_type = t_info["type"]["name"]
+            ja_type = TYPE_ENG_TO_JA.get(eng_type, eng_type)
+            mega_types_graphql.append({
+                "pokemon_v2_type": {
+                    "pokemon_v2_typenames": [{"name": ja_type}]
+                }
+            })
+            
+        # 2. メガシンカ後の種族値構造を組み立て
+        stats_map = {}
+        for s_info in data.get("stats", []):
+            stats_map[s_info["stat"]["name"]] = s_info["base_stat"]
+            
+        # メガシンカしてもHP種族値は元のポケモンと同じ
+        hp_val = stats_map.get("hp", 0)
+        # 元の辞書からHPを引っ張る
+        for stat in base_pokemon_dict.get("pokemon_v2_pokemonstats", []):
+            if stat.get("pokemon_v2_stat", {}).get("name") == "hp":
+                hp_val = stat.get("base_stat", hp_val)
+                break
+
+        mega_stats_graphql = [
+            {"base_stat": hp_val, "pokemon_v2_stat": {"name": "hp"}},
+            {"base_stat": stats_map.get("attack", 0), "pokemon_v2_stat": {"name": "attack"}},
+            {"base_stat": stats_map.get("defense", 0), "pokemon_v2_stat": {"name": "defense"}},
+            {"base_stat": stats_map.get("special-attack", 0), "pokemon_v2_stat": {"name": "special-attack"}},
+            {"base_stat": stats_map.get("special-defense", 0), "pokemon_v2_stat": {"name": "special-defense"}},
+            {"base_stat": stats_map.get("speed", 0), "pokemon_v2_stat": {"name": "speed"}},
+        ]
+
+        # 3. 日本語名の整形 (タブンネ ➡ タブンネ (メガシンカ))
+        species_info = base_pokemon_dict.get("pokemon_v2_pokemontypes", [{}])[0] \
+            .get("pokemon_v2_type", {}) \
+            .get("pokemon_v2_typenames", [{}])[0] # 暫定のフォールバック用
+            
+        species_info = base_pokemon_dict.get("pokemon_v2_pokemonspecy", {})
+        names_list = species_info.get("pokemon_v2_pokemonspeciesnames", [])
+        base_ja_name = names_list[0]["name"] if names_list else base_pokemon_dict.get("name", "不明")
+        
+        suffix_display = "メガシンカ"
+        if form_suffix == "mega-x":
+            suffix_display = "メガシンカX"
+        elif form_suffix == "mega-y":
+            suffix_display = "メガシンカY"
+            
+        mega_name_ja = f"{base_ja_name} ({suffix_display})"
+
+        # 4. 新しいGraphQL風の辞書を生成して返却
+        return {
+            "id": form_poke_id,
+            "name": data.get("name", base_pokemon_dict.get("name")),
+            "pokemon_v2_pokemonspecy": {
+                "pokemon_v2_pokemonspeciesnames": [{"name": mega_name_ja}]
+            },
+            "pokemon_v2_pokemontypes": mega_types_graphql,
+            "pokemon_v2_pokemonstats": mega_stats_graphql,
+            "season_moves": base_pokemon_dict.get("season_moves", []),
+            "type_efficacies": base_pokemon_dict.get("type_efficacies", {})
+        }
+
+async def get_active_season_pokemon_details() -> List[SeasonPokemonInfo]:
+    """
+    【完全修正・一元パース版】
+    通常ポケモンとメガシンカポケモンをすべて生辞書(dict)のレイヤーで合流させ、
+    後半の巨大な成形処理を1つの共通ロジックで安全に通過させます。
     """
     from supabase import create_client
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    # 1. SupabaseからIDを取得
+    # 1. Supabaseから環境ポケモンと技データを取得
     res = (
         supabase.table("pokemon_rankings")
         .select(
@@ -302,7 +404,7 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             pokemon_moves_rankings!inner(move_name, move_type, category, power)
             """
         )
-        .order("rank", desc=False)  # ← ascending=True から desc=False に変更
+        .order("rank", desc=False)
         .execute()
     )
 
@@ -314,7 +416,7 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
     pokemon_ids = []
     
     for row in res.data:
-        rank_value = row.get("rank") # DBから順位を取り出す
+        rank_value = row.get("rank")
         mapping_list = row.get("pokemon_battle_db_mapping")
         moves_list = row.get("pokemon_moves_rankings", [])
         
@@ -323,8 +425,6 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             if "poke_api_id" in mapping_data and mapping_data["poke_api_id"] is not None:
                 api_id = int(mapping_data["poke_api_id"])
                 pokemon_ids.append(api_id)
-                # 辞書に「このAPIのIDのポケモンは○位」と記録しておく
-                # 万が一順位が空なら999（圏外）にしておく
                 pokemon_rank_map[api_id] = int(rank_value) if rank_value is not None else 999
                 pokemon_moves_map[api_id] = [
                     {
@@ -339,26 +439,72 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
     if not pokemon_ids:
         return []
 
-    # 💡 改善点1: IDリストを20匹ずつのグループ（チャンク）に分割
+    # 2. 20匹ずつのグループに分割してGraphQLからデータ並列取得
     chunk_size = 20
     chunks = [pokemon_ids[i:i + chunk_size] for i in range(0, len(pokemon_ids), chunk_size)]
 
-    # 💡 改善点2: asyncio.gather で並列一斉実行 (Promise.all)
     raw_pokemons = []
     async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
         tasks = [_fetch_chunk_from_graphql(client, chunk) for chunk in chunks]
         results = await asyncio.gather(*tasks)
         for result_list in results:
             raw_pokemons.extend(result_list)
+    
+    # 3. メガシンカCSVマッピングを取得し、生辞書の段階でリストを拡張する
+    mega_forms = await fetch_all_mega_forms_from_csv()
+    
+    # 💡 すべてを共通の「生辞書(dict)」として扱うための統合リスト
+    all_raw_pokemon_dicts: List[Dict[str, Any]] = []
+    
+    for p_dict in raw_pokemons:
+        # まず通常のポケモン生辞書を追加
+        all_raw_pokemon_dicts.append(p_dict)
+        
+        base_eng_name = p_dict.get("name", "").lower()
+        if not base_eng_name:
+            continue
+            
+        matched_megas = [m for m in mega_forms if base_eng_name in m["identifier"]]
+        
+        print(matched_megas)
+        
+        for mega_info in matched_megas:
+            try:
+                # 前回作成した関数で、GraphQL構造を模倣したメガの「生辞書」を取得
+                mega_pokemon_dict = await fetch_mega_pokemon_data_from_pokeapi(
+                    base_pokemon_dict=p_dict,
+                    form_poke_id=mega_info["form_poke_id"],
+                    form_suffix=mega_info["form_suffix"]
+                )
+                
+                # 💡 メガシンカ用IDに対しても、元の通常ポケモンの順位と技データをマッピングに登録・継承させる
+                mega_id = mega_pokemon_dict["id"]
+                base_id = p_dict["id"]
+                pokemon_rank_map[mega_id] = pokemon_rank_map.get(base_id, 999)
+                pokemon_moves_map[mega_id] = pokemon_moves_map.get(base_id, [])
+                
+                print(mega_pokemon_dict)
+                
+                # 生辞書のまま統合リストへ追加
+                all_raw_pokemon_dicts.append(mega_pokemon_dict)
+                
+            except Exception as e:
+                print(f"メガシンカ生辞書の構築に失敗しました ({mega_info['identifier']}): {e}")
+                continue
 
-    # 4. 取得したデータを SeasonPokemonInfo 型に成形
+    # 4. 全タイプの相性データを一斉に並列取得（ループの外に出すことで劇的な高速化）
+    type_data_tasks = [fetch_type_data(t_name) for t_name in ALL_POKEAPI_TYPES]
+    type_data_results = await asyncio.gather(*type_data_tasks)
+    type_data_map = dict(zip(ALL_POKEAPI_TYPES, type_data_results))
+
+    # 5. 統合された生辞書リストを、一連の共通成形ロジックで安全に処理する
     detailed_pokemons: list[SeasonPokemonInfo] = []
     
-    for p in raw_pokemons:
+    for p in all_raw_pokemon_dicts:
+        # 💡 共通して辞書型(dict)として安全にアクセス可能
         poke_id = p["id"]
-        english_name = p["name"]
+        english_name = p.get("name", "")
         
-        # 先ほど作った辞書から、このポケモンの正式な順位を取得
         actual_rank = pokemon_rank_map.get(poke_id, 999)
 
         # 日本語名・タイプ・種族値の成形
@@ -369,28 +515,29 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
         english_types = []
         
         for t in p.get("pokemon_v2_pokemontypes", []):
-            # 1. 日本語のタイプ名を取得（例：「じめん」「ドラゴン」）
             type_names = t.get("pokemon_v2_type", {}).get("pokemon_v2_typenames", [])
             ja_t_name = type_names[0]["name"] if type_names else None
-            
             if ja_t_name:
                 localized_types.append(ja_t_name)
             
-            # 2. 英語のタイプ名（PokeAPIのシステムネーム）を取得
-            # 💡 階層のズレに備えて、get() の第2引数に安全なデフォルトを挟みつつ抽出
             type_obj = t.get("pokemon_v2_type") or {}
             eng_t_name = type_obj.get("name")
             
             if eng_t_name:
                 english_types.append(str(eng_t_name).lower())
             elif ja_t_name:
-                # 💡【超安全策】万が一GraphQLから英語名が取れなかった場合、
-                # すでに用意してある TYPE_ENG_TO_JA から逆引きして英語名を補完する
                 backup_eng = [eng for eng, ja in TYPE_ENG_TO_JA.items() if ja == ja_t_name]
                 if backup_eng:
                     english_types.append(backup_eng[0].lower())
 
+        # 種族値パース
         base_stats = {}
+        hp_val = 0
+        defense_val = 0
+        sp_defense_val = 0
+        attack_val = 0
+        sp_attack_val = 0
+
         for s in p.get("pokemon_v2_pokemonstats", []):
             raw_stat_name = s.get("pokemon_v2_stat", {}).get("name")
             stat_name_map = {
@@ -405,23 +552,16 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             val = s["base_stat"]
             base_stats[mapped_name] = val
             
-            # 計算用に値を保持
-            if mapped_name == "hp":
-                hp_val = val
-            elif mapped_name == "defense":
-                defense_val = val
-            elif mapped_name == "sp_defense":
-                sp_defense_val = val
-            elif mapped_name == "attack":
-                attack_val = val
-            elif mapped_name == "sp_attack":
-                sp_attack_val = val
+            if mapped_name == "hp": hp_val = val
+            elif mapped_name == "defense": defense_val = val
+            elif mapped_name == "sp_defense": sp_defense_val = val
+            elif mapped_name == "attack": attack_val = val
+            elif mapped_name == "sp_attack": sp_attack_val = val
 
-        # ループ終了後に計算して格納
         base_stats["hp_times_defense"] = hp_val * defense_val
         base_stats["hp_times_sp_defense"] = hp_val * sp_defense_val
         
-        # 1. まずは各技の情報を計算してインスタンス化
+        # 技の火力指数計算（通常・メガ共通で、タイプ一致1.5倍も正確に適用されます）
         raw_moves = pokemon_moves_map.get(poke_id, [])
         actual_season_moves = [
             SeasonMoveInfo(
@@ -431,7 +571,7 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
                 power=m.get("power"),
                 power_times_atk=(
                     int(
-                        m.get("power") * (attack_val if m.get("category") == "物理" else sp_attack_val) * (1.5 if m.get("move_type") in localized_types else 1.0) # 💡 タイプ一致なら1.5倍
+                        m.get("power") * (attack_val if m.get("category") == "物理" else sp_attack_val) * (1.5 if m.get("move_type") in localized_types else 1.0)
                     )
                     if m.get("power") is not None else 0
                 )
@@ -439,33 +579,26 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             for m in raw_moves if m.get("move_name") is not None
         ]
         
-        # 2.タイプごとの最大値を集計する
         max_atk_by_type = {}
         for move in actual_season_moves:
             m_type = move.move_type
             m_val = move.power_times_atk
-            
-            # まだそのタイプが登録されていない、または現在の記録より高い数値なら更新
             if m_type not in max_atk_by_type or m_val > max_atk_by_type[m_type]:
                 max_atk_by_type[m_type] = m_val
         
-        # 1. まずは全タイプのデータを（キャッシュを効かせつつ）並列で取得するタスクを作成
-        type_data_tasks = [fetch_type_data(t_name) for t_name in ALL_POKEAPI_TYPES]
-        type_data_results = await asyncio.gather(*type_data_tasks)
-        
-        # 2. 取得したタイプデータと、このポケモンのタイプ（英語名リスト）を既存関数に投げて倍率を計算
+        # 💡 事前に外で一斉取得しておいたタイプデータを使用して相性をマッピング（劇的に高速化）
         pokemon_type_efficacies = {}
-        for t_name, t_data in zip(ALL_POKEAPI_TYPES, type_data_results):
-            # defenders に英語のタイプ名リストを渡す
+        for t_name in ALL_POKEAPI_TYPES:
+            t_data = type_data_map[t_name]
             multiplier, _ = calculate_multiplier_and_message(t_data, defenders=english_types)
             ja_type_name = TYPE_ENG_TO_JA.get(t_name, t_name)
             pokemon_type_efficacies[ja_type_name] = multiplier
             pokemon_type_efficacies[t_name] = multiplier
 
-        # 💡 6. SeasonPokemonInfo クラスに全てのデータ（rank含む）を流し込む
+        # 6. 最後に一括で正規の Pydantic モデルへ変換
         detailed_pokemons.append(SeasonPokemonInfo(
             id=poke_id,
-            rank=actual_rank,  # 【追加】DBから取った正式な順位
+            rank=actual_rank,
             name=localized_name,
             english_name=english_name,
             types=localized_types,
@@ -480,9 +613,7 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             image_url=f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{poke_id}.png"
         ))
 
-    # 💡 7. フロントエンドに渡す前に、デフォルトで順位の昇順（1位、2位、3位...）に並び替えておく
+    # 7. フロントエンドのために順位順に並び替え
     detailed_pokemons.sort(key=lambda x: x.rank)
-    
-    print(detailed_pokemons[0])
 
     return detailed_pokemons
