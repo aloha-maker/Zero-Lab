@@ -3,7 +3,7 @@ import os
 import asyncio
 from fastapi import HTTPException
 from async_lru import alru_cache
-from schemas.pokemon import PokemonInfo, PokemonListItem,SeasonPokemonInfo
+from schemas.pokemon import PokemonInfo, PokemonListItem,SeasonPokemonInfo,SeasonMoveInfo
 from core.config import settings
 
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
@@ -270,19 +270,32 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
     # 1. SupabaseからIDを取得
-    res = supabase.table("pokemon_rankings") \
-        .select("id, rank, pokemon_battle_db_mapping!inner(poke_api_id)") \
+    res = (
+        supabase.table("pokemon_rankings")
+        .select(
+            """
+            id,
+            rank,
+            name,
+            pokemon_battle_db_mapping!inner(poke_api_id, battle_db_id),
+            pokemon_moves_rankings!inner(move_name, move_type, category, power)
+            """
+        )
+        .order("rank", desc=False)  # ← ascending=True から desc=False に変更
         .execute()
+    )
 
     if not res.data:
         return []
 
     pokemon_rank_map = {}
+    pokemon_moves_map = {}
     pokemon_ids = []
     
     for row in res.data:
         rank_value = row.get("rank") # DBから順位を取り出す
         mapping_list = row.get("pokemon_battle_db_mapping")
+        moves_list = row.get("pokemon_moves_rankings", [])
         
         if mapping_list and isinstance(mapping_list, list) and len(mapping_list) > 0:
             mapping_data = mapping_list[0]
@@ -292,6 +305,15 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
                 # 辞書に「このAPIのIDのポケモンは○位」と記録しておく
                 # 万が一順位が空なら999（圏外）にしておく
                 pokemon_rank_map[api_id] = int(rank_value) if rank_value is not None else 999
+                pokemon_moves_map[api_id] = [
+                    {
+                        "move_name": m.get("move_name"),
+                        "move_type": m.get("move_type"),
+                        "category": m.get("category"),
+                        "power": m.get("power")
+                    }
+                    for m in moves_list
+                ]
 
     if not pokemon_ids:
         return []
@@ -308,7 +330,7 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
         for result_list in results:
             raw_pokemons.extend(result_list)
 
-    # 4. 取得したデータを PokemonInfo 型に成形
+    # 4. 取得したデータを SeasonPokemonInfo 型に成形
     detailed_pokemons: list[SeasonPokemonInfo] = []
     
     for p in raw_pokemons:
@@ -318,7 +340,7 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
         # 先ほど作った辞書から、このポケモンの正式な順位を取得
         actual_rank = pokemon_rank_map.get(poke_id, 999)
 
-        # 日本語名・タイプ・種族値の成形（ここはそのまま）
+        # 日本語名・タイプ・種族値の成形
         ja_names = p.get("pokemon_v2_pokemonspecy", {}).get("pokemon_v2_pokemonspeciesnames", [])
         localized_name = ja_names[0]["name"] if ja_names else english_name
 
@@ -340,7 +362,52 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
                 "speed": "speed"
             }
             mapped_name = stat_name_map.get(raw_stat_name, raw_stat_name)
-            base_stats[mapped_name] = s["base_stat"]
+            val = s["base_stat"]
+            base_stats[mapped_name] = val
+            
+            # 計算用に値を保持
+            if mapped_name == "hp":
+                hp_val = val
+            elif mapped_name == "defense":
+                defense_val = val
+            elif mapped_name == "sp_defense":
+                sp_defense_val = val
+            elif mapped_name == "attack":
+                attack_val = val
+            elif mapped_name == "sp_attack":
+                sp_attack_val = val
+
+        # ループ終了後に計算して格納
+        base_stats["hp_times_defense"] = hp_val * defense_val
+        base_stats["hp_times_sp_defense"] = hp_val * sp_defense_val
+        
+        # 1. まずは各技の情報を計算してインスタンス化
+        raw_moves = pokemon_moves_map.get(poke_id, [])
+        actual_season_moves = [
+            SeasonMoveInfo(
+                move_name=m.get("move_name"),
+                move_type=m.get("move_type"),
+                category=m.get("category"),
+                power=m.get("power"),
+                power_times_atk=(
+                    int(
+                        m.get("power") * (attack_val if m.get("category") == "物理" else sp_attack_val) * (1.5 if m.get("move_type") in localized_types else 1.0) # 💡 タイプ一致なら1.5倍
+                    )
+                    if m.get("power") is not None else 0
+                )
+            )
+            for m in raw_moves if m.get("move_name") is not None
+        ]
+        
+        # 2.タイプごとの最大値を集計する
+        max_atk_by_type = {}
+        for move in actual_season_moves:
+            m_type = move.move_type
+            m_val = move.power_times_atk
+            
+            # まだそのタイプが登録されていない、または現在の記録より高い数値なら更新
+            if m_type not in max_atk_by_type or m_val > max_atk_by_type[m_type]:
+                max_atk_by_type[m_type] = m_val
 
         # 💡 6. SeasonPokemonInfo クラスに全てのデータ（rank含む）を流し込む
         detailed_pokemons.append(SeasonPokemonInfo(
@@ -354,10 +421,14 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             weight_kg=0.0,
             height_m=0.0,
             moves=[],
+            season_moves=actual_season_moves,
+            max_power_times_atk_by_type=max_atk_by_type,
             image_url=f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{poke_id}.png"
         ))
 
     # 💡 7. フロントエンドに渡す前に、デフォルトで順位の昇順（1位、2位、3位...）に並び替えておく
     detailed_pokemons.sort(key=lambda x: x.rank)
+    
+    print(detailed_pokemons[0])
 
     return detailed_pokemons

@@ -12,13 +12,15 @@ const STAT_COLUMNS = [
     { key: "sp_attack", label: "特攻" },
     { key: "sp_defense", label: "特防" },
     { key: "speed", label: "素早" },
+    { key: "hp_times_defense", label: "防御指数" },
+    { key: "hp_times_sp_defense", label: "特防指数" },
 ] as const;
 
 // FastAPIのベースURL（環境に合わせて変更してください）
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ソート対象にできるキーの型を定義（型安全性を担保）
-type SortKey = "rank" | "id" | "name" | "hp" | "attack" | "defense" | "sp_attack" | "sp_defense" | "speed";
+type SortKey = "rank" | "id" | "name" | "hp" | "attack" | "defense" | "sp_attack" | "sp_defense" | "speed"| "hp_times_defense"| "hp_times_sp_defense";
 type SortOrder = "asc" | "desc";
 
 export default function SeasonsPage() {
