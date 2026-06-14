@@ -123,3 +123,14 @@ export interface SeasonResponse {
     end_date?: string;
     rule?: RuleResponse;
 }
+
+export interface RealDamageRankingResult{
+    rank: number;
+    pokemon_name: string;
+    move_name: string;
+    move_type: string;
+    category: string;
+    power_times_atk: number;
+    defense_index: number;
+    real_damage_percent: number;
+};
