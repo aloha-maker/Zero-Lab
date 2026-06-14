@@ -218,7 +218,7 @@ export default function NewBattlePage() {
           {searchResults.map((p) => (
             <button
               key={p.pokemon_id}
-              className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 pl-2 pr-4 py-1.5 rounded-full text-sm hover:bg-gray-600 active:bg-blue-600 active:border-blue-500 transition-[...]
+              className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 pl-2 pr-4 py-1.5 rounded-full text-sm hover:bg-gray-600 active:bg-blue-600 active:border-blue-500 transition-colors"
               onClick={() => handleSelectPokemon(p)}
             >
               <div className="relative w-7 h-7">
