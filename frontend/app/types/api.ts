@@ -11,6 +11,10 @@ export interface PokemonInfo {
     image_url?: string;
 }
 
+export interface SeasonPokemonInfo extends PokemonInfo {
+    rank: number;
+}
+
 /** GET /pokemon/?rule_id= のレスポンス型（サジェスト候補用） */
 export interface PokemonListItem {
     pokemon_id: number;

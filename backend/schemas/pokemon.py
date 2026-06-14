@@ -14,6 +14,9 @@ class PokemonInfo(BaseModel):
     moves: List[str]
     image_url: Optional[str] = None
 
+class SeasonPokemonInfo(PokemonInfo):
+    rank: int
+
 
 class PokemonListItem(BaseModel):
     """サジェスト候補表示用の軽量スキーマ"""
