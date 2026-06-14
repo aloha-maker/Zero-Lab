@@ -367,15 +367,28 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
 
         localized_types = []
         english_types = []
+        
         for t in p.get("pokemon_v2_pokemontypes", []):
-            # 英語名（PokeAPIのタイプ名）を取得
-            eng_t_name = t.get("pokemon_v2_type", {}).get("name")
-            if eng_t_name:
-                english_types.append(eng_t_name)
-                
+            # 1. 日本語のタイプ名を取得（例：「じめん」「ドラゴン」）
             type_names = t.get("pokemon_v2_type", {}).get("pokemon_v2_typenames", [])
-            if type_names:
-                localized_types.append(type_names[0]["name"])
+            ja_t_name = type_names[0]["name"] if type_names else None
+            
+            if ja_t_name:
+                localized_types.append(ja_t_name)
+            
+            # 2. 英語のタイプ名（PokeAPIのシステムネーム）を取得
+            # 💡 階層のズレに備えて、get() の第2引数に安全なデフォルトを挟みつつ抽出
+            type_obj = t.get("pokemon_v2_type") or {}
+            eng_t_name = type_obj.get("name")
+            
+            if eng_t_name:
+                english_types.append(str(eng_t_name).lower())
+            elif ja_t_name:
+                # 💡【超安全策】万が一GraphQLから英語名が取れなかった場合、
+                # すでに用意してある TYPE_ENG_TO_JA から逆引きして英語名を補完する
+                backup_eng = [eng for eng, ja in TYPE_ENG_TO_JA.items() if ja == ja_t_name]
+                if backup_eng:
+                    english_types.append(backup_eng[0].lower())
 
         base_stats = {}
         for s in p.get("pokemon_v2_pokemonstats", []):

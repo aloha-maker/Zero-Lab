@@ -123,3 +123,9 @@ export interface SeasonResponse {
     end_date?: string;
     rule?: RuleResponse;
 }
+
+export interface TypeVulnerabilityResult {
+    defense_type: string;
+    total_damage_risk: number;
+    rank: number;
+};

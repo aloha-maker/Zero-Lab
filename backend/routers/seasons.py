@@ -1,25 +1,34 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from schemas.seasons import SeasonResponse
-from schemas.pokemon import SeasonPokemonInfo
+from schemas.seasons import SeasonPokemonResponse,SeasonResponse,TypeVulnerabilityResult
 from services import seasons as seasons_service
 from services.pokemon import get_active_season_pokemon_details
+from services.seasons import calculate_most_vulnerable_defense_types
 
 router = APIRouter(tags=["seasons"])
 
-@router.get("/latest_pokemons", response_model=List[SeasonPokemonInfo])
+@router.get("/latest_pokemons", response_model=SeasonPokemonResponse) # 💡 response_modelを変更
 async def get_season_pokemon_details():
     """
-    指定されたシーズン（ルールID）で利用可能なポケモンの詳細一覧（名前、タイプ、種族値など）を取得する。
+    指定されたシーズン（ルールID）で利用可能なポケモンの詳細一覧と、
+    上位50位を基準とした防御側不利タイプランキングを取得する。
     """
     try:
-        # 非同期関数なので await をつけて呼び出します
-        return await get_active_season_pokemon_details()
+        # 1. ポケモンの詳細データを一斉取得
+        detailed_pokemons = await get_active_season_pokemon_details()
+        
+        # 2. 取得したデータを元に、防御側の不利タイプランキングを計算
+        vulnerable_ranking = await calculate_most_vulnerable_defense_types(detailed_pokemons)
+        
+        # 3. 両方のデータをまとめて返却
+        return SeasonPokemonResponse(
+            pokemons=detailed_pokemons,
+            vulnerable_ranking=vulnerable_ranking
+        )
+        
     except HTTPException as http_exc:
-        # サービス側から投げられた HTTPException（503エラーなど）はそのままスルーしてフロントに返します
         raise http_exc
     except Exception as e:
-        # その他の予期せぬエラー（DB接続エラーなど）は500番でキャッチします
         raise HTTPException(
             status_code=500, 
             detail=f"シーズン対象ポケモンの取得に失敗しました: {e}"
