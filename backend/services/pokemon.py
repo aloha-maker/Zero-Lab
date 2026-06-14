@@ -3,7 +3,7 @@ import os
 import asyncio
 from fastapi import HTTPException
 from async_lru import alru_cache
-from schemas.pokemon import PokemonInfo, PokemonListItem
+from schemas.pokemon import PokemonInfo, PokemonListItem,SeasonPokemonInfo
 from core.config import settings
 
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
@@ -271,19 +271,27 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
 
     # 1. SupabaseからIDを取得
     res = supabase.table("pokemon_rankings") \
-        .select("id, pokemon_battle_db_mapping!inner(poke_api_id)") \
+        .select("id, rank, pokemon_battle_db_mapping!inner(poke_api_id)") \
         .execute()
 
     if not res.data:
         return []
 
+    pokemon_rank_map = {}
     pokemon_ids = []
+    
     for row in res.data:
+        rank_value = row.get("rank") # DBから順位を取り出す
         mapping_list = row.get("pokemon_battle_db_mapping")
+        
         if mapping_list and isinstance(mapping_list, list) and len(mapping_list) > 0:
             mapping_data = mapping_list[0]
             if "poke_api_id" in mapping_data and mapping_data["poke_api_id"] is not None:
-                pokemon_ids.append(int(mapping_data["poke_api_id"]))
+                api_id = int(mapping_data["poke_api_id"])
+                pokemon_ids.append(api_id)
+                # 辞書に「このAPIのIDのポケモンは○位」と記録しておく
+                # 万が一順位が空なら999（圏外）にしておく
+                pokemon_rank_map[api_id] = int(rank_value) if rank_value is not None else 999
 
     if not pokemon_ids:
         return []
@@ -295,23 +303,22 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
     # 💡 改善点2: asyncio.gather で並列一斉実行 (Promise.all)
     raw_pokemons = []
     async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
-        # 各チャンクごとの非同期タスクを作成
         tasks = [_fetch_chunk_from_graphql(client, chunk) for chunk in chunks]
-        
-        # 一斉にリクエストを投げて、すべての結果を待つ（Promise.all）
         results = await asyncio.gather(*tasks)
-        
-        # 二次元配列になっている結果を一次元にフラット化
         for result_list in results:
             raw_pokemons.extend(result_list)
 
     # 4. 取得したデータを PokemonInfo 型に成形
-    detailed_pokemons: list[PokemonInfo] = []
+    detailed_pokemons: list[SeasonPokemonInfo] = []
     
     for p in raw_pokemons:
         poke_id = p["id"]
         english_name = p["name"]
         
+        # 先ほど作った辞書から、このポケモンの正式な順位を取得
+        actual_rank = pokemon_rank_map.get(poke_id, 999)
+
+        # 日本語名・タイプ・種族値の成形（ここはそのまま）
         ja_names = p.get("pokemon_v2_pokemonspecy", {}).get("pokemon_v2_pokemonspeciesnames", [])
         localized_name = ja_names[0]["name"] if ja_names else english_name
 
@@ -335,8 +342,10 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             mapped_name = stat_name_map.get(raw_stat_name, raw_stat_name)
             base_stats[mapped_name] = s["base_stat"]
 
-        detailed_pokemons.append(PokemonInfo(
+        # 💡 6. SeasonPokemonInfo クラスに全てのデータ（rank含む）を流し込む
+        detailed_pokemons.append(SeasonPokemonInfo(
             id=poke_id,
+            rank=actual_rank,  # 【追加】DBから取った正式な順位
             name=localized_name,
             english_name=english_name,
             types=localized_types,
@@ -347,5 +356,8 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             moves=[],
             image_url=f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{poke_id}.png"
         ))
+
+    # 💡 7. フロントエンドに渡す前に、デフォルトで順位の昇順（1位、2位、3位...）に並び替えておく
+    detailed_pokemons.sort(key=lambda x: x.rank)
 
     return detailed_pokemons

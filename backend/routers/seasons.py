@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 from schemas.seasons import SeasonResponse
-from schemas.pokemon import PokemonInfo
+from schemas.pokemon import SeasonPokemonInfo
 from services import seasons as seasons_service
 from services.pokemon import get_active_season_pokemon_details
 
 router = APIRouter(tags=["seasons"])
 
-@router.get("/latest_pokemons", response_model=List[PokemonInfo])
+@router.get("/latest_pokemons", response_model=List[SeasonPokemonInfo])
 async def get_season_pokemon_details():
     """
     指定されたシーズン（ルールID）で利用可能なポケモンの詳細一覧（名前、タイプ、種族値など）を取得する。
