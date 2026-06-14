@@ -39,9 +39,10 @@ export default function NewBattlePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🌟 ruleId が変化したらポケモン候補を Backend API から再取得
+  // 🌟 seasonId が変化したらポケモン候補を Backend API から再取得
+  // （アクティブシーズンから常に取得）
   useEffect(() => {
-    if (ruleId === null) {
+    if (!seasonId) {
       setPokemonMaster([]);
       return;
     }
@@ -53,10 +54,10 @@ export default function NewBattlePage() {
       setSearchQuery('');
 
       try {
-        const res = await fetch(`${API_BASE}/api/v1/pokemon/?rule_id=${ruleId}`);
+        const res = await fetch(`${API_BASE}/api/v1/seasons/latest_pokemons`);
         if (!res.ok) throw new Error('Failed to fetch pokemon list');
-        const data: PokemonListItem[] = await res.json();
-        setPokemonMaster(data);
+        const data = await res.json();
+        setPokemonMaster(data.pokemons);
       } catch (error) {
         console.error('🔥 ポケモン一覧のフェッチに失敗しました:', error);
       } finally {
@@ -65,7 +66,7 @@ export default function NewBattlePage() {
     };
 
     fetchPokemonList();
-  }, [ruleId]);
+  }, [seasonId]);
 
   // 💡 インクリメンタルサーチ
   const searchResults = useMemo(() => {
@@ -142,7 +143,7 @@ export default function NewBattlePage() {
     }
   };
 
-  const isReady = ruleId !== null && !isMasterLoading;
+  const isReady = seasonId !== null && !isMasterLoading;
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white p-4">
@@ -200,7 +201,7 @@ export default function NewBattlePage() {
         <input
           type="text"
           placeholder={
-            !ruleId
+            !seasonId
               ? 'シーズンを選択してください'
               : isMasterLoading
               ? 'データを読み込み中...'
@@ -217,7 +218,7 @@ export default function NewBattlePage() {
           {searchResults.map((p) => (
             <button
               key={p.pokemon_id}
-              className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 pl-2 pr-4 py-1.5 rounded-full text-sm hover:bg-gray-600 active:bg-blue-600 active:border-blue-500 transition-colors"
+              className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 pl-2 pr-4 py-1.5 rounded-full text-sm hover:bg-gray-600 active:bg-blue-600 active:border-blue-500 transition-[...]
               onClick={() => handleSelectPokemon(p)}
             >
               <div className="relative w-7 h-7">
