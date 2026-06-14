@@ -2,8 +2,8 @@ import os
 from supabase import create_client, Client
 import asyncio
 from typing import List
-from schemas.seasons import TypeVulnerabilityResult, SeasonPokemonInfo
-from services.type_matchup import fetch_type_data, calculate_multiplier_and_message
+from schemas.seasons import RealDamageRankingResult, SeasonPokemonInfo
+from .type_matchup import fetch_type_data, calculate_multiplier_and_message
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
@@ -43,58 +43,101 @@ def get_all_seasons() -> list[dict]:
         print(f"Error fetching seasons: {e}")
         raise e
 
-async def calculate_most_vulnerable_defense_types(
-    detailed_pokemons: List[SeasonPokemonInfo]
-) -> List[TypeVulnerabilityResult]:
+async def calculate_real_damage_ranking(
+    all_pokemons: List[SeasonPokemonInfo]
+) -> List[RealDamageRankingResult]:
     """
-    【要件達成】
-    1. 防御側（自分）の単タイプ18通りを準備
-    2. 50位までのポケモンの技火力（物理・特殊を考慮済みの数値）× タイプ相性をループで回す
-    3. タイプごとに集計して、不利な順（総ダメージが多い順）にソートして返す
+    【数式バグ修正版：真の環境通りが良い技ランキング】
+    攻撃側：全ポケモンの全攻撃技
+    防御側：上位50位のポケモンごとに「耐久指数 ÷ 相性倍率」を個別に計算し、それを50匹分足し合わせる。
+          （相性倍率が大きければ大きいほど、そのポケモンの防御壁は薄くなり、総防御指数が小さくなります）
     """
-    # ランキング50位までのポケモンに絞り込む
-    top_50_pokemons = detailed_pokemons[:50]
+    top_50_defenders = all_pokemons[:50]
     
-    # 1. 18タイプそれぞれの合計倍率を記録する辞書を初期化
-    total_efficacy_by_def_type = {t: 0.0 for t in ALL_TYPES_JA}
+    # 事前にPokeAPIの相性データを準備（キャッシュ利用で高速）
+    type_data_tasks = [fetch_type_data(eng) for eng in TYPE_ENG_TO_JA.keys()]
+    type_data_results = await asyncio.gather(*type_data_tasks)
+    type_data_map = dict(zip(TYPE_ENG_TO_JA.keys(), type_data_results))
+    
+    all_damage_scenarios = []
 
-    # 2. 50位までのポケモンをループ
-    for poke in top_50_pokemons:
-        # ポケモンが既に持っている相性データ（日本語キー）を取得
-        efficacies = poke.type_efficacies
-        
-        # 3. 防御側の18タイプそれぞれに対して、このポケモンから受ける倍率を足していく
-        for def_type_ja in ALL_TYPES_JA:
-            # 万が一キーが存在しない場合は等倍(1.0)として扱うガード
-            multiplier = efficacies.get(def_type_ja, 1.0)
+    # 1. 攻撃側：全ポケモンのすべての技をループ
+    for attacker in all_pokemons:
+        for move in attacker.season_moves:
+            if not move.power_times_atk or move.power_times_atk == 0:
+                continue
+                
+            move_type_eng = [eng for eng, ja in TYPE_ENG_TO_JA.items() if ja == move.move_type]
+            if not move_type_eng:
+                continue
+            t_data = type_data_map[move_type_eng[0]]
+
+            # 💡 50位以内のポケモンごとに「実質的な防御壁」を計算して集計
+            total_weighted_defense = 0.0
             
-            # 純粋にタイプ相性の倍率（2.0や0.5など）をそのまま合計する
-            total_efficacy_by_def_type[def_type_ja] += multiplier
-        print(total_efficacy_by_def_type)
+            for defender in top_50_defenders:
+                # 日本語タイプ名から英語名リストを即席で作成
+                def_types_eng = []
+                for t_ja in defender.types:
+                    eng_list = [e for e, j in TYPE_ENG_TO_JA.items() if j == t_ja]
+                    if eng_list:
+                        def_types_eng.append(eng_list[0])
+                
+                # 防御側1匹に対する正確な相性倍率（4倍、2倍、1倍、0.5倍、0倍）を計算
+                multiplier, _ = calculate_multiplier_and_message(t_data, defenders=def_types_eng)
 
-    # 合計倍率が高い順（＝弱点を突かれやすく環境的に不利な順）にソート
-    sorted_results = sorted(total_efficacy_by_def_type.items(), key=lambda x: x[1], reverse=True)
-    
-    results = []
-    for index, (t, score) in enumerate(sorted_results):
-        
-        # 💡 各ポケモンの耐久指数（前回のループで計算済みの値）を合計する、
-        # もしくは50位までの平均等のアプローチがありますが、
-        # ここでは「このタイプ（自分）が、50位のポケモン達から受ける合計の被ダメージリスクの絶対値」を算出するため、
-        # 各ポケモンの耐久力（指数）の総和をベースに掛け算を行います。
-        total_hp_times_def = sum(p.base_stats.get("hp_times_defense", 0) for p in top_50_pokemons)
-        total_hp_times_sp_def = sum(p.base_stats.get("hp_times_sp_defense", 0) for p in top_50_pokemons)
-        
-        # 💡 相性倍率の合計（score） × 50位までのポケモンの防御指数の平均（または総和）
-        # ※ 値が大きくなりすぎないよう、10000等で割って指数化（マイルドな数値に）するのがUI上見やすいためおすすめです。
-        phys_index = int((score * total_hp_times_def) / 10000)
-        spec_index = int((score * total_hp_times_sp_def) / 10000)
+                # カテゴリ（物理/特殊）に応じた、このポケモン固有の耐久指数を取得
+                if move.category == "物理":
+                    individual_def_index = defender.base_stats.get("hp_times_defense", 1)
+                else:
+                    individual_def_index = defender.base_stats.get("hp_times_sp_defense", 1)
+                
+                # 💡【バグ修正箇所】
+                # 倍率が高い（弱点）ほど、分母の防御壁を小さく（薄く）する
+                # 倍率が0（無効）の場合は、実質防御壁が無限大（ダメージが通らない）になるため、巨大な数値を足すかスキップ
+                if multiplier > 0:
+                    total_weighted_defense += (individual_def_index / multiplier)
+                else:
+                    # 💡 無効（0倍）の場合は、50位以内のポケモンの最大耐久を遥かに超える巨大な壁（実質無敵）として加算
+                    total_weighted_defense += (individual_def_index * 100)
 
-        results.append(TypeVulnerabilityResult(
-            defense_type=t,
-            total_damage_risk=int(score * 100), # 相性合計（100倍）
-            physical_risk_index=phys_index,      # 💡【追加】物理被ダメリスク指数
-            special_risk_index=spec_index,       # 💡【追加】特殊被ダメリスク指数
-            rank=index + 1
-        ))
+            # 整数にキャストして最終的な「総防御指数」とする
+            defense_index = int(total_weighted_defense)
+
+            # 実質被ダメ指数（環境突破力）＝ 火力指数 ÷ 防御指数
+            # 見やすい数値（指数）になるよう100,000倍を掛け算
+            if defense_index > 0:
+                real_risk = (move.power_times_atk / defense_index) * 100000
+                real_damage_percent = round(real_risk, 2)
+            else:
+                real_damage_percent = 0.0
+
+            all_damage_scenarios.append({
+                "pokemon_name": attacker.name,
+                "move_name": move.move_name,
+                "move_type": move.move_type,
+                "category": move.category,
+                "power_times_atk": move.power_times_atk,
+                "defense_index": defense_index,
+                "real_damage_percent": real_damage_percent
+            })
+
+    # 実質被ダメ指数（通りの良さ）が大きい順にソート
+    sorted_scenarios = sorted(all_damage_scenarios, key=lambda x: x["real_damage_percent"], reverse=True)
+
+    # 上位50件を最終結果として成形
+    results = [
+        RealDamageRankingResult(
+            rank=index + 1,
+            pokemon_name=item["pokemon_name"],
+            move_name=item["move_name"],
+            move_type=item["move_type"],
+            category=item["category"],
+            power_times_atk=item["power_times_atk"],
+            defense_index=item["defense_index"],
+            real_damage_percent=item["real_damage_percent"]
+        )
+        for index, item in enumerate(sorted_scenarios[:50])
+    ]
+
     return results

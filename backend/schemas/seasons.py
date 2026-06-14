@@ -43,8 +43,17 @@ class MoveAttackIndexResult(BaseModel):
     category: str            # カテゴリ（例: 「物理」）
     power_times_atk: int     # 火力指数（例: 23400）
 
+class RealDamageRankingResult(BaseModel):
+    rank: int
+    pokemon_name: str        # 攻撃側のポケモン名
+    move_name: str           # 技名
+    move_type: str           # 技のタイプ
+    category: str            # カテゴリ（「物理」または「特殊」）
+    power_times_atk: int     # 火力指数
+    defense_index: int       # 💡 防御指数（(50位の指数合計) × (相性倍率の合計)）
+    real_damage_percent: float # 実質被ダメ指数（火力 ÷ 防御指数 から算出する通りの良さスコア）
+
 class SeasonPokemonResponse(BaseModel):
     pokemons: List[SeasonPokemonInfo]               # ポケモン詳細一覧
-    vulnerable_ranking: List[TypeVulnerabilityResult] # 不利タイプランキング
-    top_moves_ranking: List[MoveAttackIndexResult]
+    real_damage_ranking: List[RealDamageRankingResult]
 

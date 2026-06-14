@@ -3,51 +3,27 @@ from typing import List
 from schemas.seasons import SeasonPokemonResponse,SeasonResponse,MoveAttackIndexResult
 from services import seasons as seasons_service
 from services.pokemon import get_active_season_pokemon_details
-from services.seasons import calculate_most_vulnerable_defense_types
+from services.seasons import calculate_real_damage_ranking
 
 router = APIRouter(tags=["seasons"])
 
 @router.get("/latest_pokemons", response_model=SeasonPokemonResponse) # 💡 response_modelを変更
 async def get_season_pokemon_details():
-    """
-    指定されたシーズン（ルールID）で利用可能なポケモンの詳細一覧と、
-    上位50位を基準とした防御側不利タイプランキングを取得する。
-    """
     try:
-        # 1. ポケモンの詳細データを一斉取得
         detailed_pokemons = await get_active_season_pokemon_details()
+        # 新しい実質ダメージランキングを算出
+        real_damage_ranking = await calculate_real_damage_ranking(detailed_pokemons)
         
-        # 2. 取得したデータを元に、防御側の不利タイプランキングを計算
-        vulnerable_ranking = await calculate_most_vulnerable_defense_types(detailed_pokemons)
-        
-        # 💡【追加】50位までの全ポケモンの技から「高火力技ランキング」を作成
-        all_moves = []
-        for p in detailed_pokemons[:50]:  # 上位50位のポケモンが対象
-            for m in p.season_moves:
-                if m.power_times_atk and m.power_times_atk > 0:  # 攻撃技のみ
-                    all_moves.append(MoveAttackIndexResult(
-                        pokemon_name=p.name,
-                        move_name=m.move_name,
-                        move_type=m.move_type,
-                        category=m.category,
-                        power_times_atk=m.power_times_atk
-                    ))
-        # 火力指数（power_times_atk）が大きい順にソートし、上位30個を抽出
-        top_moves_ranking = sorted(all_moves, key=lambda x: x.power_times_atk, reverse=True)[:30]
-        
-        # 3. 両方のデータをまとめて返却
         return SeasonPokemonResponse(
             pokemons=detailed_pokemons,
-            vulnerable_ranking=vulnerable_ranking,
-            top_moves_ranking=top_moves_ranking
+            real_damage_ranking=real_damage_ranking
         )
-        
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
         raise HTTPException(
             status_code=500, 
-            detail=f"シーズン対象ポケモンの取得に失敗しました: {e}"
+            detail=f"データ取得・分析に失敗しました: {e}"
         )
 
 @router.get("/", response_model=List[SeasonResponse])
