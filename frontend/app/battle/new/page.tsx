@@ -68,13 +68,13 @@ export default function NewBattlePage() {
     fetchPokemonList();
   }, [seasonId]);
 
-  // 💡 インクリメンタルサーチ
+  // 💡 インクリメンタルサーチ（重複排除あり）
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
 
     const normalizedQuery = hiraToKata(searchQuery);
 
-    return pokemonMaster
+    const results = pokemonMaster
       .filter(
         (p) =>
           p.name.includes(normalizedQuery) ||
@@ -82,6 +82,9 @@ export default function NewBattlePage() {
           p.english_name.toLowerCase().includes(searchQuery.toLowerCase())
       )
       .slice(0, 20);
+
+    // pokemon_id で重複を排除
+    return Array.from(new Map(results.map(p => [p.pokemon_id, p])).values());
   }, [searchQuery, pokemonMaster]);
 
   const handleSelectPokemon = (pokemon: PokemonListItem) => {
