@@ -315,7 +315,6 @@ async def fetch_mega_pokemon_data_from_pokeapi(
     """
     async with httpx.AsyncClient(timeout=10.0) as client:
         # PokeAPIからメガシンカの姿のデータを直接取得
-        print(form_poke_id)
         response = await client.get(f"{POKEAPI_BASE_URL}/pokemon/{form_poke_id}")
         response.raise_for_status()
         data = response.json()
@@ -466,8 +465,6 @@ async def get_active_season_pokemon_details() -> List[SeasonPokemonInfo]:
             
         matched_megas = [m for m in mega_forms if base_eng_name in m["identifier"]]
         
-        print(matched_megas)
-        
         for mega_info in matched_megas:
             try:
                 # 前回作成した関数で、GraphQL構造を模倣したメガの「生辞書」を取得
@@ -482,8 +479,6 @@ async def get_active_season_pokemon_details() -> List[SeasonPokemonInfo]:
                 base_id = p_dict["id"]
                 pokemon_rank_map[mega_id] = pokemon_rank_map.get(base_id, 999)
                 pokemon_moves_map[mega_id] = pokemon_moves_map.get(base_id, [])
-                
-                print(mega_pokemon_dict)
                 
                 # 生辞書のまま統合リストへ追加
                 all_raw_pokemon_dicts.append(mega_pokemon_dict)
