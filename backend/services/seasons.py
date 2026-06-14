@@ -74,15 +74,27 @@ async def calculate_most_vulnerable_defense_types(
 
     # 合計倍率が高い順（＝弱点を突かれやすく環境的に不利な順）にソート
     sorted_results = sorted(total_efficacy_by_def_type.items(), key=lambda x: x[1], reverse=True)
+    
+    results = []
+    for index, (t, score) in enumerate(sorted_results):
+        
+        # 💡 各ポケモンの耐久指数（前回のループで計算済みの値）を合計する、
+        # もしくは50位までの平均等のアプローチがありますが、
+        # ここでは「このタイプ（自分）が、50位のポケモン達から受ける合計の被ダメージリスクの絶対値」を算出するため、
+        # 各ポケモンの耐久力（指数）の総和をベースに掛け算を行います。
+        total_hp_times_def = sum(p.base_stats.get("hp_times_defense", 0) for p in top_50_pokemons)
+        total_hp_times_sp_def = sum(p.base_stats.get("hp_times_sp_defense", 0) for p in top_50_pokemons)
+        
+        # 💡 相性倍率の合計（score） × 50位までのポケモンの防御指数の平均（または総和）
+        # ※ 値が大きくなりすぎないよう、10000等で割って指数化（マイルドな数値に）するのがUI上見やすいためおすすめです。
+        phys_index = int((score * total_hp_times_def) / 10000)
+        spec_index = int((score * total_hp_times_sp_def) / 10000)
 
-    # Pydanticモデル（TypeVulnerabilityResult）のリストに変換して出力
-    results = [
-        TypeVulnerabilityResult(
+        results.append(TypeVulnerabilityResult(
             defense_type=t,
-            total_damage_risk=int(score * 100),
+            total_damage_risk=int(score * 100), # 相性合計（100倍）
+            physical_risk_index=phys_index,      # 💡【追加】物理被ダメリスク指数
+            special_risk_index=spec_index,       # 💡【追加】特殊被ダメリスク指数
             rank=index + 1
-        )
-        for index, (t, score) in enumerate(sorted_results)
-    ]
-
+        ))
     return results

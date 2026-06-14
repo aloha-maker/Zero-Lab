@@ -127,5 +127,15 @@ export interface SeasonResponse {
 export interface TypeVulnerabilityResult {
     defense_type: string;
     total_damage_risk: number;
+    physical_risk_index: number;
+    special_risk_index: number;
     rank: number;
+};
+
+export interface MoveAttackIndexResult{
+    pokemon_name: string;
+    move_name: string;
+    move_type: string;
+    category: string;
+    power_times_atk: number;
 };

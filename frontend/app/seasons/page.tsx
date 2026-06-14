@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useMemo } from "react";
 // 1. api.ts から共通の PokemonInfo 型をインポートして再利用
-import type { SeasonPokemonInfo,TypeVulnerabilityResult } from "@/app/types/api";
+import type { SeasonPokemonInfo,TypeVulnerabilityResult,MoveAttackIndexResult } from "@/app/types/api";
 
 type SeasonPokemonResponse = {
     pokemons: SeasonPokemonInfo[];
     vulnerable_ranking: TypeVulnerabilityResult[];
+    top_moves_ranking: MoveAttackIndexResult[];
 };
 
 // 2. ループ処理（.map）で効率的に回すためのステータス列定義
@@ -30,6 +31,7 @@ export default function SeasonsPage() {
     // 状態管理（取得したポケモンリスト、ローディング、エラー）
     const [pokemonList, setPokemonList] = useState<SeasonPokemonInfo[]>([]);
     const [vulnerableRanking, setVulnerableRanking] = useState<TypeVulnerabilityResult[]>([]);
+    const [topMovesRanking, setTopMovesRanking] = useState<MoveAttackIndexResult[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +57,7 @@ export default function SeasonsPage() {
                 const data: SeasonPokemonResponse = await res.json();
                 setPokemonList(data.pokemons || []);
                 setVulnerableRanking(data.vulnerable_ranking || []);
+                setTopMovesRanking(data.top_moves_ranking || []);
             } catch (err) {
                 if (err instanceof Error && err.name === 'AbortError') {
                     return; // 通信キャンセルの場合はエラー処理を無視
@@ -267,37 +270,106 @@ export default function SeasonsPage() {
                             </table>
                         </div>
                     </div>
-                    {/* 💡 右側：防御不利タイプランキング（固定幅350pxでサイドバー風に綺麗に配置） */}
-                    <div className="w-full lg:w-[350px] bg-white rounded-xl shadow-sm border border-slate-200 p-4 sticky top-6">
-                        <div className="mb-3 pb-2 border-b border-slate-100">
-                            <h2 className="font-bold text-slate-900 text-base">防御不利タイプ順位</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">上位50位の技範囲に基づく被ダメージリスク</p>
+                    {/* 💡 右側：環境分析サイドバーコンテナ（縦並び2段構成） */}
+                    <div className="w-full xl:w-[460px] flex-shrink-0 sticky top-6 space-y-6">
+                        
+                        {/* 1段目：防御不利タイプ順位テーブル */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                            <div className="mb-4 pb-2 border-b border-slate-100">
+                                <h2 className="font-bold text-slate-900 text-base">防御不利タイプ順位</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">上位50位の相性倍率に基づくリスク一覧</p>
+                            </div>
+                            
+                            <div className="overflow-x-auto max-h-[35vh] overflow-y-auto pr-1">
+                                <table className="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold select-none">
+                                            <th className="px-2 py-2 text-center w-10">順位</th>
+                                            <th className="px-3 py-2">タイプ</th>
+                                            <th className="px-3 py-2 text-right w-16">倍率</th>
+                                            <th className="px-3 py-2 text-right text-blue-600 w-24">物理リスク</th>
+                                            <th className="px-2 py-2 text-right text-purple-600 w-24">特殊リスク</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {vulnerableRanking.map((item) => (
+                                            <tr key={item.defense_type} className="hover:bg-red-50/20 transition-colors">
+                                                <td className="px-2 py-3 text-center font-bold">
+                                                    {item.rank === 1 && <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-red-500 text-white font-mono text-[10px]">1</span>}
+                                                    {item.rank === 2 && <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-orange-400 text-white font-mono text-[10px]">2</span>}
+                                                    {item.rank === 3 && <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-amber-400 text-white font-mono text-[10px]">3</span>}
+                                                    {item.rank > 3 && <span className="text-slate-400 font-mono pl-0.5">{item.rank}</span>}
+                                                </td>
+                                                <td className="px-3 py-3 font-bold text-slate-800 text-sm">{item.defense_type}</td>
+                                                <td className="px-3 py-3 text-right font-mono font-bold text-slate-600">{(item.total_damage_risk / 100).toFixed(1)}倍</td>
+                                                <td className="px-3 py-3 text-right font-mono font-bold text-blue-900 bg-blue-50/20">{item.physical_risk_index.toLocaleString()}</td>
+                                                <td className="px-2 py-3 text-right font-mono font-bold text-purple-900 bg-purple-50/20">{item.special_risk_index.toLocaleString()}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div className="space-y-2 max-h-[75vh] overflow-y-auto pr-1">
-                            {vulnerableRanking.map((item) => (
-                                <div key={item.defense_type} className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-red-50/30 hover:border-red-100 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-xs font-mono font-bold
-                                            ${item.rank === 1 ? 'bg-red-500 text-white' : ''}
-                                            ${item.rank === 2 ? 'bg-orange-400 text-white' : ''}
-                                            ${item.rank === 3 ? 'bg-amber-400 text-white' : ''}
-                                            ${item.rank > 3 ? 'bg-slate-200 text-slate-600' : ''}
-                                        `}>
-                                            {item.rank}
-                                        </span>
-                                        <span className="font-semibold text-slate-800 text-sm">
-                                            {item.defense_type}
-                                        </span>
-                                    </div>
-                                    <div className="text-right">
-                                        <div className="font-mono text-xs font-bold text-slate-700">
-                                            {item.total_damage_risk.toLocaleString()}
-                                        </div>
-                                        <div className="text-[10px] text-slate-400 font-normal">リスクスコア</div>
-                                    </div>
-                                </div>
-                            ))}
+
+                        {/* 💡 2段目【新設】：高火力技（指数）ランキングテーブル */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                            <div className="mb-4 pb-2 border-b border-slate-100">
+                                <h2 className="font-bold text-slate-900 text-base">高火力技ランキング</h2>
+                                <p className="text-xs text-slate-400 mt-0.5">上位50位のポケモンが繰り出せる最高打点（トップ30）</p>
+                            </div>
+                            
+                            <div className="overflow-x-auto max-h-[38vh] overflow-y-auto pr-1">
+                                <table className="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold select-none">
+                                            <th className="px-2 py-2 text-center w-8">#</th>
+                                            <th className="px-2 py-2 w-24">ポケモン名</th>
+                                            <th className="px-2 py-2 w-24">技</th>
+                                            <th className="px-2 py-2 text-center w-16">タイプ</th>
+                                            <th className="px-2 py-2 text-center w-14">カテゴリ</th>
+                                            <th className="px-2 py-2 text-right w-20">火力指数</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {topMovesRanking.map((move, index) => (
+                                            <tr key={`${move.pokemon_name}-${move.move_name}-${index}`} className="hover:bg-slate-50 transition-colors">
+                                                {/* 1. 順位記号 */}
+                                                <td className="px-2 py-2.5 text-center font-mono text-slate-400 font-medium">
+                                                    {index + 1}
+                                                </td>
+                                                {/* 2. ポケモン名 */}
+                                                <td className="px-2 py-2.5 font-bold text-slate-800 truncate max-w-[96px]" title={move.pokemon_name}>
+                                                    {move.pokemon_name}
+                                                </td>
+                                                {/* 3. 技名 */}
+                                                <td className="px-2 py-2.5 font-medium text-slate-700 truncate max-w-[96px]" title={move.move_name}>
+                                                    {move.move_name}
+                                                </td>
+                                                {/* 4. 技タイプ */}
+                                                <td className="px-2 py-2.5 text-center">
+                                                    <span className="inline-block px-1.5 py-0.5 text-[10px] font-semibold rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                                        {move.move_type}
+                                                    </span>
+                                                </td>
+                                                {/* 5. カテゴリ（物理/特殊） */}
+                                                <td className="px-2 py-2.5 text-center">
+                                                    <span className={`inline-block px-1.5 py-0.5 text-[10px] font-bold rounded
+                                                        ${move.category === "物理" ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-purple-50 text-purple-600 border border-purple-100"}
+                                                    `}>
+                                                        {move.category}
+                                                    </span>
+                                                </td>
+                                                {/* 6. 火力指数 */}
+                                                <td className="px-2 py-2.5 text-right font-mono font-bold text-slate-900">
+                                                    {move.power_times_atk.toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
+
                     </div>
                 </div>
             )}

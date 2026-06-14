@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from schemas.seasons import SeasonPokemonResponse,SeasonResponse,TypeVulnerabilityResult
+from schemas.seasons import SeasonPokemonResponse,SeasonResponse,MoveAttackIndexResult
 from services import seasons as seasons_service
 from services.pokemon import get_active_season_pokemon_details
 from services.seasons import calculate_most_vulnerable_defense_types
@@ -20,10 +20,26 @@ async def get_season_pokemon_details():
         # 2. 取得したデータを元に、防御側の不利タイプランキングを計算
         vulnerable_ranking = await calculate_most_vulnerable_defense_types(detailed_pokemons)
         
+        # 💡【追加】50位までの全ポケモンの技から「高火力技ランキング」を作成
+        all_moves = []
+        for p in detailed_pokemons[:50]:  # 上位50位のポケモンが対象
+            for m in p.season_moves:
+                if m.power_times_atk and m.power_times_atk > 0:  # 攻撃技のみ
+                    all_moves.append(MoveAttackIndexResult(
+                        pokemon_name=p.name,
+                        move_name=m.move_name,
+                        move_type=m.move_type,
+                        category=m.category,
+                        power_times_atk=m.power_times_atk
+                    ))
+        # 火力指数（power_times_atk）が大きい順にソートし、上位30個を抽出
+        top_moves_ranking = sorted(all_moves, key=lambda x: x.power_times_atk, reverse=True)[:30]
+        
         # 3. 両方のデータをまとめて返却
         return SeasonPokemonResponse(
             pokemons=detailed_pokemons,
-            vulnerable_ranking=vulnerable_ranking
+            vulnerable_ranking=vulnerable_ranking,
+            top_moves_ranking=top_moves_ranking
         )
         
     except HTTPException as http_exc:
