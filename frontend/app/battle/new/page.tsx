@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useBattleStore } from '../store/useBattleStore';
 import { PartySelector } from '../components/PartySelector';
 import { SeasonSelector } from '../components/SeasonSelector';
-import { PokemonListItem } from '../../types/api';
+import { SeasonPokemonInfo } from '../../types/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -26,14 +26,14 @@ const hiraToKata = (str: string) =>
 
 export default function NewBattlePage() {
   const router = useRouter();
-  const { initializeMatch, myPartyBuilds, ruleId, seasonId } = useBattleStore();
+  const { initializeMatch, seasonId } = useBattleStore();
 
   // ルールに紐づくポケモンマスターデータ
-  const [pokemonMaster, setPokemonMaster] = useState<PokemonListItem[]>([]);
+  const [pokemonMaster, setPokemonMaster] = useState<SeasonPokemonInfo[]>([]);
   const [isMasterLoading, setIsMasterLoading] = useState(false);
 
   // 選択された6匹のデータ (初期状態はnull)
-  const [selectedPokemons, setSelectedPokemons] = useState<(PokemonListItem | null)[]>([
+  const [selectedPokemons, setSelectedPokemons] = useState<(SeasonPokemonInfo | null)[]>([
     null, null, null, null, null, null,
   ]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +57,7 @@ export default function NewBattlePage() {
         const res = await fetch(`${API_BASE}/api/v1/seasons/latest_pokemons`);
         if (!res.ok) throw new Error('Failed to fetch pokemon list');
         const data = await res.json();
+
         setPokemonMaster(data.pokemons);
       } catch (error) {
         console.error('🔥 ポケモン一覧のフェッチに失敗しました:', error);
@@ -84,7 +85,7 @@ export default function NewBattlePage() {
       .slice(0, 20);
   }, [searchQuery, pokemonMaster]);
 
-  const handleSelectPokemon = (pokemon: PokemonListItem) => {
+  const handleSelectPokemon = (pokemon: SeasonPokemonInfo) => {
     const emptyIndex = selectedPokemons.findIndex((p) => p === null);
     if (emptyIndex !== -1) {
       const newSelected = [...selectedPokemons];
@@ -106,7 +107,7 @@ export default function NewBattlePage() {
 
     try {
       const initialPokemons = selectedPokemons.map((p, index) => ({
-        base_pokemon_id: p!.pokemon_id,
+        base_pokemon_id: p!.id,
         slot_order: index + 1,
         is_selected: false,
         is_fainted: false,
@@ -176,7 +177,7 @@ export default function NewBattlePage() {
                   <Image
                     src={
                       p.image_url ||
-                      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemon_id}.png`
+                      `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`
                     }
                     alt={p.name}
                     fill
@@ -217,7 +218,7 @@ export default function NewBattlePage() {
         <div className="flex flex-wrap gap-2 overflow-y-auto flex-1 pb-4">
           {searchResults.map((p) => (
             <button
-              key={p.pokemon_id}
+              key={p.id}
               className="flex items-center gap-1.5 bg-gray-700 border border-gray-600 pl-2 pr-4 py-1.5 rounded-full text-sm hover:bg-gray-600 active:bg-blue-600 active:border-blue-500 transition-colors"
               onClick={() => handleSelectPokemon(p)}
             >
@@ -225,7 +226,7 @@ export default function NewBattlePage() {
                 <Image
                   src={
                     p.image_url ||
-                    `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.pokemon_id}.png`
+                    `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`
                   }
                   alt={p.name}
                   fill
