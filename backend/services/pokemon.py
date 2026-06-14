@@ -4,6 +4,7 @@ import asyncio
 from fastapi import HTTPException
 from async_lru import alru_cache
 from schemas.pokemon import PokemonInfo, PokemonListItem,SeasonPokemonInfo,SeasonMoveInfo
+from .type_matchup import fetch_type_data, calculate_multiplier_and_message
 from core.config import settings
 
 POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/"
@@ -14,6 +15,26 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
 timeout = httpx.Timeout(20.0, connect=10.0)
 limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
+
+# 全18タイプの英語名リスト（PokeAPIの仕様に準拠）
+ALL_POKEAPI_TYPES = [
+    "normal", "fire", "water", "electric", "grass", "ice", 
+    "fighting", "poison", "ground", "flying", "psychic", "bug", 
+    "rock", "ghost", "dragon", "dark", "steel", "fairy"
+]
+
+# 💡 英語のタイプ名から日本語名へ変換するマッピング辞書
+TYPE_ENG_TO_JA = {
+    "normal": "ノーマル", "fire": "ほのお", "water": "みず", 
+    "electric": "でんき", "grass": "くさ", "ice": "こおり", 
+    "fighting": "かくとう", "poison": "どく", "ground": "じめん", 
+    "flying": "ひこう", "psychic": "エスパー", "bug": "むし", 
+    "rock": "いわ", "ghost": "ゴースト", "dragon": "ドラゴン", 
+    "dark": "あく", "steel": "はがね", "fairy": "フェアリー"
+}
+
+# 全18タイプの英語名リスト（ループ用）
+ALL_POKEAPI_TYPES = list(TYPE_ENG_TO_JA.keys())
 
 
 def get_localized_name(names_list: list, target_lang: str, default_name: str) -> str:
@@ -345,7 +366,13 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
         localized_name = ja_names[0]["name"] if ja_names else english_name
 
         localized_types = []
+        english_types = []
         for t in p.get("pokemon_v2_pokemontypes", []):
+            # 英語名（PokeAPIのタイプ名）を取得
+            eng_t_name = t.get("pokemon_v2_type", {}).get("name")
+            if eng_t_name:
+                english_types.append(eng_t_name)
+                
             type_names = t.get("pokemon_v2_type", {}).get("pokemon_v2_typenames", [])
             if type_names:
                 localized_types.append(type_names[0]["name"])
@@ -408,6 +435,19 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             # まだそのタイプが登録されていない、または現在の記録より高い数値なら更新
             if m_type not in max_atk_by_type or m_val > max_atk_by_type[m_type]:
                 max_atk_by_type[m_type] = m_val
+        
+        # 1. まずは全タイプのデータを（キャッシュを効かせつつ）並列で取得するタスクを作成
+        type_data_tasks = [fetch_type_data(t_name) for t_name in ALL_POKEAPI_TYPES]
+        type_data_results = await asyncio.gather(*type_data_tasks)
+        
+        # 2. 取得したタイプデータと、このポケモンのタイプ（英語名リスト）を既存関数に投げて倍率を計算
+        pokemon_type_efficacies = {}
+        for t_name, t_data in zip(ALL_POKEAPI_TYPES, type_data_results):
+            # defenders に英語のタイプ名リストを渡す
+            multiplier, _ = calculate_multiplier_and_message(t_data, defenders=english_types)
+            ja_type_name = TYPE_ENG_TO_JA.get(t_name, t_name)
+            pokemon_type_efficacies[ja_type_name] = multiplier
+            pokemon_type_efficacies[t_name] = multiplier
 
         # 💡 6. SeasonPokemonInfo クラスに全てのデータ（rank含む）を流し込む
         detailed_pokemons.append(SeasonPokemonInfo(
@@ -423,6 +463,7 @@ async def get_active_season_pokemon_details() -> list[PokemonInfo]:
             moves=[],
             season_moves=actual_season_moves,
             max_power_times_atk_by_type=max_atk_by_type,
+            type_efficacies=pokemon_type_efficacies,
             image_url=f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{poke_id}.png"
         ))
 

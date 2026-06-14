@@ -25,6 +25,7 @@ class SeasonPokemonInfo(PokemonInfo):
     rank: int
     season_moves: List[SeasonMoveInfo]
     max_power_times_atk_by_type: Dict[str, int]
+    type_efficacies: Dict[str, float]
 
 
 class PokemonListItem(BaseModel):
