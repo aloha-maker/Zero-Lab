@@ -12,7 +12,8 @@ POKEAPI_GRAPHQL_URL = "https://beta.pokeapi.co/graphql/v1beta"
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-timeout = httpx.Timeout(30.0, connect=10.0)
+timeout = httpx.Timeout(20.0, connect=10.0)
+limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
 
 
 def get_localized_name(names_list: list, target_lang: str, default_name: str) -> str:
@@ -216,3 +217,135 @@ async def get_all_pokemon_list() -> list[PokemonListItem]:
         ))
 
     return items
+
+
+async def _fetch_chunk_from_graphql(client: httpx.AsyncClient, ids: list[int]) -> list:
+    """小分けにされたIDリスト（チャンク）をもとに、GraphQLへリクエストを送る個別タスク"""
+    graphql_query = """
+    query($ids: [Int!]!) {
+      pokemon_v2_pokemon(where: {id: {_in: $ids}}, order_by: {id: asc}) {
+        id
+        name
+        pokemon_v2_pokemonspecy {
+          pokemon_v2_pokemonspeciesnames(where: {language_id: {_eq: 11}}) {
+            name
+          }
+        }
+        pokemon_v2_pokemontypes {
+          pokemon_v2_type {
+            pokemon_v2_typenames(where: {language_id: {_eq: 11}}) {
+              name
+            }
+          }
+        }
+        pokemon_v2_pokemonstats {
+          base_stat
+          pokemon_v2_stat {
+            name
+          }
+        }
+      }
+    }
+    """
+    try:
+        response = await client.post(
+            POKEAPI_GRAPHQL_URL,
+            json={"query": graphql_query, "variables": {"ids": ids}},
+            headers={"Content-Type": "application/json"},
+        )
+        response.raise_for_status()
+        return response.json().get("data", {}).get("pokemon_v2_pokemon", [])
+    except Exception:
+        # 1つのチャンクの失敗で全体を止めないよう、エラー時は空配列を返してフォールバック
+        return []
+
+
+async def get_active_season_pokemon_details() -> list[PokemonInfo]:
+    """
+    【高速化版】
+    `asyncio.gather` (Promise.all と同等) を使用し、
+    PokeAPIのデータを小分けにして一斉に並列取得する。
+    """
+    from supabase import create_client
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # 1. SupabaseからIDを取得
+    res = supabase.table("pokemon_rankings") \
+        .select("id, pokemon_battle_db_mapping!inner(poke_api_id)") \
+        .execute()
+
+    if not res.data:
+        return []
+
+    pokemon_ids = []
+    for row in res.data:
+        mapping_list = row.get("pokemon_battle_db_mapping")
+        if mapping_list and isinstance(mapping_list, list) and len(mapping_list) > 0:
+            mapping_data = mapping_list[0]
+            if "poke_api_id" in mapping_data and mapping_data["poke_api_id"] is not None:
+                pokemon_ids.append(int(mapping_data["poke_api_id"]))
+
+    if not pokemon_ids:
+        return []
+
+    # 💡 改善点1: IDリストを20匹ずつのグループ（チャンク）に分割
+    chunk_size = 20
+    chunks = [pokemon_ids[i:i + chunk_size] for i in range(0, len(pokemon_ids), chunk_size)]
+
+    # 💡 改善点2: asyncio.gather で並列一斉実行 (Promise.all)
+    raw_pokemons = []
+    async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
+        # 各チャンクごとの非同期タスクを作成
+        tasks = [_fetch_chunk_from_graphql(client, chunk) for chunk in chunks]
+        
+        # 一斉にリクエストを投げて、すべての結果を待つ（Promise.all）
+        results = await asyncio.gather(*tasks)
+        
+        # 二次元配列になっている結果を一次元にフラット化
+        for result_list in results:
+            raw_pokemons.extend(result_list)
+
+    # 4. 取得したデータを PokemonInfo 型に成形
+    detailed_pokemons: list[PokemonInfo] = []
+    
+    for p in raw_pokemons:
+        poke_id = p["id"]
+        english_name = p["name"]
+        
+        ja_names = p.get("pokemon_v2_pokemonspecy", {}).get("pokemon_v2_pokemonspeciesnames", [])
+        localized_name = ja_names[0]["name"] if ja_names else english_name
+
+        localized_types = []
+        for t in p.get("pokemon_v2_pokemontypes", []):
+            type_names = t.get("pokemon_v2_type", {}).get("pokemon_v2_typenames", [])
+            if type_names:
+                localized_types.append(type_names[0]["name"])
+
+        base_stats = {}
+        for s in p.get("pokemon_v2_pokemonstats", []):
+            raw_stat_name = s.get("pokemon_v2_stat", {}).get("name")
+            stat_name_map = {
+                "hp": "hp",
+                "attack": "attack",
+                "defense": "defense",
+                "special-attack": "sp_attack",
+                "special-defense": "sp_defense",
+                "speed": "speed"
+            }
+            mapped_name = stat_name_map.get(raw_stat_name, raw_stat_name)
+            base_stats[mapped_name] = s["base_stat"]
+
+        detailed_pokemons.append(PokemonInfo(
+            id=poke_id,
+            name=localized_name,
+            english_name=english_name,
+            types=localized_types,
+            abilities=[],
+            base_stats=base_stats,
+            weight_kg=0.0,
+            height_m=0.0,
+            moves=[],
+            image_url=f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{poke_id}.png"
+        ))
+
+    return detailed_pokemons
