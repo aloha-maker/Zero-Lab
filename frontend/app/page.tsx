@@ -102,6 +102,19 @@ export default function Home() {
           </div>
         </Link>
 
+        {/* ▼▼ 機能カード：パーティ戦略 ▼▼ */}
+        <Link href="/strategy" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
+            <h2 className="text-xl font-bold text-gray-500 mb-2">📋 パーティ戦略</h2>
+            <p className="text-sm text-gray-500 flex-grow">
+              作成したパーティを一覧表示・管理できます。
+            </p>
+            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
+              稼働中
+            </span>
+          </div>
+        </Link>
+
         {/* ▼▼ 機能カード：相手のパーティ登録 ▼▼ */}
         <Link href="/battle/new" className="block group h-full">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
