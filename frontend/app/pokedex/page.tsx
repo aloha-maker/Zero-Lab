@@ -164,8 +164,8 @@ export default function PokedexPage() {
                             <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">覚える技 (主要な技)</h3>
                             <div className="flex flex-wrap gap-2">
                                 {pokemon.moves.slice(0, 15).map(move => (
-                                    <span key={move} className="px-3 py-1 bg-white border border-gray-200 rounded text-sm text-gray-600 capitalize">
-                                        {move}
+                                    <span key={move.name} className="px-3 py-1 bg-white border border-gray-200 rounded text-sm text-gray-600 capitalize">
+                                        {move.name}
                                     </span>
                                 ))}
                                 {pokemon.moves.length > 15 && <span className="text-gray-400 text-sm italic py-1">and more...</span>}

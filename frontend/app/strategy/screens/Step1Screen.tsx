@@ -342,24 +342,62 @@ export default function Step1Screen() {
               </span>
             </button>
 
-            {isMovesOpen && (
-              <div className="mt-3 overflow-x-auto border border-slate-200 rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
-                    <tr>
-                      <th className="p-3 font-semibold">技名</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {pokemonData.moves.map((move, index) => (
-                      <tr key={index} className="hover:bg-slate-50">
-                        <td className="p-3 text-slate-700 font-medium">{move}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {/* 💡 折りたたみの中身を修正 */}
+              {isMovesOpen && (
+                <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-slate-600">
+                      <thead className="bg-slate-50 text-xs uppercase text-slate-500 border-b border-slate-200">
+                        <tr>
+                          <th className="px-4 py-3">技名</th>
+                          <th className="px-4 py-3">タイプ</th>
+                          <th className="px-4 py-3 text-center">カテゴリ</th>
+                          <th className="px-4 py-3 text-right">威力</th> {/* 💡 追加 */}
+                          <th className="px-4 py-3 text-right">命中</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {pokemonData.moves.map((move, index) => {
+                          const damageClassColors = {
+                            "ぶつり": "bg-orange-50 text-orange-700 border-orange-200",
+                            "とくしゅ": "bg-blue-50 text-blue-700 border-blue-200",
+                            "へんか": "bg-slate-100 text-slate-600 border-slate-300",
+                          }[move.damage_class] || "bg-slate-50 text-slate-500 border-slate-200";
+
+                          return (
+                            <tr key={index} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="px-4 py-3 font-medium text-slate-800">
+                                {move.name}
+                              </td>
+                              
+                              <td className="px-4 py-3">
+                                <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                  {move.type}
+                                </span>
+                              </td>
+                              
+                              <td className="px-4 py-3 text-center">
+                                <span className={`inline-block text-xs px-2 py-0.5 rounded-full border ${damageClassColors}`}>
+                                  {move.damage_class}
+                                </span>
+                              </td>
+
+                              {/* 💡 追加: 威力 (設定がない場合は "—") */}
+                              <td className="px-4 py-3 text-right font-mono text-slate-600 font-medium">
+                                {move.power !== null && move.power !== undefined ? move.power : "—"}
+                              </td>
+                              
+                              <td className="px-4 py-3 text-right font-mono text-slate-500">
+                                {move.accuracy !== null && move.accuracy !== undefined ? `${move.accuracy}%` : "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
           </div>
         </div>
       )}

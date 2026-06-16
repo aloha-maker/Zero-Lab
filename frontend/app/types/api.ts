@@ -1,3 +1,11 @@
+export interface MoveDetail {
+    name: string;          // 技の日本語名
+    type: string;          // タイプの日本語名
+    power: number | null;
+    damage_class: string;  // カテゴリ
+    accuracy: number | null; // 命中率 (null の可能性あり)
+}
+
 export interface PokemonInfo {
     id: number;
     name: string;
@@ -7,7 +15,7 @@ export interface PokemonInfo {
     base_stats: Record<string, number>;
     weight_kg: number;
     height_m: number;
-    moves: string[];
+    moves: MoveDetail[];
     image_url?: string;
 }
 
