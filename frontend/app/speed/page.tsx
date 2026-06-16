@@ -26,7 +26,7 @@ export default function SpeedComparePage() {
     const [pokemons, setPokemons] = useState<PokemonSpeedInfo[]>([
         {
             id: "1",
-            name: "ポケモンA (例: ガブリアス)",
+            name: "ガブリアス",
             baseStats: 102,
             ev: 252,
             iv: 31,
@@ -38,7 +38,7 @@ export default function SpeedComparePage() {
         },
         {
             id: "2",
-            name: "ポケモンB (例: サザンドラ)",
+            name: "サザンドラ",
             baseStats: 98,
             ev: 252,
             iv: 31,
@@ -162,8 +162,8 @@ export default function SpeedComparePage() {
 
     return (
         <div className="max-w-4xl mx-auto p-4 space-y-6">
-            <h1 className="text-2xl font-bold text-gray-800">すばやさ比較ツール</h1>
-            <p className="text-gray-600">数値を入力後、「比較計算する」ボタンを押すとバックエンドで計算を行います。(Lv.50想定)</p>
+            <h1 className="text-2xl font-bold text-gray-200">すばやさ比較ツール</h1>
+            <p className="text-gray-400">数値を入力後、「比較計算する」ボタンを押すとバックエンドで計算を行います。(Lv.50想定)</p>
 
             {/* エラーメッセージの表示エリア */}
             {errorMsg && (
@@ -209,7 +209,7 @@ export default function SpeedComparePage() {
                                     type="text"
                                     value={p.name}
                                     onChange={(e) => updatePokemon(p.id, "name", e.target.value)}
-                                    className="w-full border rounded px-2 py-1"
+                                    className="w-full border rounded px-2 py-1 text-gray-500"
                                 />
                             </div>
                             <div className="flex gap-2">
@@ -219,7 +219,7 @@ export default function SpeedComparePage() {
                                         type="number"
                                         value={p.baseStats}
                                         onChange={(e) => updatePokemon(p.id, "baseStats", Number(e.target.value))}
-                                        className="w-full border rounded px-2 py-1"
+                                        className="w-full border rounded px-2 py-1 text-gray-500"
                                     />
                                 </div>
                                 <div className="w-1/2">
@@ -231,7 +231,7 @@ export default function SpeedComparePage() {
                                         max={252}
                                         min={0}
                                         onChange={(e) => updatePokemon(p.id, "ev", Number(e.target.value))}
-                                        className="w-full border rounded px-2 py-1"
+                                        className="w-full border rounded px-2 py-1 text-gray-500"
                                     />
                                 </div>
                             </div>
@@ -244,7 +244,7 @@ export default function SpeedComparePage() {
                                     <select
                                         value={p.nature}
                                         onChange={(e) => updatePokemon(p.id, "nature", Number(e.target.value))}
-                                        className="w-full border rounded px-2 py-1"
+                                        className="w-full border rounded px-2 py-1 text-gray-500"
                                     >
                                         <option value={1.1}>上昇 (1.1倍)</option>
                                         <option value={1.0}>無補正 (1.0倍)</option>
@@ -259,13 +259,13 @@ export default function SpeedComparePage() {
                                         max={6}
                                         min={-6}
                                         onChange={(e) => updatePokemon(p.id, "rank", Number(e.target.value))}
-                                        className="w-full border rounded px-2 py-1"
+                                        className="w-full border rounded px-2 py-1 text-gray-500"
                                     />
                                 </div>
                             </div>
 
                             <div className="flex gap-2 items-center flex-wrap">
-                                <label className="flex items-center text-sm">
+                                <label className="flex items-center text-sm text-gray-500">
                                     <input
                                         type="checkbox"
                                         checked={p.itemMultiplier === 1.5}
@@ -274,7 +274,7 @@ export default function SpeedComparePage() {
                                     />
                                     スカーフ等(1.5倍)
                                 </label>
-                                <label className="flex items-center text-sm">
+                                <label className="flex items-center text-sm text-gray-500">
                                     <input
                                         type="checkbox"
                                         checked={p.tailwind}
@@ -283,7 +283,7 @@ export default function SpeedComparePage() {
                                     />
                                     おいかぜ
                                 </label>
-                                <label className="flex items-center text-sm">
+                                <label className="flex items-center text-sm text-gray-500">
                                     <input
                                         type="checkbox"
                                         checked={p.paralysis}

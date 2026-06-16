@@ -21,7 +21,7 @@ export default function NewBuildPage() {
 
     const [baseStats, setBaseStats] = useState({ H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 });
 
-    // 変更点2: formDataに BuildCreateRequest 型を指定
+    // formDataに BuildCreateRequest 型を指定
     const [formData, setFormData] = useState<BuildCreateRequest>({
         pokemon_id: 0,
         pokemon_name: "",
@@ -69,9 +69,12 @@ export default function NewBuildPage() {
     }, [formData.pokemon_id, formData.pokemon_name]);
 
     // レベル50時点での実数値計算ロジック
-    const calculateStat = (statName: string, base: number, iv: number, ev: number, nature: string) => {
+    const calculateStat = (statName: string, base: number, ev: number, nature: string) => {
         if (base === 0) return 0;
-        const core = Math.floor((base * 2 + iv + Math.floor(ev / 4)) / 2);
+        
+        const FIXED_IV = 31;
+        // 努力値(ev)を4で割る処理(Math.floor(ev / 4))を取り除き、そのまま足すように変更
+        const core = Math.floor((base * 2 + FIXED_IV + ev) / 2);
         if (statName === "H") return core + 60;
 
         let modifier = 1.0;
@@ -88,7 +91,8 @@ export default function NewBuildPage() {
         setFormData({ ...formData, [name]: name === "pokemon_id" ? parseInt(value) || 0 : value });
     };
 
-    const handleNestedChange = (category: 'evs' | 'ivs', stat: string, value: string) => {
+    // 分割管理用のハンドラ（evsのみ受け付けるよう安全に変更）
+    const handleNestedChange = (category: 'evs', stat: string, value: string) => {
         setFormData({
             ...formData,
             [category]: { ...formData[category], [stat]: parseInt(value) || 0 }
@@ -134,7 +138,7 @@ export default function NewBuildPage() {
             console.error("登録エラー:", error);
             setErrorMsg(error.message || "通信エラーが発生しました");
         } finally {
-            setSaving(false);
+            saving && setSaving(false);
         }
     };
 
@@ -252,17 +256,16 @@ export default function NewBuildPage() {
                                 <tr className="bg-gray-100 border-b-2 border-gray-300">
                                     <th className="p-3 text-gray-700">項目</th>
                                     <th className="p-3 text-gray-700">種族値</th>
-                                    <th className="p-3 text-gray-700">個体値 (IV)</th>
-                                    <th className="p-3 text-gray-700">努力値 (EV)</th>
+                                    <th className="p-3 text-gray-700">努力値 (EV: 0~32)</th>
                                     <th className="p-3 font-bold text-green-600">実数値</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {['H', 'A', 'B', 'C', 'D', 'S'].map((s) => {
                                     const base = baseStats[s as keyof typeof baseStats];
-                                    const iv = formData.ivs[s as keyof typeof formData.ivs];
                                     const ev = formData.evs[s as keyof typeof formData.evs];
-                                    const actual = calculateStat(s, base, iv, ev, formData.nature);
+                                    // iv の引数を削除して内部計算
+                                    const actual = calculateStat(s, base, ev, formData.nature);
 
                                     let statColor = "text-black";
                                     if (NATURE_MODIFIERS[formData.nature]) {
@@ -275,10 +278,16 @@ export default function NewBuildPage() {
                                             <td className="p-3 font-bold text-gray-800">{s}</td>
                                             <td className="p-3 text-gray-500 font-mono">{base || "-"}</td>
                                             <td className="p-2">
-                                                <input type="number" min="0" max="31" value={iv} onChange={(e) => handleNestedChange('ivs', s, e.target.value)} className="w-20 border-2 border-gray-300 p-1 rounded text-center text-black" />
-                                            </td>
-                                            <td className="p-2">
-                                                <input type="number" min="0" max="252" step="4" value={ev} onChange={(e) => handleNestedChange('evs', s, e.target.value)} className="w-24 border-2 border-gray-300 p-1 rounded text-center text-black" />
+                                                {/* 努力値入力を0〜32、ステップを1、横幅を調整 */}
+                                                <input 
+                                                    type="number" 
+                                                    min="0" 
+                                                    max="32" 
+                                                    step="1" 
+                                                    value={ev} 
+                                                    onChange={(e) => handleNestedChange('evs', s, e.target.value)} 
+                                                    className="w-24 border-2 border-gray-300 p-1 rounded text-center text-black focus:border-blue-500 outline-none" 
+                                                />
                                             </td>
                                             <td className={`p-3 text-xl ${statColor} font-mono`}>
                                                 {base ? actual : "-"}
