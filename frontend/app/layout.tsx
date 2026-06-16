@@ -15,8 +15,9 @@ export default function RootLayout({
     <html lang="ja">
       <body className="bg-gray-50 min-h-screen flex flex-col font-sans">
         {/* ▼▼▼ 全ページ共通のナビゲーションバー ▼▼▼ */}
-        <header className="bg-gray-900 text-white shadow-md">
-          <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+        <header className="bg-gray-900 text-white shadow-md z-50">
+          {/* ヘッダーの幅制限（max-w-5xl mx-auto）を外し、w-fullに変更 */}
+          <div className="w-full px-4 md:px-8 py-4 flex justify-between items-center">
             {/* 左側のロゴ（クリックでトップページへ） */}
             <Link href="/" className="text-xl font-extrabold tracking-widest hover:text-blue-400 transition">
               ZERO-LAB
@@ -51,9 +52,10 @@ export default function RootLayout({
         {/* ▲▲▲ ナビゲーションバー ここまで ▲▲▲ */}
 
         {/* 各ページの中身（page.tsx）がこの {children} の部分に差し込まれます */}
-        <div className="flex-1 max-w-5xl mx-auto w-full p-4 md:p-8">
+        {/* 幅の制限と固定パディングを削除し、各ページ側で自由にレイアウトできるようにしました */}
+        <main className="flex-1 w-full flex flex-col">
           {children}
-        </div>
+        </main>
       </body>
     </html>
   );
