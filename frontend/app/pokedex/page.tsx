@@ -68,7 +68,7 @@ export default function PokedexPage() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="ポケモン名 または 図鑑番号 (例: pikachu, 25)"
-                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-500 placeholder-gray-500"
                     />
                     <button
                         type="submit"

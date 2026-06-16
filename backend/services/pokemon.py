@@ -40,6 +40,37 @@ TYPE_ENG_TO_JA = {
 # 全18タイプの英語名リスト（ループ用）
 ALL_POKEAPI_TYPES = list(TYPE_ENG_TO_JA.keys())
 
+async def resolve_pokemon_id_by_japanese_name(japanese_name: str) -> int:
+    """日本語のポケモン名からPokeAPIのIDを逆引きする(GraphQLを使用)"""
+    # GraphQLのクエリ：pokemon_v2_pokemonspeciesname から日本語名を検索
+    graphql_query = {
+        "query": """
+        query getPokemonIdByJapaneseName($name: String!) {
+          pokemon_v2_pokemonspeciesname(where: {name: {_eq: $name}, pokemon_v2_language: {name: {_eq: "ja-Hrkt"}}}) {
+            pokemon_species_id
+          }
+        }
+        """,
+        "variables": {"name": japanese_name}
+    }
+
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        try:
+            res = await client.post(POKEAPI_GRAPHQL_URL, json=graphql_query)
+            res.raise_for_status()
+            data = res.json()
+            
+            # 該当するデータがあるかチェック
+            results = data.get("data", {}).get("pokemon_v2_pokemonspeciesname", [])
+            if not results:
+                raise HTTPException(status_code=404, detail=f"'{japanese_name}' というポケモンは見つかりませんでした。")
+                
+            return results[0]["pokemon_species_id"]
+            
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=exc.response.status_code, detail="PokeAPI GraphQLエラー")
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=503, detail=f"PokeAPIサーバーに接続できません: {exc}")
 
 def get_localized_name(names_list: list, target_lang: str, default_name: str) -> str:
     target_lang_lower = target_lang.lower()
@@ -51,9 +82,17 @@ def get_localized_name(names_list: list, target_lang: str, default_name: str) ->
 
 @alru_cache(maxsize=256)
 async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
-    """ポケモン詳細情報を取得する（図鑑ページ用・種族値・技・特性含む）"""
+    """ポケモン詳細情報を取得する（日本語名・英語名・ID対応）"""
     lang = settings.TARGET_LANGUAGE
-    query = str(name_or_id).lower()
+    query = str(name_or_id).lower().strip()
+
+    # --- 追加: 日本語名（全角文字やひらがな・カタカナ）が含まれている場合の処理 ---
+    # 簡易的に「数値でも英語(アルファベット)でもない場合」を日本語名として判定
+    if not query.isdigit() and not query.isascii():
+        # GraphQLメソッドを呼び出してIDに変換する
+        poke_id = await resolve_pokemon_id_by_japanese_name(name_or_id)
+        query = str(poke_id)
+    # -----------------------------------------------------------------
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
