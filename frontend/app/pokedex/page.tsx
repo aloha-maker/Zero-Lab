@@ -26,7 +26,7 @@ export default function PokedexPage() {
             // 検索クエリ（名前または図鑑番号）をパスパラメータとして送信
             const response = await fetch(`${API_URL}/api/v1/pokemon/${searchQuery.toLowerCase()}`);
 
-            // 変更点3: ApiErrorResponse を用いた詳細なエラーハンドリング
+            // ApiErrorResponse を用いた詳細なエラーハンドリング
             if (!response.ok) {
                 const errorData = (await response.json()) as ApiErrorResponse;
                 let errorMessage = "ポケモンの情報の取得に失敗しました";

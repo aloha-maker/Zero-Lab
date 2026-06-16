@@ -2,39 +2,11 @@
 
 import { useState } from "react";
 import type { StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
+import { NATURES } from "@/app/types/constants";
 
 type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
 
 const statLabels: Record<StatType, string> = { H: "HP", A: "攻撃", B: "防御", C: "特攻", D: "特防", S: "素早さ" };
-
-// 性格データの定義
-const natures = [
-    { name: "さみしがり (攻撃↑ 防御↓)", up: "A", down: "B" },
-    { name: "いじっぱり (攻撃↑ 特攻↓)", up: "A", down: "C" },
-    { name: "やんちゃ (攻撃↑ 特防↓)", up: "A", down: "D" },
-    { name: "ゆうかん (攻撃↑ 素早↓)", up: "A", down: "S" },
-    { name: "ずぶとい (防御↑ 攻撃↓)", up: "B", down: "A" },
-    { name: "わんぱく (防御↑ 特攻↓)", up: "B", down: "C" },
-    { name: "のうてんき (防御↑ 特防↓)", up: "B", down: "D" },
-    { name: "のんき (防御↑ 素早↓)", up: "B", down: "S" },
-    { name: "ひかえめ (特攻↑ 攻撃↓)", up: "C", down: "A" },
-    { name: "おっとり (特攻↑ 防御↓)", up: "C", down: "B" },
-    { name: "うっかりや (特攻↑ 特防↓)", up: "C", down: "D" },
-    { name: "れいせい (特攻↑ 素早↓)", up: "C", down: "S" },
-    { name: "おだやか (特防↑ 攻撃↓)", up: "D", down: "A" },
-    { name: "おとなしい (特防↑ 防御↓)", up: "D", down: "B" },
-    { name: "しんちょう (特防↑ 特攻↓)", up: "D", down: "C" },
-    { name: "なまいき (特防↑ 素早↓)", up: "D", down: "S" },
-    { name: "おくびょう (素早↑ 攻撃↓)", up: "S", down: "A" },
-    { name: "せっかち (素早↑ 防御↓)", up: "S", down: "B" },
-    { name: "ようき (素早↑ 特攻↓)", up: "S", down: "C" },
-    { name: "むじゃき (素早↑ 特防↓)", up: "S", down: "D" },
-    { name: "てれや (補正なし)", up: null, down: null },
-    { name: "がんばりや (補正なし)", up: null, down: null },
-    { name: "すなお (補正なし)", up: null, down: null },
-    { name: "きまぐれ (補正なし)", up: null, down: null },
-    { name: "まじめ (補正なし)", up: null, down: null },
-];
 
 export default function Home() {
     // 共通設定
@@ -72,7 +44,7 @@ export default function Home() {
         setGlobalError(null);
         setResults({ H: null, A: null, B: null, C: null, D: null, S: null });
 
-        const selectedNature = natures[natureIndex];
+        const selectedNature = NATURES[natureIndex];
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
         try {
@@ -145,7 +117,7 @@ export default function Home() {
                                 onChange={(e) => setNatureIndex(Number(e.target.value))}
                                 className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-gray-500"
                             >
-                                {natures.map((n, i) => (
+                                {NATURES.map((n, i) => (
                                     <option key={i} value={i}>{n.name}</option>
                                 ))}
                             </select>
@@ -166,7 +138,7 @@ export default function Home() {
                             </thead>
                             <tbody>
                                 {(Object.keys(stats) as StatType[]).map(key => {
-                                    const selectedNature = natures[natureIndex];
+                                    const selectedNature = NATURES[natureIndex];
                                     const isUp = key !== 'H' && selectedNature.up === key;
                                     const isDown = key !== 'H' && selectedNature.down === key;
 
