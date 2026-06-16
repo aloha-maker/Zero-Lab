@@ -38,7 +38,7 @@ const natures = [
 
 export default function Home() {
     // 共通設定
-    const [level, setLevel] = useState(50);
+    const FIXED_LEVEL = 50;
     const [natureIndex, setNatureIndex] = useState(18); // 初期値: ようき
 
     // 各ステータスの状態管理
@@ -85,9 +85,9 @@ export default function Home() {
 
                 const requestData: StatusRequest = {
                     base_stat: stats[key].base,
-                    iv: 31,
+                    iv: 31, 
                     ev: stats[key].ev,
-                    level: level,
+                    level: FIXED_LEVEL,
                     is_hp: key === 'H',
                     nature_modifier: modifier
                 };
@@ -136,25 +136,14 @@ export default function Home() {
 
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200">
 
-                    {/* 共通設定エリア */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">レベル (Level)</label>
-                            <input
-                                type="number"
-                                value={level}
-                                max={100}
-                                min={1}
-                                onChange={(e) => setLevel(Number(e.target.value))}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                        </div>
+                    {/* 共通設定エリア*/}
+                    <div className="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">性格 (Nature)</label>
                             <select
                                 value={natureIndex}
                                 onChange={(e) => setNatureIndex(Number(e.target.value))}
-                                className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-blue-500 outline-none text-gray-500"
                             >
                                 {natures.map((n, i) => (
                                     <option key={i} value={i}>{n.name}</option>
@@ -172,7 +161,7 @@ export default function Home() {
                                     <th className="p-3 border-b font-bold text-center w-1/5">種族値</th>
                                     <th className="p-3 border-b font-bold text-center w-1/5">努力値 (0~32)</th>
                                     <th className="p-3 border-b font-bold text-center w-1/5">性格補正</th>
-                                    <th className="p-3 border-b font-bold text-center w-1/5">実数値</th>
+                                    <th className="p-3 border-b font-bold text-center w-1/5">実数値 (Lv.50)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -185,10 +174,9 @@ export default function Home() {
                                         <tr key={key} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                                             <td className="p-3 font-bold text-gray-800">{statLabels[key]}</td>
                                             <td className="p-2">
-                                                <input type="number" value={stats[key].base} min={1} max={255} onChange={(e) => handleStatChange(key, 'base', Number(e.target.value))} className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none" />
+                                                <input type="number" value={stats[key].base} min={1} max={255} onChange={(e) => handleStatChange(key, 'base', Number(e.target.value))} className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none text-gray-500" />
                                             </td>
                                             <td className="p-2">
-                                                {/* 努力値入力を0〜32、ステップを1（1刻み）に変更 */}
                                                 <input 
                                                     type="number" 
                                                     value={stats[key].ev} 
@@ -196,7 +184,7 @@ export default function Home() {
                                                     max={32} 
                                                     step={1} 
                                                     onChange={(e) => handleStatChange(key, 'ev', Number(e.target.value))} 
-                                                    className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none" 
+                                                    className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none text-gray-500" 
                                                 />
                                             </td>
                                             <td className="p-3 text-center font-bold">
