@@ -24,7 +24,7 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
 
     const [baseStats, setBaseStats] = useState({ H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 });
 
-    // 変更点2: formDataに BuildUpdateRequest 型を指定（個体値は31で完全に固定）
+    // formDataに BuildUpdateRequest 型を指定（個体値は31で完全に固定）
     const [formData, setFormData] = useState<BuildUpdateRequest>({
         pokemon_id: 0,
         pokemon_name: "",
@@ -204,11 +204,7 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
                 <section>
                     <h2 className="text-xl font-bold mb-4 text-blue-600 border-l-4 border-blue-600 pl-2">基本情報</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="grid grid-cols-3 gap-2">
-                            <div className="col-span-1">
-                                <label className={labelStyle}>図鑑番号</label>
-                                <input type="number" name="pokemon_id" value={formData.pokemon_id} onChange={handleChange} className={inputStyle} required />
-                            </div>
+                        <div className="col-span-2 relative">
                             <div className="col-span-2">
                                 <label className={labelStyle}>ポケモン名</label>
                                 <input type="text" name="pokemon_name" value={formData.pokemon_name} onChange={handleChange} className={inputStyle} required />
