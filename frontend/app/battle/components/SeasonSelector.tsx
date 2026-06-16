@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useBattleStore } from '../store/useBattleStore';
 import { SeasonResponse } from '../../types/api';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_URL } from "@/app/types/constants";
 
 export const SeasonSelector = () => {
   const [seasons, setSeasons] = useState<SeasonResponse[]>([]);
@@ -14,7 +13,7 @@ export const SeasonSelector = () => {
   useEffect(() => {
     const fetchSeasons = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/v1/seasons/`);
+        const res = await fetch(`${API_URL}/api/v1/seasons/`);
         if (!res.ok) throw new Error('Failed to fetch seasons');
         const data: SeasonResponse[] = await res.json();
         setSeasons(data);

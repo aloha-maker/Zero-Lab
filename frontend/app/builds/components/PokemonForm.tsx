@@ -1,8 +1,8 @@
 "use client"; // 【必須】ファイルの先頭に記述します
 
 import { useState, useEffect } from 'react';
-// 変更点1: 共通の型とエラーレスポンス型をインポート
 import type { StatusResponse, ApiErrorResponse } from "@/app/types/api";
+import { API_URL } from "@/app/types/constants";
 
 export function PokemonForm() {
     const [selectedPokemon, setSelectedPokemon] = useState("charizard");
@@ -16,7 +16,6 @@ export function PokemonForm() {
         const updateStats = async () => {
             setErrorMsg(null);
             try {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
                 const res = await fetch(`${API_URL}/api/v1/status/?pokemon_name=${selectedPokemon}&item_name=${selectedItem}`);
 
                 // 変更点3: エラーハンドリング

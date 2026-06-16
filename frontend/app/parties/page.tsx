@@ -2,8 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { PartyResponse } from '@/app/types/api';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_URL } from "@/app/types/constants";
 
 export default function PartyListPage() {
     const [parties, setParties] = useState<PartyResponse[]>([]);

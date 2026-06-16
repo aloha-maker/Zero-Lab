@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-// 1. api.ts から共通の PokemonInfo 型をインポートして再利用
 import type { SeasonPokemonInfo,RealDamageRankingResult } from "@/app/types/api";
+import { API_URL } from "@/app/types/constants";
 
 type SeasonPokemonResponse = {
     pokemons: SeasonPokemonInfo[];
@@ -18,9 +18,6 @@ const STAT_COLUMNS = [
     { key: "sp_defense", label: "特防" },
     { key: "speed", label: "素早" },
 ] as const;
-
-// FastAPIのベースURL（環境に合わせて変更してください）
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // ソート対象にできるキーの型を定義（型安全性を担保）
 type SortKey = "rank" | "id" | "name" | "hp" | "attack" | "defense" | "sp_attack" | "sp_defense" | "speed";
@@ -45,7 +42,7 @@ export default function SeasonsPage() {
             setIsLoading(true);
             setError(null);
             try {
-                const res = await fetch(`${API_BASE_URL}/api/v1/seasons/latest_pokemons`, { signal });
+                const res = await fetch(`${API_URL}/api/v1/seasons/latest_pokemons`, { signal });
                 
                 if (!res.ok) {
                     throw new Error("データの取得に失敗しました");

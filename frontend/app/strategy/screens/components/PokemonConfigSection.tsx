@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { PokemonInfo } from "@/app/types/api";
-import { NATURES } from "@/app/types/constants";
+import { NATURES,API_URL } from "@/app/types/constants";
 
 type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
 const statLabels: Record<StatType, string> = { H: "HP", A: "攻撃", B: "防御", C: "特攻", D: "特防", S: "素早さ" };
@@ -53,7 +53,6 @@ export default function PokemonConfigSection() {
     setIsLoading(true);
     setError(null);
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"; 
       const response = await fetch(`${API_URL}/api/v1/pokemon/${searchQuery.toLowerCase().trim()}`);
       if (!response.ok) throw new Error("ポケモンのデータが見つかりませんでした");
       const data: PokemonInfo = await response.json();
@@ -80,7 +79,6 @@ export default function PokemonConfigSection() {
     setCalcResults({ H: null, A: null, B: null, C: null, D: null, S: null });
 
     const selectedNature = NATURES[natureIndex];
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     try {
       const promises = (Object.keys(stats) as StatType[]).map(async (key) => {

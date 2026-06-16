@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { DetailDrawer } from '../components/DetailDrawer';
 import { useBattleStore } from '../store/useBattleStore';
 import { OpponentPokemon } from '../types';
+import { API_URL } from "@/app/types/constants";
 
 // ==========================================
 // 型定義
@@ -56,7 +57,7 @@ function BattleAdvicePanel({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/advice`, {
+      const response = await fetch(`${API_URL}/battles/advice`, {
 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -267,7 +268,7 @@ export default function BattleDetailPage() {
   const handleFinishBattle = async (result: 'win' | 'lose') => {
     setIsSubmitting(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/${matchId}`, {
+      await fetch(`${API_URL}/battles/${matchId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ result })

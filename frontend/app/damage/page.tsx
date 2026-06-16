@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { DamageRequest, DamageResponse, ApiErrorResponse } from "@/app/types/api";
+import { API_URL } from "@/app/types/constants";
 
 export default function DamageCalculator() {
     const [level, setLevel] = useState(50);
@@ -31,7 +32,6 @@ export default function DamageCalculator() {
         };
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             const response = await fetch(`${API_URL}/api/v1/damage`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

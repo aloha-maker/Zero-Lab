@@ -7,8 +7,7 @@ import { useBattleStore } from '../store/useBattleStore';
 import { PartySelector } from '../components/PartySelector';
 import { SeasonSelector } from '../components/SeasonSelector';
 import { SeasonPokemonInfo } from '../../types/api';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { API_URL } from "@/app/types/constants";
 
 // ==========================================
 // ユーティリティ関数
@@ -54,7 +53,7 @@ export default function NewBattlePage() {
       setSearchQuery('');
 
       try {
-        const res = await fetch(`${API_BASE}/api/v1/seasons/latest_pokemons`);
+        const res = await fetch(`${API_URL}/api/v1/seasons/latest_pokemons`);
         if (!res.ok) throw new Error('Failed to fetch pokemon list');
         const data = await res.json();
 
@@ -119,7 +118,7 @@ export default function NewBattlePage() {
         moves: [],
       }));
 
-      const response = await fetch(`${API_BASE}/battles/`, {
+      const response = await fetch(`${API_URL}/battles/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
