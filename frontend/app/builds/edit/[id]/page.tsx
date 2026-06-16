@@ -24,7 +24,7 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
 
     const [baseStats, setBaseStats] = useState({ H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 });
 
-    // 変更点2: formDataに BuildUpdateRequest 型を指定
+    // 変更点2: formDataに BuildUpdateRequest 型を指定（個体値は31で完全に固定）
     const [formData, setFormData] = useState<BuildUpdateRequest>({
         pokemon_id: 0,
         pokemon_name: "",
@@ -35,7 +35,7 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
         tera_type: "",
         moves: ["", "", "", ""],
         evs: { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
-        ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
+        ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 }, // 初期値およびフォールバック用
         memo: ""
     });
 
@@ -63,7 +63,7 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
                     tera_type: current.tera_type || "",
                     moves: current.moves || ["", "", "", ""],
                     evs: current.evs || { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
-                    ivs: current.ivs || { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
+                    ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 }, // DBから何が返ってきても、画面送信・管理用データは31に固定
                     memo: current.memo || ""
                 });
             } catch (error: any) {
@@ -102,12 +102,13 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
         fetchBaseStats();
     }, [formData.pokemon_id]);
 
-    // ▼ レベル50時点での実数値計算ロジック ▼
-    const calculateStat = (statName: string, base: number, iv: number, ev: number, nature: string) => {
+    // ▼ レベル50時点での実数値計算ロジック（個体値31固定、4で割る処理を削除） ▼
+    const calculateStat = (statName: string, base: number, ev: number, nature: string) => {
         if (base === 0) return 0; // 種族値がまだ取れていない場合は0
 
-        // 計算のコア部分: (種族値×2 ＋ 個体値 ＋ 努力値/4) ÷ 2 （※切り捨て）
-        const core = Math.floor((base * 2 + iv + Math.floor(ev / 4)) / 2);
+        const FIXED_IV = 31;
+        // 努力値(ev)を4で割る処理(Math.floor(ev / 4))を取り除き、そのまま足すように変更
+        const core = Math.floor((base * 2 + FIXED_IV + ev) / 2);
 
         if (statName === "H") {
             return core + 60; // HPは (コア + 10 + レベル50)
@@ -127,11 +128,11 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
     // フォームの入力ハンドラー
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        // pokemon_idだけは数値として保存する
         setFormData({ ...formData, [name]: name === "pokemon_id" ? parseInt(value) || 0 : value });
     };
 
-    const handleNestedChange = (category: 'evs' | 'ivs', stat: string, value: string) => {
+    // 分割管理用のハンドラ（evsのみ受け付けるよう安全に変更）
+    const handleNestedChange = (category: 'evs', stat: string, value: string) => {
         setFormData({
             ...formData,
             [category]: { ...formData[category], [stat]: parseInt(value) || 0 }
@@ -250,17 +251,16 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
                                 <tr className="bg-gray-100 border-b-2 border-gray-300">
                                     <th className="p-3 text-gray-700">項目</th>
                                     <th className="p-3 text-gray-700">種族値</th>
-                                    <th className="p-3 text-gray-700">個体値 (IV)</th>
-                                    <th className="p-3 text-gray-700">努力値 (EV)</th>
+                                    <th className="p-3 text-gray-700">努力値 (EV: 0~32)</th>
                                     <th className="p-3 font-bold text-blue-600">実数値</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {['H', 'A', 'B', 'C', 'D', 'S'].map((s) => {
                                     const base = baseStats[s as keyof typeof baseStats];
-                                    const iv = formData.ivs[s as keyof typeof formData.ivs];
                                     const ev = formData.evs[s as keyof typeof formData.evs];
-                                    const actual = calculateStat(s, base, iv, ev, formData.nature);
+                                    // iv を引数から削除し、内部の31固定を使用
+                                    const actual = calculateStat(s, base, ev, formData.nature);
 
                                     // 性格による実数値の色付け
                                     let statColor = "text-black";
@@ -274,10 +274,16 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
                                             <td className="p-3 font-bold text-gray-800">{s}</td>
                                             <td className="p-3 text-gray-500 font-mono">{base || "-"}</td>
                                             <td className="p-2">
-                                                <input type="number" min="0" max="31" value={iv} onChange={(e) => handleNestedChange('ivs', s, e.target.value)} className="w-20 border-2 border-gray-300 p-1 rounded text-center text-black" />
-                                            </td>
-                                            <td className="p-2">
-                                                <input type="number" min="0" max="252" step="4" value={ev} onChange={(e) => handleNestedChange('evs', s, e.target.value)} className="w-24 border-2 border-gray-300 p-1 rounded text-center text-black" />
+                                                {/* 努力値入力を0〜32、ステップを1、横幅を調整 */}
+                                                <input 
+                                                    type="number" 
+                                                    min="0" 
+                                                    max="32" 
+                                                    step="1" 
+                                                    value={ev} 
+                                                    onChange={(e) => handleNestedChange('evs', s, e.target.value)} 
+                                                    className="w-24 border-2 border-gray-300 p-1 rounded text-center text-black focus:border-blue-500 outline-none" 
+                                                />
                                             </td>
                                             <td className={`p-3 text-xl ${statColor} font-mono`}>
                                                 {base ? actual : "-"}
