@@ -41,14 +41,14 @@ export default function Home() {
     const [level, setLevel] = useState(50);
     const [natureIndex, setNatureIndex] = useState(18); // 初期値: ようき
 
-    // 各ステータスの状態管理 (例: ガブリアス)
+    // 各ステータスの状態管理
     const [stats, setStats] = useState<Record<StatType, { base: number, iv: number, ev: number }>>({
         H: { base: 108, iv: 31, ev: 0 },
-        A: { base: 130, iv: 31, ev: 252 },
+        A: { base: 130, iv: 31, ev: 32 },
         B: { base: 95, iv: 31, ev: 0 },
         C: { base: 80, iv: 31, ev: 0 },
         D: { base: 85, iv: 31, ev: 0 },
-        S: { base: 102, iv: 31, ev: 252 },
+        S: { base: 102, iv: 31, ev: 32 },
     });
 
     // 計算結果
@@ -59,7 +59,7 @@ export default function Home() {
     const [globalError, setGlobalError] = useState<string | null>(null);
 
     // 入力変更ハンドラ
-    const handleStatChange = (stat: StatType, field: 'base' | 'iv' | 'ev', value: number) => {
+    const handleStatChange = (stat: StatType, field: 'base' | 'ev', value: number) => {
         setStats(prev => ({
             ...prev,
             [stat]: { ...prev[stat], [field]: value }
@@ -76,7 +76,6 @@ export default function Home() {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
         try {
-            // 6つのステータス計算APIを並列で呼び出す
             const promises = (Object.keys(stats) as StatType[]).map(async (key) => {
                 let modifier = 1.0;
                 if (key !== 'H') {
@@ -86,7 +85,7 @@ export default function Home() {
 
                 const requestData: StatusRequest = {
                     base_stat: stats[key].base,
-                    iv: stats[key].iv,
+                    iv: 31,
                     ev: stats[key].ev,
                     level: level,
                     is_hp: key === 'H',
@@ -114,10 +113,8 @@ export default function Home() {
                 return { key, val: data.real_stat };
             });
 
-            // すべての計算が完了するのを待つ
             const resArray = await Promise.all(promises);
 
-            // 結果をステートに反映
             const newResults = { ...results };
             resArray.forEach(r => { newResults[r.key] = r.val; });
             setResults(newResults);
@@ -168,15 +165,14 @@ export default function Home() {
 
                     {/* ステータス入力テーブル */}
                     <div className="overflow-x-auto mb-8">
-                        <table className="w-full text-left border-collapse min-w-[600px]">
+                        <table className="w-full text-left border-collapse min-w-[500px]">
                             <thead>
                                 <tr className="bg-gray-100 text-gray-700 text-sm">
-                                    <th className="p-3 border-b font-bold w-1/6">ステータス</th>
-                                    <th className="p-3 border-b font-bold text-center w-1/6">種族値</th>
-                                    <th className="p-3 border-b font-bold text-center w-1/6">個体値</th>
-                                    <th className="p-3 border-b font-bold text-center w-1/6">努力値</th>
-                                    <th className="p-3 border-b font-bold text-center w-1/6">補正</th>
-                                    <th className="p-3 border-b font-bold text-center w-1/6">実数値</th>
+                                    <th className="p-3 border-b font-bold w-1/5">ステータス</th>
+                                    <th className="p-3 border-b font-bold text-center w-1/5">種族値</th>
+                                    <th className="p-3 border-b font-bold text-center w-1/5">努力値 (0~32)</th>
+                                    <th className="p-3 border-b font-bold text-center w-1/5">性格補正</th>
+                                    <th className="p-3 border-b font-bold text-center w-1/5">実数値</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -192,10 +188,16 @@ export default function Home() {
                                                 <input type="number" value={stats[key].base} min={1} max={255} onChange={(e) => handleStatChange(key, 'base', Number(e.target.value))} className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none" />
                                             </td>
                                             <td className="p-2">
-                                                <input type="number" value={stats[key].iv} min={0} max={31} onChange={(e) => handleStatChange(key, 'iv', Number(e.target.value))} className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none" />
-                                            </td>
-                                            <td className="p-2">
-                                                <input type="number" value={stats[key].ev} min={0} max={252} step={4} onChange={(e) => handleStatChange(key, 'ev', Number(e.target.value))} className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none" />
+                                                {/* 努力値入力を0〜32、ステップを1（1刻み）に変更 */}
+                                                <input 
+                                                    type="number" 
+                                                    value={stats[key].ev} 
+                                                    min={0} 
+                                                    max={32} 
+                                                    step={1} 
+                                                    onChange={(e) => handleStatChange(key, 'ev', Number(e.target.value))} 
+                                                    className="w-full border border-gray-300 rounded p-1.5 text-center focus:border-blue-500 outline-none" 
+                                                />
                                             </td>
                                             <td className="p-3 text-center font-bold">
                                                 {key === 'H' ? <span className="text-gray-300">-</span> :

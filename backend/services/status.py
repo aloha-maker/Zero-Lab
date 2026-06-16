@@ -8,8 +8,11 @@ def calculate_real_status(is_hp: bool, base_stat: int, iv: int, ev: int, level: 
     """
     ステータス実数値を計算する純粋な関数
     """
-    ev_bonus = math.trunc(ev / 4)
-    base_calc = math.trunc((base_stat * 2 + iv + ev_bonus) * level / 100)
+    # 個体値を31で固定（引数の値は無視されます）
+    iv = 31
+    
+    # 4で割る処理を削除し、引数の ev をそのまま使用
+    base_calc = math.trunc((base_stat * 2 + iv + ev) * level / 100)
     
     if is_hp:
         # HPの計算式
