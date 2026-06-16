@@ -1,6 +1,13 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
 
+class PokemonMoveDetail(BaseModel):
+    name: str           # 技の日本語名
+    type: str           # タイプの日本語名 (ほのお、みず など)
+    power: Optional[int] = None
+    accuracy: Optional[int] = None  # 命中率 (変化技や必中技など、Noneになる可能性があります)
+    damage_class: str   # カテゴリ (ぶつり、とくしゅ、へんか)
+
 class SeasonMoveInfo(BaseModel):
     move_name: str
     move_type: str
@@ -18,7 +25,7 @@ class PokemonInfo(BaseModel):
     base_stats: Dict[str, int]
     weight_kg: float
     height_m: float
-    moves: List[str]
+    moves: List[PokemonMoveDetail]
     image_url: Optional[str] = None
 
 class SeasonPokemonInfo(PokemonInfo):
@@ -34,3 +41,4 @@ class PokemonListItem(BaseModel):
     name: str
     english_name: str
     image_url: Optional[str] = None
+    

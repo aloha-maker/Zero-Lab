@@ -6,7 +6,7 @@ import asyncio
 from typing import List, Dict, Any
 from fastapi import HTTPException
 from async_lru import alru_cache
-from schemas.pokemon import PokemonInfo, PokemonListItem,SeasonPokemonInfo,SeasonMoveInfo
+from schemas.pokemon import PokemonInfo, PokemonListItem,SeasonPokemonInfo,SeasonMoveInfo,PokemonMoveDetail
 from .type_matchup import fetch_type_data, calculate_multiplier_and_message
 from core.config import settings
 
@@ -39,6 +39,12 @@ TYPE_ENG_TO_JA = {
 
 # 全18タイプの英語名リスト（ループ用）
 ALL_POKEAPI_TYPES = list(TYPE_ENG_TO_JA.keys())
+
+DAMAGE_CLASS_ENG_TO_JA = {
+    "physical": "物理",
+    "special": "特殊",
+    "status": "変化"
+}
 
 async def resolve_pokemon_id_by_japanese_name(japanese_name: str) -> int:
     """日本語のポケモン名からPokeAPIのIDを逆引きする(GraphQLを使用)"""
@@ -82,17 +88,13 @@ def get_localized_name(names_list: list, target_lang: str, default_name: str) ->
 
 @alru_cache(maxsize=256)
 async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
-    """ポケモン詳細情報を取得する（日本語名・英語名・ID対応）"""
+    """ポケモン詳細情報を取得する"""
     lang = settings.TARGET_LANGUAGE
     query = str(name_or_id).lower().strip()
 
-    # --- 追加: 日本語名（全角文字やひらがな・カタカナ）が含まれている場合の処理 ---
-    # 簡易的に「数値でも英語(アルファベット)でもない場合」を日本語名として判定
     if not query.isdigit() and not query.isascii():
-        # GraphQLメソッドを呼び出してIDに変換する
         poke_id = await resolve_pokemon_id_by_japanese_name(name_or_id)
         query = str(poke_id)
-    # -----------------------------------------------------------------
 
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
@@ -110,29 +112,37 @@ async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
         poke_id = pokemon_data.get("id")
 
         base_stats = {stat["stat"]["name"]: stat["base_stat"] for stat in pokemon_data.get("stats", [])}
-        moves = [move["move"]["name"] for move in pokemon_data.get("moves", [])]
+        
+        # 技のURLリストを取得
+        move_entries = pokemon_data.get("moves", [])
+        move_urls = [m["move"]["url"] for m in move_entries]
 
         species_url = f"{POKEAPI_BASE_URL}pokemon-species/{poke_id}"
         type_urls = [t["type"]["url"] for t in pokemon_data.get("types", [])]
         ability_urls = [a["ability"]["url"] for a in pokemon_data.get("abilities", [])]
 
+        # 並行リクエストの組み立て
         requests = [client.get(species_url)] + \
                    [client.get(url) for url in type_urls] + \
-                   [client.get(url) for url in ability_urls]
+                   [client.get(url) for url in ability_urls] + \
+                   [client.get(url) for url in move_urls]
 
         try:
             responses = await asyncio.gather(*requests)
         except httpx.RequestError as exc:
             raise HTTPException(status_code=503, detail=f"PokeAPIサーバー(詳細データ)に接続できません: {exc}")
 
+        # レレスポンスの切り分け
         species_res = responses[0]
         type_responses = responses[1:1 + len(type_urls)]
-        ability_responses = responses[1 + len(type_urls):]
+        ability_responses = responses[1 + len(type_urls):1 + len(type_urls) + len(ability_urls)]
+        move_responses = responses[1 + len(type_urls) + len(ability_urls):]
 
         localized_name = base_name
         english_name = base_name
         localized_types = []
         localized_abilities = []
+        localized_moves = []  # 💡 ここに構造化した技情報を入れていきます
 
         if species_res.status_code == 200:
             names_list = species_res.json().get("names", [])
@@ -149,6 +159,37 @@ async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
                 a_data = ability_res.json()
                 localized_abilities.append(get_localized_name(a_data.get("names", []), lang, a_data.get("name")))
 
+        # 💡 技の詳細情報を解析して新しい型に当てはめる
+        for move_res in move_responses:
+            if move_res.status_code == 200:
+                m_data = move_res.json()
+                
+                # 1. 技の日本語名
+                m_name = get_localized_name(m_data.get("names", []), lang, m_data.get("name"))
+                
+                # 2. 技のタイプ（英語から日本語へマッピング。なければ英語のまま）
+                m_type_eng = m_data.get("type", {}).get("name", "")
+                m_type_ja = TYPE_ENG_TO_JA.get(m_type_eng, m_type_eng)
+                
+                # 3. 命中率
+                m_power = m_data.get("power")
+                m_accuracy = m_data.get("accuracy")  # int または None
+                
+                # 4. カテゴリ（ぶつり/特殊/変化）
+                m_class_eng = m_data.get("damage_class", {}).get("name", "")
+                m_class_ja = DAMAGE_CLASS_ENG_TO_JA.get(m_class_eng, m_class_eng)
+                
+                # 💡 新しいモデルの形にしてリストに追加
+                localized_moves.append(
+                    PokemonMoveDetail(
+                        name=m_name,
+                        type=m_type_ja,
+                        power=m_power,
+                        accuracy=m_accuracy,
+                        damage_class=m_class_ja
+                    )
+                )
+
         weight_kg = pokemon_data.get("weight", 0) / 10.0
         height_m = pokemon_data.get("height", 0) / 10.0
 
@@ -161,7 +202,7 @@ async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
             base_stats=base_stats,
             weight_kg=weight_kg,
             height_m=height_m,
-            moves=moves,
+            moves=localized_moves,  # Pydanticが自動でList[PokemonMoveDetail]にパースしてくれます
             image_url=pokemon_data.get("sprites", {}).get("front_default")
         )
 

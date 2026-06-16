@@ -26,7 +26,7 @@ export default function PokedexPage() {
             // 検索クエリ（名前または図鑑番号）をパスパラメータとして送信
             const response = await fetch(`${API_URL}/api/v1/pokemon/${searchQuery.toLowerCase()}`);
 
-            // 変更点3: ApiErrorResponse を用いた詳細なエラーハンドリング
+            // ApiErrorResponse を用いた詳細なエラーハンドリング
             if (!response.ok) {
                 const errorData = (await response.json()) as ApiErrorResponse;
                 let errorMessage = "ポケモンの情報の取得に失敗しました";
@@ -164,8 +164,8 @@ export default function PokedexPage() {
                             <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">覚える技 (主要な技)</h3>
                             <div className="flex flex-wrap gap-2">
                                 {pokemon.moves.slice(0, 15).map(move => (
-                                    <span key={move} className="px-3 py-1 bg-white border border-gray-200 rounded text-sm text-gray-600 capitalize">
-                                        {move}
+                                    <span key={move.name} className="px-3 py-1 bg-white border border-gray-200 rounded text-sm text-gray-600 capitalize">
+                                        {move.name}
                                     </span>
                                 ))}
                                 {pokemon.moves.length > 15 && <span className="text-gray-400 text-sm italic py-1">and more...</span>}
