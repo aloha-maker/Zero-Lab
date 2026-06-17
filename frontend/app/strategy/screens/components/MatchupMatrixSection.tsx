@@ -55,11 +55,17 @@ export default function MatchupMatrixSection({
       // レスポンスを型安全にパース
       const data: MatrixResponse = await response.json();
       setMatrixData(data.matrix);
-    } catch (error) {
-      console.error(error);
-      alert("エラーが発生しました。バックエンドの起動状態を確認してください。");
+    } catch (error: any) {
+        console.error(error);
+        
+        // バックエンドが返してきた詳細なエラーメッセージがあればそれを表示
+        if (error.message) {
+          alert(`エラー詳細: ${error.message}`);
+        } else {
+          alert("エラーが発生しました。バックエンドの起動状態を確認してください。");
+        }
     } finally {
-      setIsLoading(false);
+    setIsLoading(false);
     }
   };
 
@@ -104,8 +110,8 @@ export default function MatchupMatrixSection({
           <tbody className="divide-y divide-slate-100">
             {matrixData.length > 0 ? (
               // APIよりデータ取得済みの場合はループ展開
-              matrixData.map((row) => (
-                <tr key={row.opponent_rank} className="hover:bg-slate-50/50 transition-colors">
+              matrixData.map((row, index) => (
+                <tr key={`${row.opponent_rank}-${row.opponent_name}-${index}`} className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-3 font-medium text-slate-700">
                     {row.opponent_rank}位：{row.opponent_name}
                   </td>
