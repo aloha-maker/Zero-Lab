@@ -8,19 +8,15 @@ import {
   MatrixResponse 
 } from "@/app/types/api"; 
 
+import { API_URL } from "@/app/types/constants";
+
 interface MatchupMatrixSectionProps {
   mainPokemonName?: string;
-  // 親コンポーネント等から渡される、検証用のベースデータ（初期値としてガブリアス想定のダミーを用意）
   baseMatchups?: MatchupInput[];
 }
 
 export default function MatchupMatrixSection({
-  mainPokemonName = "ガブリアス",
-  baseMatchups = [
-    { opponent_rank: 1, opponent_name: "カイリュー", action_order: "先攻", my_turns_to_kill: 2, opp_turns_to_kill: 1 },
-    { opponent_rank: 2, opponent_name: "ハバタクカミ", action_order: "後攻", my_turns_to_kill: 2, opp_turns_to_kill: 1 },
-    { opponent_rank: 3, opponent_name: "サーフゴー", action_order: "先攻", my_turns_to_kill: 1, opp_turns_to_kill: 3 }
-  ]
+  mainPokemonName = "",
 }: MatchupMatrixSectionProps) {
   // APIから取得した結果（MatrixResultRowの配列）を管理するステート
   const [matrixData, setMatrixData] = useState<MatrixResultRow[]>([]);
@@ -30,16 +26,21 @@ export default function MatchupMatrixSection({
   const handleCalculate = async () => {
     setIsLoading(true);
     try {
-      // 環境変数などからベースURLを取得（設定されていない場合のフォールバック付き）
-      const apiPrefix = process.env.NEXT_PUBLIC_API_PREFIX || "http://127.0.0.1:8000/api/v1";
       
       // 型定義に則ったリクエストボディの作成
-      const requestBody: MatrixCalculationRequest = {
+      const requestBody = {
         main_pokemon_name: mainPokemonName,
-        matchups: baseMatchups,
+        evs: {
+          H: 1,
+          A: 32,
+          B: 0,
+          C: 0,
+          D: 0,
+          S: 32
+        }
       };
 
-      const response = await fetch(`${apiPrefix}/strategy/matrix`, {
+      const response = await fetch(`${API_URL}/api/v1/strategy/matrix`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

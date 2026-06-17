@@ -1,35 +1,81 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import type { PokemonInfo } from "@/app/types/api";
-import { NATURES,API_URL } from "@/app/types/constants";
+import { NATURES, API_URL } from "@/app/types/constants";
+import { StatType, ConfiguredMainPokemon } from "../../types";
 
-type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
 const statLabels: Record<StatType, string> = { H: "HP", A: "攻撃", B: "防御", C: "特攻", D: "特防", S: "素早さ" };
 const keyMapping: Record<string, StatType> = {
   "HP": "H", "攻撃": "A", "防御": "B", "特攻": "C", "特防": "D", "素早さ": "S"
 };
 
-export default function PokemonConfigSection() {
-  const [searchQuery, setSearchQuery] = useState("ガブリアス");
-  const [pokemonData, setPokemonData] = useState<PokemonInfo | null>(null);
+// ★ 親から受け取るインターフェースを定義
+interface PokemonConfigSectionProps {
+  selectedPokemon: ConfiguredMainPokemon | null;
+  onPokemonConfigComplete: (configuredData: ConfiguredMainPokemon) => void;
+}
+
+export default function PokemonConfigSection({ 
+  selectedPokemon, 
+  onPokemonConfigComplete 
+}: PokemonConfigSectionProps) {
+  const [searchQuery, setSearchQuery] = useState(selectedPokemon?.name || "ガブリアス");
+  const [pokemonData, setPokemonData] = useState<PokemonInfo | null>(selectedPokemon?.pokemonInfo || null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMovesOpen, setIsMovesOpen] = useState(false);
 
   const FIXED_LEVEL = 50;
-  const [natureIndex, setNatureIndex] = useState(22); // 初期値: ようき
+  
+  // 性格の初期インデックスを見つけるヘルパー
+  const initialNatureIndex = selectedPokemon 
+    ? NATURES.findIndex(n => n.name === selectedPokemon.nature.name)
+    : 22; // ようき
+
+  const [natureIndex, setNatureIndex] = useState(initialNatureIndex >= 0 ? initialNatureIndex : 22);
+  
   const [stats, setStats] = useState<Record<StatType, { base: number, iv: number, ev: number }>>({
-    H: { base: 108, iv: 31, ev: 0 },
-    A: { base: 130, iv: 31, ev: 0 },
-    B: { base: 95, iv: 31, ev: 0 },
-    C: { base: 80, iv: 31, ev: 0 },
-    D: { base: 85, iv: 31, ev: 0 },
-    S: { base: 102, iv: 31, ev: 0 },
+    H: { base: selectedPokemon?.pokemonInfo.base_stats["HP"] || 108, iv: 31, ev: selectedPokemon?.evs.H || 0 },
+    A: { base: selectedPokemon?.pokemonInfo.base_stats["攻撃"] || 130, iv: 31, ev: selectedPokemon?.evs.A || 0 },
+    B: { base: selectedPokemon?.pokemonInfo.base_stats["防御"] || 95, iv: 31, ev: selectedPokemon?.evs.B || 0 },
+    C: { base: selectedPokemon?.pokemonInfo.base_stats["特攻"] || 80, iv: 31, ev: selectedPokemon?.evs.C || 0 },
+    D: { base: selectedPokemon?.pokemonInfo.base_stats["特防"] || 85, iv: 31, ev: selectedPokemon?.evs.D || 0 },
+    S: { base: selectedPokemon?.pokemonInfo.base_stats["素早さ"] || 102, iv: 31, ev: selectedPokemon?.evs.S || 0 },
   });
+
   const [calcResults, setCalcResults] = useState<Record<StatType, number | null>>({
-    H: null, A: null, B: null, C: null, D: null, S: null
+    H: selectedPokemon?.realStats.H || null,
+    A: selectedPokemon?.realStats.A || null,
+    B: selectedPokemon?.realStats.B || null,
+    C: selectedPokemon?.realStats.C || null,
+    D: selectedPokemon?.realStats.D || null,
+    S: selectedPokemon?.realStats.S || null,
   });
+
   const [isCalcLoading, setIsCalcLoading] = useState(false);
   const [calcError, setCalcError] = useState<string | null>(null);
+
+  // 初期選択タグの状態管理
+  const [tagStates, setTagStates] = useState([
+    { label: "崩し性能", checked: selectedPokemon?.tags.includes("崩し性能") ?? true },
+    { label: "行動保障", checked: selectedPokemon?.tags.includes("行動保障") ?? false },
+    { label: "対面操作", checked: selectedPokemon?.tags.includes("対面操作") ?? false },
+    { label: "縛り性能", checked: selectedPokemon?.tags.includes("縛り性能") ?? true },
+    { label: "耐久・回復", checked: selectedPokemon?.tags.includes("耐久・回復") ?? false },
+  ]);
+
+  // selectedPokemonが外部から変更された場合の同期
+  useEffect(() => {
+    if (selectedPokemon) {
+      setSearchQuery(selectedPokemon.name);
+      setPokemonData(selectedPokemon.pokemonInfo);
+      setCalcResults(selectedPokemon.realStats);
+      const nIndex = NATURES.findIndex(n => n.name === selectedPokemon.nature.name);
+      if (nIndex >= 0) setNatureIndex(nIndex);
+      setTagStates(prev => prev.map(t => ({ ...t, checked: selectedPokemon.tags.includes(t.label) })));
+    }
+  }, [selectedPokemon]);
 
   useEffect(() => {
     if (pokemonData && pokemonData.base_stats) {
@@ -43,10 +89,13 @@ export default function PokemonConfigSection() {
         });
         return updated;
       });
-      setCalcResults({ H: null, A: null, B: null, C: null, D: null, S: null });
+      // 親から読み込んだ初期データと完全に一致している場合はリセットをスキップ
+      if (selectedPokemon?.pokemonInfo.name !== pokemonData.name) {
+        setCalcResults({ H: null, A: null, B: null, C: null, D: null, S: null });
+      }
       setCalcError(null);
     }
-  }, [pokemonData]);
+  }, [pokemonData, selectedPokemon]);
 
   const handleFetchPokemon = async () => {
     if (!searchQuery.trim()) return;
@@ -73,10 +122,14 @@ export default function PokemonConfigSection() {
     }));
   };
 
+  const handleTagChange = (index: number) => {
+    setTagStates(prev => prev.map((t, i) => i === index ? { ...t, checked: !t.checked } : t));
+  };
+
   const handleCalculate = async () => {
+    if (!pokemonData) return;
     setIsCalcLoading(true);
     setCalcError(null);
-    setCalcResults({ H: null, A: null, B: null, C: null, D: null, S: null });
 
     const selectedNature = NATURES[natureIndex];
 
@@ -119,9 +172,20 @@ export default function PokemonConfigSection() {
       });
 
       const resArray = await Promise.all(promises);
-      const newResults = { ...calcResults };
+      const newResults = { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 };
       resArray.forEach(r => { newResults[r.key] = r.val; });
       setCalcResults(newResults);
+
+      // ★ 計算が完了した実数値を親コンポーネントに通知して確定させる
+      onPokemonConfigComplete({
+        name: pokemonData.name,
+        pokemonInfo: pokemonData,
+        nature: selectedNature,
+        evs: { H: stats.H.ev, A: stats.A.ev, B: stats.B.ev, C: stats.C.ev, D: stats.D.ev, S: stats.S.ev },
+        realStats: newResults,
+        tags: tagStates.filter(t => t.checked).map(t => t.label),
+      });
+
     } catch (error: any) {
       console.error("Error:", error);
       setCalcError(error.message || "サーバーとの通信に失敗しました。");
@@ -129,14 +193,6 @@ export default function PokemonConfigSection() {
       setIsCalcLoading(false);
     }
   };
-
-  const tags = [
-    { label: "崩し性能", checked: true },
-    { label: "行動保障", checked: false },
-    { label: "対面操作", checked: false },
-    { label: "縛り性能", checked: true },
-    { label: "耐久・回復", checked: false },
-  ];
 
   return (
     <>
@@ -151,7 +207,7 @@ export default function PokemonConfigSection() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ポケモン名を入力"
-            className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
             onKeyDown={(e) => { if (e.key === "Enter") handleFetchPokemon(); }}
           />
 
@@ -171,13 +227,18 @@ export default function PokemonConfigSection() {
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {tags.map((tag) => (
+          {tagStates.map((tag, index) => (
             <label
               key={tag.label}
               className="flex items-center gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100"
             >
-              <input type="checkbox" defaultChecked={tag.checked} className="w-4 h-4" />
-              <span className="text-sm font-medium">{tag.label}</span>
+              <input 
+                type="checkbox" 
+                checked={tag.checked} 
+                onChange={() => handleTagChange(index)}
+                className="w-4 h-4" 
+              />
+              <span className="text-sm font-medium text-slate-700">{tag.label}</span>
             </label>
           ))}
         </div>
@@ -291,7 +352,7 @@ export default function PokemonConfigSection() {
                 disabled={isCalcLoading}
                 className="w-full bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-700 transition disabled:opacity-50"
               >
-                {isCalcLoading ? "計算中..." : "実数値を計算する"}
+                {isCalcLoading ? "計算中..." : "実数値を確定して反映する"}
               </button>
             </div>
           </div>

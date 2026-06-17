@@ -203,7 +203,7 @@ export default function BattleDetailPage() {
 
   const {
     opponentTeam,
-    myPartyBuilds,  // ← これが抜けていませんか？
+    myPartyBuilds,
     initializeMatch,
     toggleSelected,
     toggleFainted,

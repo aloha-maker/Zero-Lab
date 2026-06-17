@@ -1,14 +1,29 @@
+"use client";
+
+import { useState } from "react";
 import PokemonConfigSection from "./components/PokemonConfigSection";
 import MatchupMatrixSection from "./components/MatchupMatrixSection";
+import { ConfiguredMainPokemon } from "../types";
 
-export default function Step1Screen() {
+export default function Step2Screen() {
+  // 親が主軸ポケモンの確定状態（State）を一元管理する
+  const [mainPokemon, setMainPokemon] = useState<ConfiguredMainPokemon | null>(null);
+
   return (
-    <section className="space-y-6 animate-in fade-in duration-300">
-      {/* 主軸設定セクション */}
-      <PokemonConfigSection />
+    <div className="space-y-8 max-w-7xl mx-auto p-4">
+      {/* 1. ポケモン設定セクション */}
+      <PokemonConfigSection 
+        selectedPokemon={mainPokemon}
+        onPokemonConfigComplete={(data) => setMainPokemon(data)}
+      />
 
-      {/* マトリクス相性表セクション */}
-      <MatchupMatrixSection />
-    </section>
+      {/* 2. 有利不利マトリクスセクション */}
+      {mainPokemon && (
+        <MatchupMatrixSection 
+          mainPokemonName={mainPokemon.name}
+          // ※必要に応じて、mainPokemon.realStats(素早さ等)を使った初期計算用のbaseMatchupsをここに仕込めます
+        />
+      )}
+    </div>
   );
 }
