@@ -1,9 +1,8 @@
 import math
-from pickle import FALSE
 from typing import List, Dict, Any, Tuple, Optional
 # 既存の実数値計算関数をインポート
 from services.status import calculate_real_status
-from services.pokemon import get_active_season_pokemon_details
+from services.pokemon_season import get_active_season_pokemon_details
 from schemas.strategy import (
     AutoMatrixRequest, MatrixResponse, MatrixResultRow,
     AdvantageJudgment, DisadvantageCategory, ActionOrder
@@ -38,7 +37,7 @@ class MatrixService:
         
         # もし環境トップにいなければ、個別にPokeAPIから詳細を取得して補完（フォールバック）
         if not main_base_data:
-            from services.pokemon import fetch_pokemon_data
+            from services.pokemon_detail import fetch_pokemon_data
             try:
                 main_base_data = await fetch_pokemon_data(main_name)
             except:

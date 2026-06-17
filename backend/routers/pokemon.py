@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Path, Query, HTTPException
+from fastapi import APIRouter, Path, Query, HTTPException,Depends
+from core.supabase import get_supabase, SupabaseClient
 from typing import List, Optional
 from schemas.pokemon import PokemonInfo, PokemonListItem
-from services.pokemon import fetch_pokemon_data, get_pokemon_list_by_rule
+from services.pokemon_list import get_pokemon_list_by_rule
+from services.pokemon_detail import fetch_pokemon_data
 
 router = APIRouter()
 
 
 @router.get("/", response_model=List[PokemonListItem])
 async def get_pokemon_list(
-    rule_id: Optional[int] = Query(None, description="ルールID。指定時はそのルールで使用可能なポケモンのみを返す。")
+    rule_id: Optional[int] = Query(None, description="ルールID。指定時はそのルールで使用可能なポケモンのみを返す。"),
+    supabase: SupabaseClient = Depends(get_supabase)
 ):
     """
     ポケモン候補一覧を取得する。
@@ -20,7 +23,7 @@ async def get_pokemon_list(
             status_code=400,
             detail="rule_id は必須です。シーズンを選択してから候補を取得してください。"
         )
-    return await get_pokemon_list_by_rule(rule_id)
+    return await get_pokemon_list_by_rule(rule_id, supabase)
 
 
 @router.get("/{name_or_id}", response_model=PokemonInfo)
