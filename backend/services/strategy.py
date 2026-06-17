@@ -79,11 +79,7 @@ class MatrixService:
             try:
                 main_base_data = await fetch_pokemon_data(main_name)
             except:
-                # 万が一取得失敗した場合は、リストの先頭を借りるかエラー処理
-                if active_environment_pokemons:
-                    main_base_data = active_environment_pokemons[0]
-                else:
-                    raise ValueError(f"ポケモンのデータソースが空です。")
+                raise ValueError(f"ポケモンのデータソースが空です。")
         
         # --- 【修正箇所】リクエストから性格を取得し、マッピングから補正値を取得 ---
         # ※ request.nature には "いじっぱり", "ようき", "ひかえめ" などの文字列が入ってくる想定
@@ -124,19 +120,26 @@ class MatrixService:
         for opp in active_environment_pokemons:
             opp_real_stats = {}
             
+            # 1. DBから相手の性格名を取得（属性か辞書か安全にパース。無ければ「まじめ」等倍）
+            opp_nature_name = getattr(opp, 'nature', 'まじめ')
+            
+            # 2. 性格名に対応する補正マップ（1.1倍 / 0.9倍）を取得
+            opp_nature_map = NATURE_MODIFIERS.get(opp_nature_name, NATURE_MODIFIERS)
+            
             for api_key, internal_key in stat_key_map.items():
                 is_hp = (api_key == "H")
                 
                 # Pydanticオブジェクトから安全に種族値（base_stats）を取得
                 base = opp.base_stats.get(internal_key, 100)
                 
+                # 3. DBの性格に基づいた補正値をそのまま適用
+                opp_nature_modifier = opp_nature_map[internal_key]
+                
                 # ★ ご指摘通り、環境側の努力値は一律で「0」として安全に計算
                 calc_opp_ev = 0
                 
-                # 性格補正は一旦等倍（1.0）として計算
-                # （※もし将来的に最速や特化を考慮したい場合はここを調整できます）
                 opp_real_stats[internal_key] = calculate_real_status(
-                    is_hp=is_hp, base_stat=base, iv=31, ev=calc_opp_ev, level=50, nature_modifier=1.0
+                    is_hp=is_hp, base_stat=base, iv=31, ev=calc_opp_ev, level=50, nature_modifier=opp_nature_modifier
                 )
 
             # --- ③ マッチアップ（変更なし。オブジェクト記法に合わせて安全化） ---

@@ -27,7 +27,7 @@ from typing import Any
 import httpx
 
 from core.supabase import SupabaseClient
-from schemas.pokemon import SeasonMoveInfo, SeasonPokemonInfo
+from schemas.pokemon import SeasonMoveInfo, SeasonPokemonInfo,SeasonNatureInfo
 
 from .pokemon_common import (
     ALL_POKEAPI_TYPES,
@@ -101,7 +101,8 @@ def _fetch_ranking_rows(supabase: SupabaseClient) -> list[dict]:
             rank,
             name,
             pokemon_battle_db_mapping!inner(poke_api_id),
-            pokemon_moves_rankings!inner(move_name, move_type, category, power)
+            pokemon_moves_rankings!inner(move_name, move_type, category, power),
+            pokemon_natures_rankings!inner(rank,nature_name)
             """
         )
         .order("rank", desc=False)
@@ -117,17 +118,20 @@ def _extract_rank_and_moves(
     Supabaseの行データから、
     - pokemon_id -> rank の対応
     - pokemon_id -> 技リスト の対応
+    - pokemon_id -> 性格リスト の対応
     - 対象となる pokemon_id のリスト
     を組み立てる。
     """
     pokemon_rank_map: dict[int, int] = {}
     pokemon_moves_map: dict[int, list[dict]] = {}
+    pokemon_natures_map: dict[int, list[dict]] = {}
     pokemon_ids: list[int] = []
 
     for row in rows:
         rank_value = row.get("rank")
         mapping_list = row.get("pokemon_battle_db_mapping")
         moves_list = row.get("pokemon_moves_rankings", [])
+        natures_list = row.get("pokemon_natures_rankings", [])
 
         if not mapping_list or not isinstance(mapping_list, list):
             continue
@@ -149,8 +153,16 @@ def _extract_rank_and_moves(
             }
             for m in moves_list
         ]
+        
+        pokemon_natures_map[api_id] = [
+            {
+                "rank": n.get("rank"),
+                "nature_name": n.get("nature_name"),
+            }
+            for n in natures_list
+        ]
 
-    return pokemon_rank_map, pokemon_moves_map, pokemon_ids
+    return pokemon_rank_map, pokemon_moves_map, pokemon_ids,pokemon_natures_map
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +212,7 @@ async def _append_mega_forms(
     raw_pokemons: list[dict],
     pokemon_rank_map: dict[int, int],
     pokemon_moves_map: dict[int, list[dict]],
+    pokemon_natures_map: dict[int, list[dict]],
 ) -> list[dict]:
     """
     通常フォームの生辞書リストに、対応するメガシンカフォームの生辞書を追加する。
@@ -232,6 +245,7 @@ async def _append_mega_forms(
                     base_id, DEFAULT_RANK_FOR_UNKNOWN
                 )
                 pokemon_moves_map[mega_id] = pokemon_moves_map.get(base_id, [])
+                pokemon_natures_map[mega_id] = pokemon_natures_map.get(base_id, [])
 
                 all_raw_pokemon_dicts.append(mega_pokemon_dict)
 
@@ -329,6 +343,26 @@ def _build_season_moves(
 
     return season_moves
 
+def _build_season_natures(
+    raw_natures: list[dict]
+) -> list[SeasonNatureInfo]:
+    """
+    性格リストから SeasonNatureInfo を組み立てる。
+    """
+    season_natures: list[SeasonNatureInfo] = []
+    for m in raw_natures:
+        if m.get("nature_name") is None:
+            continue
+        
+        season_natures.append(
+            SeasonNatureInfo(
+                rank=m.get("rank"),
+                nature_name=m.get("nature_name"),
+            )
+        )
+
+    return season_natures
+
 
 def _build_max_power_by_type(season_moves: list[SeasonMoveInfo]) -> dict[str, int]:
     """タイプごとに最大の power_times_atk を集計する。"""
@@ -360,6 +394,7 @@ def _build_season_pokemon_info(
     pokemon_rank_map: dict[int, int],
     pokemon_moves_map: dict[int, list[dict]],
     type_data_map: dict[str, Any],
+    pokemon_natures_map: dict[int, list[dict]],
 ) -> SeasonPokemonInfo:
     """生辞書1件を SeasonPokemonInfo に変換する(整形処理の最終段)。"""
     poke_id = p["id"]
@@ -374,8 +409,10 @@ def _build_season_pokemon_info(
 
     raw_moves = pokemon_moves_map.get(poke_id, [])
     season_moves = _build_season_moves(raw_moves, base_stats, localized_types)
+    raw_natures = pokemon_natures_map.get(poke_id, [])
+    season_natures = _build_season_natures(raw_natures)
     max_atk_by_type = _build_max_power_by_type(season_moves)
-    type_efficacies = _build_type_efficacies(english_types, type_data_map)
+    type_efficacies = _build_type_efficacies(english_types, type_data_map)    
 
     return SeasonPokemonInfo(
         id=poke_id,
@@ -389,6 +426,7 @@ def _build_season_pokemon_info(
         height_m=0.0,
         moves=[],
         season_moves=season_moves,
+        season_natures=season_natures,
         max_power_times_atk_by_type=max_atk_by_type,
         type_efficacies=type_efficacies,
         image_url=_sprite_url(poke_id),
@@ -417,13 +455,13 @@ async def get_active_season_pokemon_details(
     if not rows:
         return []
 
-    pokemon_rank_map, pokemon_moves_map, pokemon_ids = _extract_rank_and_moves(rows)
+    pokemon_rank_map, pokemon_moves_map, pokemon_ids,pokemon_natures_map = _extract_rank_and_moves(rows)
     if not pokemon_ids:
         return []
 
     raw_pokemons = await _fetch_all_pokemon_chunks(pokemon_ids)
     all_raw_pokemon_dicts = await _append_mega_forms(
-        raw_pokemons, pokemon_rank_map, pokemon_moves_map
+        raw_pokemons, pokemon_rank_map, pokemon_moves_map,pokemon_natures_map
     )
 
     type_data_tasks = [fetch_type_data(t_name) for t_name in ALL_POKEAPI_TYPES]
@@ -431,7 +469,7 @@ async def get_active_season_pokemon_details(
     type_data_map = dict(zip(ALL_POKEAPI_TYPES, type_data_results))
 
     detailed_pokemons = [
-        _build_season_pokemon_info(p, pokemon_rank_map, pokemon_moves_map, type_data_map)
+        _build_season_pokemon_info(p, pokemon_rank_map, pokemon_moves_map, type_data_map,pokemon_natures_map)
         for p in all_raw_pokemon_dicts
     ]
 
