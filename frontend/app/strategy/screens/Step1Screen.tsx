@@ -21,6 +21,8 @@ export default function Step2Screen() {
       {mainPokemon && (
         <MatchupMatrixSection 
           mainPokemonName={mainPokemon.name}
+          selectedNatureName={mainPokemon.nature.name}
+          evs={mainPokemon.evs}
           // ※必要に応じて、mainPokemon.realStats(素早さ等)を使った初期計算用のbaseMatchupsをここに仕込めます
         />
       )}

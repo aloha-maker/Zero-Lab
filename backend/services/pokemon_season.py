@@ -93,7 +93,6 @@ def _fetch_ranking_rows(supabase: SupabaseClient) -> list[dict]:
     修正: 元コードは pokemon_battle_db_mapping から battle_db_id も取得していたが、
     後続処理のどこからも参照されていなかったため、必要な poke_api_id のみに絞った。
     """
-    print('here')
     res = (
         supabase.table("pokemon_rankings")
         .select(

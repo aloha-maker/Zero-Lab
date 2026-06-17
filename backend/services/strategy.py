@@ -1,6 +1,6 @@
 import math
 from typing import List, Dict, Any, Tuple, Optional
-# 既存の実数値計算関数をインポート
+from core.supabase import SupabaseClient
 from services.status import calculate_real_status
 from services.pokemon_season import get_active_season_pokemon_details
 from schemas.strategy import (
@@ -8,9 +8,47 @@ from schemas.strategy import (
     AdvantageJudgment, DisadvantageCategory, ActionOrder
 )
 
+# 1. 全25種類の性格補正値マッピングを定義（固定値の代わりにこれを使用）
+NATURE_MODIFIERS: Dict[str, Dict[str, float]] = {
+    # 無補正
+    "てれや":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
+    "がんばりや":{"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
+    "すなお":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
+    "きまぐれ": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
+    "まじめ":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
+    # 攻撃（A）上昇
+    "さみしがり":{"hp": 1.0, "attack": 1.1, "defense": 0.9, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
+    "いじっぱり":{"hp": 1.0, "attack": 1.1, "defense": 1.0, "sp_attack": 0.9, "sp_defense": 1.0, "speed": 1.0},
+    "やんちゃ": {"hp": 1.0, "attack": 1.1, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 0.9, "speed": 1.0},
+    "ゆうかん": {"hp": 1.0, "attack": 1.1, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 0.9},
+    # 防御（B）上昇
+    "ずぶとい": {"hp": 1.0, "attack": 0.9, "defense": 1.1, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
+    "わんぱく": {"hp": 1.0, "attack": 1.0, "defense": 1.1, "sp_attack": 0.9, "sp_defense": 1.0, "speed": 1.0},
+    "のうてんき":{"hp": 1.0, "attack": 1.0, "defense": 1.1, "sp_attack": 1.0, "sp_defense": 0.9, "speed": 1.0},
+    "のんき":   {"hp": 1.0, "attack": 1.0, "defense": 1.1, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 0.9},
+    # 特攻（C）上昇
+    "ひかえめ": {"hp": 1.0, "attack": 0.9, "defense": 1.0, "sp_attack": 1.1, "sp_defense": 1.0, "speed": 1.0},
+    "おっとり": {"hp": 1.0, "attack": 1.0, "defense": 0.9, "sp_attack": 1.1, "sp_defense": 1.0, "speed": 1.0},
+    "うっかりや":{"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.1, "sp_defense": 0.9, "speed": 1.0},
+    "れいせい": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.1, "sp_defense": 1.0, "speed": 0.9},
+    # 特防（D）上昇
+    "おだやか": {"hp": 1.0, "attack": 0.9, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.1, "speed": 1.0},
+    "おとなしい":{"hp": 1.0, "attack": 1.0, "defense": 0.9, "sp_attack": 1.0, "sp_defense": 1.1, "speed": 1.0},
+    "しんちょう":{"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 0.9, "sp_defense": 1.1, "speed": 1.0},
+    "なまいき": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.1, "speed": 0.9},
+    # 素早さ（S）上昇
+    "おくびょう":{"hp": 1.0, "attack": 0.9, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.1},
+    "せっかち": {"hp": 1.0, "attack": 1.0, "defense": 0.9, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.1},
+    "ようき":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 0.9, "sp_defense": 1.0, "speed": 1.1},
+    "むじゃき": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 0.9, "speed": 1.1},
+}
+
+# デフォルトの補正（リクエストが不正な場合などのフォールバック用）
+DEFAULT_NATURE = {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0}
+
 class MatrixService:
     @staticmethod
-    async def generate_auto_matrix(request: AutoMatrixRequest) -> MatrixResponse:
+    async def generate_auto_matrix(request: AutoMatrixRequest,supabase: SupabaseClient) -> MatrixResponse:
         """
         Supabase + PokeAPI のリアルデータを用いて
         有利不利マトリクスを完全自動実行・機械的判定します。
@@ -21,7 +59,7 @@ class MatrixService:
         # 0. 環境トップ50（リアルシーズンデータ）の非同期一括取得
         # ----------------------------------------------------------------
         # SupabaseやGraphQLから、順位・種族値・相性・技が成形されたモデルリストが届きます
-        all_environment_pokemons = await get_active_season_pokemon_details()
+        all_environment_pokemons = await get_active_season_pokemon_details(supabase)
         active_environment_pokemons = [
             opp for opp in all_environment_pokemons if opp.rank <= 50
         ]
@@ -46,10 +84,14 @@ class MatrixService:
                     main_base_data = active_environment_pokemons[0]
                 else:
                     raise ValueError(f"ポケモンのデータソースが空です。")
+        
+        # --- 【修正箇所】リクエストから性格を取得し、マッピングから補正値を取得 ---
+        # ※ request.nature には "いじっぱり", "ようき", "ひかえめ" などの文字列が入ってくる想定
+        request_nature_name = getattr(request, 'nature', 'まじめ') # スキーマに未定義なら無補正をデフォルトに
+        main_nature = NATURE_MODIFIERS.get(request_nature_name, DEFAULT_NATURE)
+        # ---------------------------------------------------------------------
 
         main_real_stats = {}
-        # 主軸の性格補正（仮でいじっぱり: A上昇/C下降 を想定。必要に応じてスキーマ拡張可能）
-        main_nature = {"hp": 1.0, "attack": 1.1, "defense": 1.0, "sp_attack": 0.9, "sp_defense": 1.0, "speed": 1.0}
         
         # スキーマ（H/A/B/C/D/S）から実数値パース用の内部キー（hp/attack...）へのマッピング
         stat_key_map = {"H": "hp", "A": "attack", "B": "defense", "C": "sp_attack", "D": "sp_defense", "S": "speed"}
@@ -60,14 +102,11 @@ class MatrixService:
             # 辞書型またはPydanticモデルの base_stats から種族値を取得
             base_stats_source = main_base_data.base_stats if hasattr(main_base_data, 'base_stats') else main_base_data.get('base_stats', {})
             base = base_stats_source.get(internal_key, 100)
-            
-            # フロントから届く 0〜32 努力値スケールをゲーム内（最大252）に復元
-            raw_ev = int(evs_dict.get(api_key, 0))
-            calc_ev = min(raw_ev * 8, 252)
+            ev = int(evs_dict.get(api_key, 0))
 
             modifier = main_nature[internal_key]
             main_real_stats[internal_key] = calculate_real_status(
-                is_hp=is_hp, base_stat=base, iv=31, ev=calc_ev, level=50, nature_modifier=modifier
+                is_hp=is_hp, base_stat=base, iv=31, ev=ev, level=50, nature_modifier=modifier
             )
 
         # 主軸の「タイプ」リストを取得

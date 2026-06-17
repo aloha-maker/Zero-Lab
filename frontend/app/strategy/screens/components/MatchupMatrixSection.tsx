@@ -8,15 +8,19 @@ import {
   MatrixResponse 
 } from "@/app/types/api"; 
 
-import { API_URL } from "@/app/types/constants";
+import { NATURES,API_URL } from "@/app/types/constants";
 
 interface MatchupMatrixSectionProps {
   mainPokemonName?: string;
+  selectedNatureName?: string;
+  evs?: {};
   baseMatchups?: MatchupInput[];
 }
 
 export default function MatchupMatrixSection({
   mainPokemonName = "",
+  selectedNatureName = "",
+  evs,
 }: MatchupMatrixSectionProps) {
   // APIから取得した結果（MatrixResultRowの配列）を管理するステート
   const [matrixData, setMatrixData] = useState<MatrixResultRow[]>([]);
@@ -25,19 +29,14 @@ export default function MatchupMatrixSection({
   // バックエンドのAPIを呼び出す関数
   const handleCalculate = async () => {
     setIsLoading(true);
+    console.log(selectedNatureName.split(" ")[0]);
     try {
       
       // 型定義に則ったリクエストボディの作成
       const requestBody = {
         main_pokemon_name: mainPokemonName,
-        evs: {
-          H: 1,
-          A: 32,
-          B: 0,
-          C: 0,
-          D: 0,
-          S: 32
-        }
+        nature: selectedNatureName.split(" ")[0],
+        evs: evs,
       };
 
       const response = await fetch(`${API_URL}/api/v1/strategy/matrix`, {
