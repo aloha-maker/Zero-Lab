@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-// 変更点1: 共通の型とエラーレスポンス型をインポート
 import type { PokemonInfo, ApiErrorResponse } from "@/app/types/api";
+import { API_URL } from "@/app/types/constants";
 
 export default function PokedexPage() {
     const [searchQuery, setSearchQuery] = useState("");
@@ -21,7 +21,6 @@ export default function PokedexPage() {
         setPokemon(null);
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
             // 検索クエリ（名前または図鑑番号）をパスパラメータとして送信
             const response = await fetch(`${API_URL}/api/v1/pokemon/${searchQuery.toLowerCase()}`);

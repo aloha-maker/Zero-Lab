@@ -2,18 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-// 変更点1: 共通の型とエラーレスポンス型をインポート
+import { API_URL } from "@/app/types/constants";
+
+// 共通の型とエラーレスポンス型をインポート
 import type { PokemonBuildResponse, ApiErrorResponse } from "@/app/types/api";
 
 export default function BuildsPage() {
-    // 変更点2: インポートした型を適用
+    // インポートした型を適用
     const [builds, setBuilds] = useState<PokemonBuildResponse[]>([]);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const fetchBuilds = async () => {
         setErrorMsg(null);
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             const res = await fetch(`${API_URL}/api/v1/builds`);
 
             if (!res.ok) {
@@ -42,7 +43,6 @@ export default function BuildsPage() {
         if (!confirm("削除しますか？")) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             const res = await fetch(`${API_URL}/api/v1/builds/${id}`, { method: "DELETE" });
 
             // 変更点3: 削除失敗時の詳細なエラーハンドリング

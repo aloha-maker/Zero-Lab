@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import PartyForm from '@/app/parties/components/PartyForm';
 import type { PartyResponse } from '@/app/types/api';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { API_URL } from "@/app/types/constants";
 
 export default function EditPartyPage() {
     const { id } = useParams();

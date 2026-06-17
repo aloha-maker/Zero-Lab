@@ -3,13 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PartyCreateRequest, PartyResponse, PartyMember, PokemonBuildResponse } from '@/app/types/api';
+import { API_URL } from "@/app/types/constants";
 
 interface PartyFormProps {
     initialData?: PartyResponse;
     isEdit?: boolean;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function PartyForm({ initialData, isEdit }: PartyFormProps) {
     const router = useRouter();

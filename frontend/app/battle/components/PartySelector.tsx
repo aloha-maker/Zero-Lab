@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useBattleStore } from '../store/useBattleStore';
 import { PokemonBuildResponse } from '../../types/api';
+import { API_URL } from "@/app/types/constants";
 
 // APIから返却されるパーティの型定義
 interface PartyMember {
@@ -22,7 +23,7 @@ export const PartySelector = () => {
   useEffect(() => {
     const fetchParties = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/parties`);
+        const res = await fetch(`${API_URL}/api/v1/parties`);
         const data = await res.json();
         const partiesData = data.data;
         setParties(partiesData);

@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// 変更点1: 更新用の型とエラーレスポンス型をインポート
+import { API_URL } from "@/app/types/constants";
 import type { BuildUpdateRequest, PokemonBuildResponse, ApiErrorResponse } from "@/app/types/api";
 
 const NATURE_MODIFIERS: Record<string, [string, string]> = {
@@ -42,7 +42,6 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
     useEffect(() => {
         const fetchExistingData = async () => {
             try {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
                 const res = await fetch(`${API_URL}/api/v1/builds/${id}?t=${new Date().getTime()}`, { cache: 'no-store' });
 
                 if (!res.ok) {
@@ -151,7 +150,6 @@ export default function EditBuildPage({ params }: { params: Promise<{ id: string
         setErrorMsg(null);
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             const res = await fetch(`${API_URL}/api/v1/builds/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },

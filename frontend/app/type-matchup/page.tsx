@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { TypeMatchupRequest, TypeMatchupResponse, ApiErrorResponse } from "@/app/types/api";
+import { API_URL } from "@/app/types/constants";
 
 // PokeAPIに送信するための英語名と、表示用の日本語名のマッピング
 const POKEMON_TYPES = [
@@ -45,7 +46,6 @@ export default function TypeMatchupPage() {
         };
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
             const response = await fetch(`${API_URL}/api/v1/type_matchup`, {
                 method: "POST",

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// 変更点1: 共通の型とエラーレスポンス型をインポート
+import { API_URL } from "@/app/types/constants";
 import type { BuildCreateRequest, ApiErrorResponse } from "@/app/types/api";
 
 const NATURE_MODIFIERS: Record<string, [string, string]> = {
@@ -111,7 +111,6 @@ export default function NewBuildPage() {
         setErrorMsg(null); // エラーリセット
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
             const res = await fetch(`${API_URL}/api/v1/builds/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
+import { API_URL } from "@/app/types/constants";
 
 // --- 型定義 ---
 type PokemonSpeedInfo = {
@@ -96,7 +97,6 @@ export default function SpeedComparePage() {
         setErrorMsg(null);
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
             // 登録されている全てのポケモンについて、バックエンドで実数値を計算
             const promises = pokemons.map(async (p) => {

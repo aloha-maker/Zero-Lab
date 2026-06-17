@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
-import { NATURES } from "@/app/types/constants";
+import { NATURES,API_URL } from "@/app/types/constants";
 
 type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
 
@@ -45,7 +45,6 @@ export default function Home() {
         setResults({ H: null, A: null, B: null, C: null, D: null, S: null });
 
         const selectedNature = NATURES[natureIndex];
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
         try {
             const promises = (Object.keys(stats) as StatType[]).map(async (key) => {

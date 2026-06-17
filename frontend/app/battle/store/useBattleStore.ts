@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { OpponentPokemon, BattleMatch } from '../types';
 import { PokemonBuildResponse } from '../../types/api';
+import { API_URL } from "@/app/types/constants";
 
 interface BattleState {
   // --- State ---
@@ -106,7 +107,7 @@ export const useBattleStore = create<BattleState>((set, get) => ({
     set({ isSyncing: true, syncError: false });
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/battles/${matchId}/pokemons`,
+        `${API_URL}/battles/${matchId}/pokemons`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },

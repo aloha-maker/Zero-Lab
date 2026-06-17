@@ -14,7 +14,10 @@ class SeasonMoveInfo(BaseModel):
     category: str
     power: Optional[int] = None
     power_times_atk: Optional[int] = None
-    
+
+class SeasonNatureInfo(BaseModel):
+    rank: int
+    nature_name: str
 
 class PokemonInfo(BaseModel):
     id: int
@@ -31,6 +34,7 @@ class PokemonInfo(BaseModel):
 class SeasonPokemonInfo(PokemonInfo):
     rank: int
     season_moves: List[SeasonMoveInfo]
+    season_natures: List[SeasonNatureInfo]
     max_power_times_atk_by_type: Dict[str, int]
     type_efficacies: Dict[str, float]
 

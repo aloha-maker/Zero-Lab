@@ -25,3 +25,5 @@ export const NATURES = [
     { name: "きまぐれ (補正なし)", up: null, down: null },
     { name: "まじめ (補正なし)", up: null, down: null },
 ];
+
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
