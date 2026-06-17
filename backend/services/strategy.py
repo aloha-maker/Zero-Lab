@@ -48,7 +48,7 @@ DEFAULT_NATURE = {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "s
 
 class MatrixService:
     @staticmethod
-    async def generate_auto_matrix(request: AutoMatrixRequest,supabase: SupabaseClient) -> MatrixResponse:
+    async def generate_auto_matrix(request: AutoMatrixRequest, supabase: SupabaseClient) -> MatrixResponse:
         """
         Supabase + PokeAPI のリアルデータを用いて
         有利不利マトリクスを完全自動実行・機械的判定します。
@@ -58,22 +58,18 @@ class MatrixService:
         # ----------------------------------------------------------------
         # 0. 環境トップ50（リアルシーズンデータ）の非同期一括取得
         # ----------------------------------------------------------------
-        # SupabaseやGraphQLから、順位・種族値・相性・技が成形されたモデルリストが届きます
         all_environment_pokemons = await get_active_season_pokemon_details(supabase)
         active_environment_pokemons = [
             opp for opp in all_environment_pokemons if opp.rank <= 50
         ]
-        
 
         # ----------------------------------------------------------------
         # ① 主軸ポケモンのデータ補完と実数値計算
         # ----------------------------------------------------------------
         main_name = request.main_pokemon_name
         
-        # 環境データの中に主軸と同じポケモンがいれば、その基礎データを流用する（最適化）
         main_base_data = next((p for p in active_environment_pokemons if p.name == main_name), None)
         
-        # もし環境トップにいなければ、個別にPokeAPIから詳細を取得して補完（フォールバック）
         if not main_base_data:
             from services.pokemon_detail import fetch_pokemon_data
             try:
@@ -81,21 +77,16 @@ class MatrixService:
             except:
                 raise ValueError(f"ポケモンのデータソースが空です。")
         
-        # --- 【修正箇所】リクエストから性格を取得し、マッピングから補正値を取得 ---
-        # ※ request.nature には "いじっぱり", "ようき", "ひかえめ" などの文字列が入ってくる想定
-        request_nature_name = getattr(request, 'nature', 'まじめ') # スキーマに未定義なら無補正をデフォルトに
+        # リクエストから性格を取得し、マッピングから補正値を取得
+        request_nature_name = getattr(request, 'nature', 'まじめ')
         main_nature = NATURE_MODIFIERS.get(request_nature_name, DEFAULT_NATURE)
-        # ---------------------------------------------------------------------
 
         main_real_stats = {}
-        
-        # スキーマ（H/A/B/C/D/S）から実数値パース用の内部キー（hp/attack...）へのマッピング
         stat_key_map = {"H": "hp", "A": "attack", "B": "defense", "C": "sp_attack", "D": "sp_defense", "S": "speed"}
         evs_dict = request.evs if isinstance(request.evs, dict) else request.evs.model_dump()
 
         for api_key, internal_key in stat_key_map.items():
             is_hp = (api_key == "H")
-            # 辞書型またはPydanticモデルの base_stats から種族値を取得
             base_stats_source = main_base_data.base_stats if hasattr(main_base_data, 'base_stats') else main_base_data.get('base_stats', {})
             base = base_stats_source.get(internal_key, 100)
             ev = int(evs_dict.get(api_key, 0))
@@ -105,72 +96,91 @@ class MatrixService:
                 is_hp=is_hp, base_stat=base, iv=31, ev=ev, level=50, nature_modifier=modifier
             )
 
-        # 主軸の「タイプ」リストを取得
+        # 主軸の基本情報と技リストのパース
         main_types = main_base_data.types if hasattr(main_base_data, 'types') else main_base_data.get('types', [])
-        # 主軸のメイン技（暫定で season_moves の1番目、無ければ威力100の物理技を偽装）
         main_moves = main_base_data.season_moves if hasattr(main_base_data, 'season_moves') else main_base_data.get('season_moves', [])
-        main_attack_move = main_moves[0] if main_moves else {"move_name": "攻撃技", "move_type": main_types[0] if main_types else "ノーマル", "power": 90, "category": "ぶつり"}
-        if hasattr(main_attack_move, 'model_dump'):
-            main_attack_move = main_attack_move.model_dump()
+        main_moves_parsed = [
+            m.model_dump() if hasattr(m, 'model_dump') else m for m in main_moves
+        ]
 
         # ----------------------------------------------------------------
         # ②＆③ 環境トップのループ処理とマッチアップシミュレーション
         # ----------------------------------------------------------------
-        # --- ② 相手（環境トップ）の計算 ---
         for opp in active_environment_pokemons:
             opp_real_stats = {}
             
-            # 1. DBから相手の性格名を取得（属性か辞書か安全にパース。無ければ「まじめ」等倍）
+            # 1. DBから相手の性格名を取得
             opp_nature_name = getattr(opp, 'nature', 'まじめ')
             
-            # 2. 性格名に対応する補正マップ（1.1倍 / 0.9倍）を取得
-            opp_nature_map = NATURE_MODIFIERS.get(opp_nature_name, NATURE_MODIFIERS)
+            # 2. 性格名に対応する補正マップを取得（★ヒットしない場合は DEFAULT_NATURE へフォールバック）
+            opp_nature_map = NATURE_MODIFIERS.get(opp_nature_name, DEFAULT_NATURE)
             
             for api_key, internal_key in stat_key_map.items():
                 is_hp = (api_key == "H")
-                
-                # Pydanticオブジェクトから安全に種族値（base_stats）を取得
                 base = opp.base_stats.get(internal_key, 100)
                 
-                # 3. DBの性格に基づいた補正値をそのまま適用
+                # DBの性格に基づいた補正値を適用
                 opp_nature_modifier = opp_nature_map[internal_key]
-                
-                # ★ ご指摘通り、環境側の努力値は一律で「0」として安全に計算
                 calc_opp_ev = 0
                 
                 opp_real_stats[internal_key] = calculate_real_status(
                     is_hp=is_hp, base_stat=base, iv=31, ev=calc_opp_ev, level=50, nature_modifier=opp_nature_modifier
                 )
+            
+            # 相手の技リストを安全にパース
+            opp_moves = opp.season_moves if hasattr(opp, 'season_moves') else opp.get('season_moves', [])
+            opp_moves_parsed = [
+                m.model_dump() if hasattr(m, 'model_dump') else m for m in opp_moves
+            ]
+            
+            # ------------------------------------------------------------
+            # 動的な最大打点（最適技）の選定
+            # ------------------------------------------------------------
+            # ① 自分から相手への最適技を探す
+            best_my_turns = 3
+            opp_type_efficacies = opp.type_efficacies if opp.type_efficacies else {}
+            
+            if main_moves_parsed:
+                for move in main_moves_parsed:
+                    if move.get("category") == "変化" or not move.get("power"):
+                        continue
+                        
+                    multiplier = opp_type_efficacies.get(move["move_type"], 1.0)
+                    turns = MatrixService._calc_dynamic_turns_to_kill(
+                        atk_stats=main_real_stats, def_stats=opp_real_stats,
+                        move=move, atk_types=main_types, multiplier=multiplier
+                    )
+                    if turns < best_my_turns:
+                        best_my_turns = turns
 
-            # --- ③ マッチアップ（変更なし。オブジェクト記法に合わせて安全化） ---
+            # ② 相手から自分への最適技を探す
+            best_opp_turns = 3
+
+            if opp_moves_parsed:
+                for move in opp_moves_parsed:
+                    if move.get("category") == "変化" or not move.get("power"):
+                        continue
+                        
+                    turns = MatrixService._calc_dynamic_turns_to_kill(
+                        atk_stats=opp_real_stats, def_stats=main_real_stats,
+                        move=move, atk_types=opp.types, multiplier=1.0
+                    )
+                    if turns < best_opp_turns:
+                        best_opp_turns = turns
+
+            # 最適化された確定数をマッチアップ判定用の変数に格納
+            my_turns = best_my_turns
+            opp_turns = best_opp_turns
+
+            # ------------------------------------------------------------
+            # ③ マッチアップ判定（素早さ比較 ＆ フローチャート実行）
+            # ------------------------------------------------------------
+            # 行動順（S関係）の判定
             if main_real_stats["speed"] >= opp_real_stats["speed"]:
                 action_order = ActionOrder.FIRST
             else:
                 action_order = ActionOrder.SECOND
                 
-            # 相手の繰り出してくる最大火力技を取得
-            opp_moves = opp.season_moves
-            opp_attack_move = opp_moves[0] if opp_moves else {"move_name": "攻撃技", "move_type": opp.types[0] if opp.types else "ノーマル", "power": 80, "category": "ぶつり"}
-            
-            # Pydanticモデルだった場合は辞書にパースして計算機に投げる
-            if hasattr(opp_attack_move, 'model_dump'):
-                opp_attack_move = opp_attack_move.model_dump()
-
-            # ① こちらから相手への確定数 (相手の相性表 `opp.type_efficacies` を参照)
-            opp_type_efficacies = opp.type_efficacies if opp.type_efficacies else {}
-            my_multiplier = opp_type_efficacies.get(main_attack_move["move_type"], 1.0)
-            
-            my_turns = MatrixService._calc_dynamic_turns_to_kill(
-                atk_stats=main_real_stats, def_stats=opp_real_stats,
-                move=main_attack_move, atk_types=main_types, multiplier=my_multiplier
-            )
-            
-            # ② 相手からこちらへの確定数
-            opp_turns = MatrixService._calc_dynamic_turns_to_kill(
-                atk_stats=opp_real_stats, def_stats=main_real_stats,
-                move=opp_attack_move, atk_types=opp.types, multiplier=1.0
-            )
-
             # 特定の変化技脅威を持つポケモンの簡易判定
             has_status_threat = opp.name in ["ディンルー", "キョジオーン", "カバルドン", "ドヒドイデ"]
 
@@ -202,8 +212,8 @@ class MatrixService:
             return 3
 
         # 物理・特殊に応じた実数値の取得
-        atk_val = atk_stats["attack"] if move["category"] == "ぶつり" else atk_stats["sp_attack"]
-        def_val = def_stats["defense"] if move["category"] == "ぶつり" else def_stats["sp_defense"]
+        atk_val = atk_stats["attack"] if move["category"] == "物理" else atk_stats["sp_attack"]
+        def_val = def_stats["defense"] if move["category"] == "物理" else def_stats["sp_defense"]
         
         # 万が一、実数値側が0やNoneだった場合の安全弁
         if not atk_val or not def_val:
