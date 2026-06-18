@@ -84,21 +84,28 @@ def get_localized_name(names_list: list, target_lang: str, default_name: str) ->
             return name_entry["name"]
     return default_name
 
-
 async def resolve_pokemon_id_by_japanese_name(japanese_name: str) -> int:
     """
     日本語のポケモン名からPokeAPIのIDを逆引きする(GraphQLを使用)。
-
-    注意: 呼び出し側では「クエリ文字列がASCIIでない場合は日本語名とみなす」
-    という判定を行っている。全角記号など日本語以外の非ASCII文字が来た場合も
-    ここに到達するが、その場合はGraphQL側で該当データが見つからず404になる
-    (誤った挙動ではないが、エラーメッセージは「見つかりません」のみになる)。
+    種族名（フシギバナ）とフォルム名（メガフシギバナ等）の両方に対応。
     """
     graphql_query = {
         "query": """
         query getPokemonIdByJapaneseName($name: String!) {
-          pokemon_v2_pokemonspeciesname(where: {name: {_eq: $name}, pokemon_v2_language: {name: {_eq: "ja-Hrkt"}}}) {
+          # 1. 種族名（フシギバナなど）で検索
+          species_match: pokemon_v2_pokemonspeciesname(
+            where: {name: {_eq: $name}, pokemon_v2_language: {name: {_eq: "ja-Hrkt"}}}
+          ) {
             pokemon_species_id
+          }
+          
+          # 2. フォルム名（メガフシギバナなど）で検索
+          form_match: pokemon_v2_pokemonformname(
+            where: {name: {_eq: $name}, pokemon_v2_language: {name: {_eq: "ja-Hrkt"}}}
+          ) {
+            pokemon_v2_pokemonform {
+              pokemon_id
+            }
           }
         }
         """,
@@ -111,14 +118,24 @@ async def resolve_pokemon_id_by_japanese_name(japanese_name: str) -> int:
             res.raise_for_status()
             data = res.json()
 
-            results = data.get("data", {}).get("pokemon_v2_pokemonspeciesname", [])
-            if not results:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"'{japanese_name}' というポケモンは見つかりませんでした。",
-                )
+            response_data = data.get("data", {})
 
-            return results[0]["pokemon_species_id"]
+            # パターン1: まず種族名から探す（フシギバナなど）
+            species_results = response_data.get("species_match", [])
+            if species_results:
+                return species_results[0]["pokemon_species_id"]
+
+            # パターン2: 見つからなければフォルム名から探す（メガフシギバナなど）
+            form_results = response_data.get("form_match", [])
+            if form_results:
+                # メガフシギバナなどの場合は、フォルム固有のポケモンID（例: 10033）を返す
+                return form_results[0]["pokemon_v2_pokemonform"]["pokemon_id"]
+
+            # どちらにも存在しない場合
+            raise HTTPException(
+                status_code=404,
+                detail=f"'{japanese_name}' というポケモンは見つかりませんでした。",
+            )
 
         except httpx.HTTPStatusError:
             raise HTTPException(status_code=502, detail="PokeAPI GraphQLエラー")

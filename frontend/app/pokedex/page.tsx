@@ -127,11 +127,11 @@ export default function PokedexPage() {
                                 <div className="flex gap-8">
                                     <div>
                                         <h3 className="text-sm font-bold text-gray-400 uppercase mb-1">高さ</h3>
-                                        <p className="text-lg font-bold">{pokemon.height_m} m</p>
+                                        <p className="text-lg font-bold text-gray-400">{pokemon.height_m} m</p>
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-bold text-gray-400 uppercase mb-1">重さ</h3>
-                                        <p className="text-lg font-bold">{pokemon.weight_kg} kg</p>
+                                        <p className="text-lg font-bold text-gray-400">{pokemon.weight_kg} kg</p>
                                     </div>
                                 </div>
                             </div>
