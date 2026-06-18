@@ -15,12 +15,14 @@ interface MatchupMatrixSectionProps {
   selectedNatureName?: string;
   evs?: {};
   baseMatchups?: MatchupInput[];
+  onMatrixCalculated?: (data: MatrixResultRow[]) => void;
 }
 
 export default function MatchupMatrixSection({
   mainPokemonName = "",
   selectedNatureName = "",
   evs,
+  onMatrixCalculated,
 }: MatchupMatrixSectionProps) {
   // APIから取得した結果（MatrixResultRowの配列）を管理するステート
   const [matrixData, setMatrixData] = useState<MatrixResultRow[]>([]);
@@ -29,7 +31,6 @@ export default function MatchupMatrixSection({
   // バックエンドのAPIを呼び出す関数
   const handleCalculate = async () => {
     setIsLoading(true);
-    console.log(selectedNatureName.split(" ")[0]);
     try {
       
       // 型定義に則ったリクエストボディの作成
@@ -54,6 +55,9 @@ export default function MatchupMatrixSection({
       // レスポンスを型安全にパース
       const data: MatrixResponse = await response.json();
       setMatrixData(data.matrix);
+      if (onMatrixCalculated) {
+        onMatrixCalculated(data.matrix);
+      }
     } catch (error: any) {
         console.error(error);
         

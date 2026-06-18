@@ -12,7 +12,6 @@ router = APIRouter(tags=["seasons"])
 async def get_season_pokemon_details(supabase: SupabaseClient = Depends(get_supabase)):
     try:
         detailed_pokemons = await get_active_season_pokemon_details(supabase)
-        print('here')
         # 新しい実質ダメージランキングを算出
         real_damage_ranking = await calculate_real_damage_ranking(detailed_pokemons)
         
