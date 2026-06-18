@@ -40,12 +40,12 @@ export default function PokemonConfigSection({
   const [natureIndex, setNatureIndex] = useState(initialNatureIndex >= 0 ? initialNatureIndex : 22);
   
   const [stats, setStats] = useState<Record<StatType, { base: number, iv: number, ev: number }>>({
-    H: { base: selectedPokemon?.pokemonInfo.base_stats["HP"] || 108, iv: 31, ev: selectedPokemon?.evs.H || 0 },
-    A: { base: selectedPokemon?.pokemonInfo.base_stats["攻撃"] || 130, iv: 31, ev: selectedPokemon?.evs.A || 0 },
-    B: { base: selectedPokemon?.pokemonInfo.base_stats["防御"] || 95, iv: 31, ev: selectedPokemon?.evs.B || 0 },
-    C: { base: selectedPokemon?.pokemonInfo.base_stats["特攻"] || 80, iv: 31, ev: selectedPokemon?.evs.C || 0 },
-    D: { base: selectedPokemon?.pokemonInfo.base_stats["特防"] || 85, iv: 31, ev: selectedPokemon?.evs.D || 0 },
-    S: { base: selectedPokemon?.pokemonInfo.base_stats["素早さ"] || 102, iv: 31, ev: selectedPokemon?.evs.S || 0 },
+    H: { base: selectedPokemon?.pokemonInfo.base_stats["hp"] || 108, iv: 31, ev: selectedPokemon?.evs.H || 0 },
+    A: { base: selectedPokemon?.pokemonInfo.base_stats["attack"] || 130, iv: 31, ev: selectedPokemon?.evs.A || 0 },
+    B: { base: selectedPokemon?.pokemonInfo.base_stats["defense"] || 95, iv: 31, ev: selectedPokemon?.evs.B || 0 },
+    C: { base: selectedPokemon?.pokemonInfo.base_stats["special-attack"] || 80, iv: 31, ev: selectedPokemon?.evs.C || 0 },
+    D: { base: selectedPokemon?.pokemonInfo.base_stats["special-defense"] || 85, iv: 31, ev: selectedPokemon?.evs.D || 0 },
+    S: { base: selectedPokemon?.pokemonInfo.base_stats["speed"] || 102, iv: 31, ev: selectedPokemon?.evs.S || 0 },
   });
 
   const [calcResults, setCalcResults] = useState<Record<StatType, number | null>>({
@@ -81,14 +81,13 @@ export default function PokemonConfigSection({
       
       setTagStates(prev => prev.map(t => ({ ...t, checked: selectedPokemon.tags.includes(t.label) })));
 
-      // ★ 追加: stats（種族値・努力値）も selectedPokemon のデータに合わせて完全に上書きする
       setStats({
-        H: { base: selectedPokemon.pokemonInfo.base_stats["HP"] || 0, iv: 31, ev: selectedPokemon.evs.H || 0 },
-        A: { base: selectedPokemon.pokemonInfo.base_stats["攻撃"] || 0, iv: 31, ev: selectedPokemon.evs.A || 0 },
-        B: { base: selectedPokemon.pokemonInfo.base_stats["防御"] || 0, iv: 31, ev: selectedPokemon.evs.B || 0 },
-        C: { base: selectedPokemon.pokemonInfo.base_stats["特攻"] || 0, iv: 31, ev: selectedPokemon.evs.C || 0 },
-        D: { base: selectedPokemon.pokemonInfo.base_stats["特防"] || 0, iv: 31, ev: selectedPokemon.evs.D || 0 },
-        S: { base: selectedPokemon.pokemonInfo.base_stats["素早さ"] || 0, iv: 31, ev: selectedPokemon.evs.S || 0 },
+        H: { base: selectedPokemon.pokemonInfo.base_stats["hp"] || 0, iv: 31, ev: selectedPokemon.evs.H || 0 },
+        A: { base: selectedPokemon.pokemonInfo.base_stats["attack"] || 0, iv: 31, ev: selectedPokemon.evs.A || 0 },
+        B: { base: selectedPokemon.pokemonInfo.base_stats["defense"] || 0, iv: 31, ev: selectedPokemon.evs.B || 0 },
+        C: { base: selectedPokemon.pokemonInfo.base_stats["special-attack"] || 0, iv: 31, ev: selectedPokemon.evs.C || 0 },
+        D: { base: selectedPokemon.pokemonInfo.base_stats["special-defense"] || 0, iv: 31, ev: selectedPokemon.evs.D || 0 },
+        S: { base: selectedPokemon.pokemonInfo.base_stats["speed"] || 0, iv: 31, ev: selectedPokemon.evs.S || 0 },
       });
     }
   }, [selectedPokemon]);
