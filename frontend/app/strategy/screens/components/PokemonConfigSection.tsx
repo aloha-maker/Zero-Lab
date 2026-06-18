@@ -7,10 +7,14 @@ import { StatType, ConfiguredMainPokemon } from "../../types";
 
 const statLabels: Record<StatType, string> = { H: "HP", A: "攻撃", B: "防御", C: "特攻", D: "特防", S: "素早さ" };
 const keyMapping: Record<string, StatType> = {
-  "HP": "H", "攻撃": "A", "防御": "B", "特攻": "C", "特防": "D", "素早さ": "S"
+  "hp": "H",
+  "attack": "A",
+  "defense": "B",
+  "special-attack": "C",
+  "special-defense": "D",
+  "speed": "S"
 };
 
-// ★ 親から受け取るインターフェースを定義
 interface PokemonConfigSectionProps {
   selectedPokemon: ConfiguredMainPokemon | null;
   onPokemonConfigComplete: (configuredData: ConfiguredMainPokemon) => void;
@@ -20,7 +24,7 @@ export default function PokemonConfigSection({
   selectedPokemon, 
   onPokemonConfigComplete 
 }: PokemonConfigSectionProps) {
-  const [searchQuery, setSearchQuery] = useState(selectedPokemon?.name || "ガブリアス");
+  const [searchQuery, setSearchQuery] = useState(selectedPokemon?.name || "");
   const [pokemonData, setPokemonData] = useState<PokemonInfo | null>(selectedPokemon?.pokemonInfo || null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +35,7 @@ export default function PokemonConfigSection({
   // 性格の初期インデックスを見つけるヘルパー
   const initialNatureIndex = selectedPokemon 
     ? NATURES.findIndex(n => n.name === selectedPokemon.nature.name)
-    : 22; // ようき
+    : 22;
 
   const [natureIndex, setNatureIndex] = useState(initialNatureIndex >= 0 ? initialNatureIndex : 22);
   
@@ -65,37 +69,29 @@ export default function PokemonConfigSection({
     { label: "耐久・回復", checked: selectedPokemon?.tags.includes("耐久・回復") ?? false },
   ]);
 
-  // selectedPokemonが外部から変更された場合の同期
+  // 1. selectedPokemonが外部から変更された場合の完全同期
   useEffect(() => {
     if (selectedPokemon) {
       setSearchQuery(selectedPokemon.name);
       setPokemonData(selectedPokemon.pokemonInfo);
       setCalcResults(selectedPokemon.realStats);
+      
       const nIndex = NATURES.findIndex(n => n.name === selectedPokemon.nature.name);
       if (nIndex >= 0) setNatureIndex(nIndex);
+      
       setTagStates(prev => prev.map(t => ({ ...t, checked: selectedPokemon.tags.includes(t.label) })));
+
+      // ★ 追加: stats（種族値・努力値）も selectedPokemon のデータに合わせて完全に上書きする
+      setStats({
+        H: { base: selectedPokemon.pokemonInfo.base_stats["HP"] || 0, iv: 31, ev: selectedPokemon.evs.H || 0 },
+        A: { base: selectedPokemon.pokemonInfo.base_stats["攻撃"] || 0, iv: 31, ev: selectedPokemon.evs.A || 0 },
+        B: { base: selectedPokemon.pokemonInfo.base_stats["防御"] || 0, iv: 31, ev: selectedPokemon.evs.B || 0 },
+        C: { base: selectedPokemon.pokemonInfo.base_stats["特攻"] || 0, iv: 31, ev: selectedPokemon.evs.C || 0 },
+        D: { base: selectedPokemon.pokemonInfo.base_stats["特防"] || 0, iv: 31, ev: selectedPokemon.evs.D || 0 },
+        S: { base: selectedPokemon.pokemonInfo.base_stats["素早さ"] || 0, iv: 31, ev: selectedPokemon.evs.S || 0 },
+      });
     }
   }, [selectedPokemon]);
-
-  useEffect(() => {
-    if (pokemonData && pokemonData.base_stats) {
-      setStats(prev => {
-        const updated = { ...prev };
-        Object.entries(pokemonData.base_stats).forEach(([jpKey, val]) => {
-          const engKey = keyMapping[jpKey];
-          if (engKey) {
-            updated[engKey] = { ...updated[engKey], base: val };
-          }
-        });
-        return updated;
-      });
-      // 親から読み込んだ初期データと完全に一致している場合はリセットをスキップ
-      if (selectedPokemon?.pokemonInfo.name !== pokemonData.name) {
-        setCalcResults({ H: null, A: null, B: null, C: null, D: null, S: null });
-      }
-      setCalcError(null);
-    }
-  }, [pokemonData, selectedPokemon]);
 
   const handleFetchPokemon = async () => {
     if (!searchQuery.trim()) return;
@@ -107,6 +103,22 @@ export default function PokemonConfigSection({
       const data: PokemonInfo = await response.json();
       setPokemonData(data);
       setIsMovesOpen(false);
+
+      if (data && data.base_stats) {
+        setStats(prev => {
+          const updated = { ...prev };
+          Object.entries(data.base_stats).forEach(([jpKey, val]) => {
+            const engKey = keyMapping[jpKey];
+            if (engKey) {
+              updated[engKey] = { base: val, iv: 31, ev: 0 };
+            }
+          });
+          return updated;
+        });
+        
+        setCalcResults({ H: null, A: null, B: null, C: null, D: null, S: null });
+        setCalcError(null);
+      }
     } catch (err: any) {
       setError(err.message || "データの取得に失敗しました");
       setPokemonData(null);
@@ -172,7 +184,7 @@ export default function PokemonConfigSection({
       });
 
       const resArray = await Promise.all(promises);
-      const newResults = { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 };
+      const newResults = { H: 1, A: 0, B: 0, C: 0, D: 0, S: 0 };
       resArray.forEach(r => { newResults[r.key] = r.val; });
       setCalcResults(newResults);
 
@@ -291,7 +303,7 @@ export default function PokemonConfigSection({
                     <tr>
                       <th className="p-2 font-bold">ステータス</th>
                       <th className="p-2 font-bold text-center w-24">種族値</th>
-                      <th className="p-2 font-bold text-center w-28">努力値 (0~252)</th>
+                      <th className="p-2 font-bold text-center w-28">努力値 (0~32)</th>
                       <th className="p-2 font-bold text-center w-20">補正</th>
                       <th className="p-2 font-bold text-center w-28">実数値</th>
                     </tr>
@@ -318,7 +330,7 @@ export default function PokemonConfigSection({
                             <input
                               type="number"
                               value={stats[key].ev}
-                              min={0} max={252} step={4}
+                              min={0} max={32} step={1}
                               onChange={(e) => handleStatChange(key, 'ev', Number(e.target.value))}
                               className="w-full border border-slate-300 rounded p-1 text-center font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-slate-700 bg-white"
                             />

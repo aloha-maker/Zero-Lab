@@ -101,7 +101,7 @@ class MatrixService:
             )
 
         main_types = main_base_data.types if hasattr(main_base_data, 'types') else main_base_data.get('types', [])
-        main_moves = main_base_data.season_moves if hasattr(main_base_data, 'season_moves') else main_base_data.get('season_moves', [])
+        main_moves = getattr(main_base_data, 'season_moves', [])
         main_moves_parsed = [
             m.model_dump() if hasattr(m, 'model_dump') else m for m in main_moves
         ]

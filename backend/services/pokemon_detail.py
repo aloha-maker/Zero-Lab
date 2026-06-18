@@ -83,7 +83,6 @@ async def fetch_pokemon_data(name_or_id: str) -> PokemonInfo:
         base_stats = {
             stat["stat"]["name"]: stat["base_stat"] for stat in pokemon_data.get("stats", [])
         }
-
         move_entries = pokemon_data.get("moves", [])
         move_urls = [m["move"]["url"] for m in move_entries]
 
