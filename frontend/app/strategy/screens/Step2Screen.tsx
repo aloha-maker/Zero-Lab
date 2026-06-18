@@ -86,7 +86,23 @@ export default function Step2Screen({ matrixData }: Step2ScreenProps) {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Phase3MatchupMatrix matchups={pokemon.matchups} />
-                    <Phase4RoleChecker checks={pokemon.passChecks} />
+                    <Phase4RoleChecker 
+                      // アーキタイプを動的に渡す（必要に応じてStateで管理）
+                      archetype="対面" 
+                      
+                      // checkedItems の形に合わせるために map を使用して変換
+                      checkedItems={pokemon.passChecks.map((text, index) => ({
+                        id: `${pokemon.name}-${index}`,
+                        label: text,
+                        isChecked: false // 初期状態
+                      }))}
+                      
+                      // トグル処理の定義
+                      onToggleCheck={(id) => {
+                        console.log("チェック切り替え:", id);
+                        // ここで必要に応じて State を更新するロジックを入れます
+                      }}
+                    />
                   </div>
 
                 </div>

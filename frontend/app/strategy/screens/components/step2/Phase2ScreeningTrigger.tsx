@@ -125,10 +125,72 @@ export default function Phase2ScreeningTrigger({
       // すべての並列処理の終了を待つ
       const results = await Promise.all(screeningPromises);
       
-      // null（不適合）を除外して有効な候補を抽出
-      const passedCandidates = results.filter((c): c is PokemonCandidate => c !== null);
+      // 1. まずフェーズ2をクリアした有効な単体候補をまとめる
+      const phase2Passed = results.filter((c): c is PokemonCandidate => c !== null);
 
-      onScreeningComplete(passedCandidates.slice(0, 10));
+      // 2. 【フェーズ3：選出ルールの判定エンジン】
+      const phase3FinalCandidates: PokemonCandidate[] = [];
+      const allTargets = targetRows.map(r => r.opponent_name); // すべてのターゲット名リスト
+
+      // --- パターンA: 1匹で全ての「×」「△」を◯以上にできる【単体採用圏内】を探索 ---
+      const singlePassCandidates = phase2Passed.filter(pokemon => {
+        // すべてのターゲットに対する判定が '◎' または '◯' であるかチェック
+        return allTargets.every(targetName => {
+          const judgment = pokemon.matchups[targetName];
+          return judgment === '◎' || judgment === '◯';
+        });
+      });
+
+      if (singlePassCandidates.length > 0) {
+        // 単体で補完できるポケモンがいれば、最優先でそれを採用候補とする
+        singlePassCandidates.forEach(c => {
+          c.passChecks.push("[フェーズ3] 単体ですべてのターゲットを補完可能【最優先】");
+          phase3FinalCandidates.push(c);
+        });
+      } else {
+        // --- パターンB: 単体で無理な場合、2匹を組み合わせれば全て◯以上にできるペアを探索 ---
+        setStatusText("単体補完不可のため、2匹の最適な組み合わせ（相棒ペア）を計算中...");
+        
+        for (let i = 0; i < phase2Passed.length; i++) {
+          for (let j = i + 1; j < phase2Passed.length; j++) {
+            const p1 = phase2Passed[i];
+            const p2 = phase2Passed[j];
+
+            // ペアの組み合わせで、すべてのターゲットに対してどちらかが '◎' または '◯' を出せるか検証
+            const isPairComplementComplete = allTargets.every(targetName => {
+              const j1 = p1.matchups[targetName];
+              const j2 = p2.matchups[targetName];
+              return j1 === '◎' || j1 === '◯' || j2 === '◎' || j2 === '◯';
+            });
+
+            if (isPairComplementComplete) {
+              // マトリクスをマージ（より良い方の判定を採用して視覚化）
+              const mergedMatchups: { [key: string]: '◎' | '◯' | '×' } = {};
+              allTargets.forEach(targetName => {
+                const j1 = p1.matchups[targetName];
+                mergedMatchups[targetName] = (j1 === '◎' || j1 === '◯') ? j1 : p2.matchups[targetName];
+              });
+
+              phase3FinalCandidates.push({
+                name: `${p1.name} ＆ ${p2.name}`,
+                isPair: true,
+                matchups: mergedMatchups,
+                archetypeTags: [...new Set([...p1.archetypeTags, ...p2.archetypeTags])],
+                passChecks: [
+                  `[フェーズ3] 2匹の相性補完で全ターゲットを網羅（相互補完ペア）`,
+                  `└ ${p1.name}の担当: ${allTargets.filter(t => p1.matchups[t] !== '×').join(', ')}`,
+                  `└ ${p2.name}の担当: ${allTargets.filter(t => p2.matchups[t] !== '×').join(', ')}`
+                ],
+                rate: Math.floor((p1.rate + p2.rate) / 2),
+                badgeColor: "bg-purple-100 text-purple-700", // ペア用の特別なカラー
+              });
+            }
+          }
+        }
+      }
+
+// 最終的にフェーズ3をパスした結果（単体、またはペアリスト）を親に返す
+onScreeningComplete(phase3FinalCandidates.slice(0, 5));
 
     } catch (err) {
       console.error(err);
@@ -138,6 +200,8 @@ export default function Phase2ScreeningTrigger({
       setStatusText("");
     }
   };
+
+  
 
   return (
     <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl text-center">

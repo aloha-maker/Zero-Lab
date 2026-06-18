@@ -1,25 +1,55 @@
-import React from 'react';
+// app/strategy/screens/components/step2/Phase4RoleChecker.tsx
+"use client";
+
+import React, { useState } from 'react';
+
+type Archetype = '対面' | 'サイクル' | '展開';
 
 interface Phase4RoleCheckerProps {
-  checks: string[];
+  archetype: Archetype;
+  // 候補ポケモンの保有技やアイテムデータなどを親から受け取る想定
+  checkedItems: { id: string; label: string; isChecked: boolean }[];
+  onToggleCheck: (id: string) => void;
 }
 
-export default function Phase4RoleChecker({ checks }: Phase4RoleCheckerProps) {
+export default function Phase4RoleChecker({ archetype, checkedItems = [], onToggleCheck }: Phase4RoleCheckerProps) {
   return (
-    <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex flex-col justify-between">
-      <div>
-        <p className="text-[11px] font-bold text-slate-500 mb-2">【フェーズ4】戦術アーキタイプ必須パーツ判定</p>
-        <div className="space-y-1.5">
-          {checks.map((check, idx) => (
-            <div key={idx} className="flex items-start gap-1.5 text-xs text-slate-700">
-              <svg className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>{check}</span>
-            </div>
-          ))}
-        </div>
+    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex justify-between items-center mb-4">
+        <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+          <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+            Phase 4
+          </span>
+          アーキタイプ必須パーツ確認: <span className="text-indigo-600">{archetype}構築</span>
+        </h4>
       </div>
+
+      <div className="space-y-3">
+        {checkedItems.map((item) => (
+          <label 
+            key={item.id} 
+            className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50 hover:bg-indigo-50/30 transition-colors cursor-pointer group"
+          >
+            <input
+              type="checkbox"
+              checked={item.isChecked}
+              onChange={() => onToggleCheck(item.id)}
+              className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <span className={`text-xs leading-relaxed ${item.isChecked ? 'text-slate-400 line-through' : 'text-slate-700 font-medium'}`}>
+              {item.label}
+            </span>
+          </label>
+        ))}
+      </div>
+
+      {/* すべてチェック済みなら完了を表示 */}
+      {checkedItems.every(i => i.isChecked) && (
+        <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg flex items-center gap-2 animate-bounce">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          構築の必須条件を全て満たしました！
+        </div>
+      )}
     </div>
   );
 }
