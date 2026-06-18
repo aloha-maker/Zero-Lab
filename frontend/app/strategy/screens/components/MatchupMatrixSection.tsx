@@ -16,6 +16,7 @@ interface MatchupMatrixSectionProps {
   evs?: {};
   baseMatchups?: MatchupInput[];
   onMatrixCalculated?: (data: MatrixResultRow[]) => void;
+  initialMatrixData?: MatrixResultRow[];
 }
 
 export default function MatchupMatrixSection({
@@ -23,9 +24,10 @@ export default function MatchupMatrixSection({
   selectedNatureName = "",
   evs,
   onMatrixCalculated,
+  initialMatrixData = [],
 }: MatchupMatrixSectionProps) {
   // APIから取得した結果（MatrixResultRowの配列）を管理するステート
-  const [matrixData, setMatrixData] = useState<MatrixResultRow[]>([]);
+  const [matrixData, setMatrixData] = useState<MatrixResultRow[]>(initialMatrixData);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // バックエンドのAPIを呼び出す関数

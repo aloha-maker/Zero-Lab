@@ -1,45 +1,24 @@
+"use client";
+
 import React, { useState } from 'react';
-import { PokemonCandidate } from './components/step2/types';
+import { MatrixResultRow } from '@/app/types/api';
 import Phase1TargetList from './components/step2/Phase1TargetList';
 import Phase2ScreeningTrigger from './components/step2/Phase2ScreeningTrigger';
 import Phase3MatchupMatrix from './components/step2/Phase3MatchupMatrix';
 import Phase4RoleChecker from './components/step2/Phase4RoleChecker';
 
-// ダミーデータ
-const TARGET_POKEMON = ['ハバタクカミ', 'カイリュー', 'サーフゴー'];
+// 仮のモック候補データ（必要に応じてtypes.ts等に逃がしてください）
+import { CANDIDATES_DATA } from './components/step2/mockData'; 
 
-const CANDIDATES_DATA: PokemonCandidate[] = [
-  {
-    name: 'ハッサム',
-    matchups: { 'ハバタクカミ': '◎', 'カイリュー': '◯', 'サーフゴー': '◯' },
-    archetypeTags: ['鋼枠', 'フェアリー受け', '対ハバタクカミ'],
-    passChecks: ['[対面] 1ターン耐える手段（タスキ/耐久力）', '[サイクル] 対面操作技（とんぼがえり）'],
-    rate: 95,
-    badgeColor: 'bg-emerald-100 text-emerald-700',
-  },
-  {
-    name: 'ヒードラン',
-    matchups: { 'ハバタクカミ': '◯', 'カイリュー': '×', 'サーフゴー': '◎' },
-    archetypeTags: ['特殊受け', '鋼枠', 'サイクル補完'],
-    passChecks: ['[サイクル] 回復ソース（たべのこし持ち）'],
-    rate: 88,
-    badgeColor: 'bg-blue-100 text-blue-700',
-  },
-  {
-    name: 'ドオー',
-    matchups: { 'ハバタクカミ': '◯', 'カイリュー': '◯', 'サーフゴー': '×' },
-    archetypeTags: ['物理受け', 'クッション'],
-    passChecks: ['[サイクル] 回復技（じこさいせい）'],
-    rate: 82,
-    badgeColor: 'bg-yellow-100 text-yellow-700',
-  },
-];
+interface Step2ScreenProps {
+  matrixData: MatrixResultRow[];
+}
 
-export default function Step2Screen() {
+export default function Step2Screen({ matrixData }: Step2ScreenProps) {
   const [isScreened, setIsScreened] = useState(false);
 
   return (
-    <section className="space-y-6 animate-in fade-in duration-300 max-w-4xl mx-auto p-4">
+    <section className="space-y-6 max-w-4xl mx-auto p-4 animate-in fade-in duration-300">
       
       {/* 上部：インプットと実行エンジン */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
@@ -47,11 +26,13 @@ export default function Step2Screen() {
           <h3 className="font-bold text-xl text-slate-800 flex items-center gap-2">
             ⚙️ 構築の軸・機械的スクリーニング
           </h3>
-          <p className="text-xs text-slate-400 mt-1">個人のひらめきに頼らず、データとフィルタリングのみで基本選出を抽出します。</p>
+          <p className="text-xs text-slate-400 mt-1">
+            手順1のマトリクス結果から、ターゲットを自動抽出して補完候補を絞り込みます。
+          </p>
         </div>
 
-        {/* フェーズ1 */}
-        <Phase1TargetList targets={TARGET_POKEMON} />
+        {/* フェーズ1: 親から届いた本物のmatrixDataを流し込む */}
+        <Phase1TargetList matrixData={matrixData} />
 
         {/* フェーズ2 */}
         <Phase2ScreeningTrigger 
@@ -74,7 +55,6 @@ export default function Step2Screen() {
             {CANDIDATES_DATA.map((pokemon, idx) => (
               <div key={idx} className="border border-slate-200 rounded-xl p-5 hover:border-blue-400 hover:shadow-md transition-all duration-300 bg-white">
                 
-                {/* 候補ポケモンの基本情報 */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
                   <div>
                     <div className="flex items-center gap-2">
@@ -98,7 +78,6 @@ export default function Step2Screen() {
                   </div>
                 </div>
 
-                {/* 各フェーズコンポーネントを配置 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* フェーズ3 */}
                   <Phase3MatchupMatrix matchups={pokemon.matchups} />
