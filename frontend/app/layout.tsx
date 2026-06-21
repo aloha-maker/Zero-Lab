@@ -17,7 +17,7 @@ export default function RootLayout({
         {/* ▼▼▼ 全ページ共通のナビゲーションバー ▼▼▼ */}
         <header className="bg-gray-900 text-white shadow-md z-50">
           {/* ヘッダーの幅制限（max-w-5xl mx-auto）を外し、w-fullに変更 */}
-          <div className="w-full px-4 md:px-8 py-4 flex justify-between items-center">
+          <div className="w-full px-4 md:px-8 py-4 flex justify-between items-center ">
             {/* 左側のロゴ（クリックでトップページへ） */}
             <Link href="/" className="text-xl font-extrabold tracking-widest hover:text-blue-400 transition">
               ZERO-LAB

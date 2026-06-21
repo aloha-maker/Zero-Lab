@@ -1,26 +1,27 @@
-// app/strategy/screens/Step2Screen.tsx
-"use client";
-
 import React, { useState } from 'react';
 import { MatrixResultRow } from '@/app/types/api';
-import Phase1TargetList from './components/step2/Phase1TargetList';
-import Phase2ScreeningTrigger from './components/step2/Phase2ScreeningTrigger';
-import Phase3MatchupMatrix from './components/step2/Phase3MatchupMatrix';
-import Phase4RoleChecker from './components/step2/Phase4RoleChecker';
-import { PokemonCandidate } from './components/step2/types';
+import Phase1TargetList from './step3/Phase1TargetList';
+import Phase2ScreeningTrigger from './step3/Phase2ScreeningTrigger';
+import Phase3MatchupMatrix from './step3/Phase3MatchupMatrix';
+import Phase4RoleChecker from './step3/Phase4RoleChecker';
+import { PokemonCandidate } from './step3/types';
 
-interface Step2ScreenProps {
+interface Step3PageProps {
   matrixData: MatrixResultRow[];
+  isScreened: boolean;
+  candidates: PokemonCandidate[];
+  onScreeningComplete: (filteredResults: PokemonCandidate[]) => void;
 }
 
-export default function Step2Screen({ matrixData }: Step2ScreenProps) {
-  const [isScreened, setIsScreened] = useState(false);
-  // APIスクリーニングで絞り込まれた本物の候補リストを格納するState
-  const [candidates, setCandidates] = useState<PokemonCandidate[]>([]);
-
+export const Step3Page: React.FC<Step3PageProps> = ({ 
+  matrixData,
+  isScreened,
+  candidates,
+  onScreeningComplete
+}) => {
   const handleScreeningComplete = (filteredResults: PokemonCandidate[]) => {
-    setCandidates(filteredResults);
-    setIsScreened(true);
+    // ★親から降ってきたハンドラーを介して最上流を更新する
+    onScreeningComplete(filteredResults);
   };
 
   return (
@@ -128,4 +129,4 @@ export default function Step2Screen({ matrixData }: Step2ScreenProps) {
       )}
     </section>
   );
-}
+};
