@@ -2,9 +2,9 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       <header className="mb-10 text-center">
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Zero-Lab Dashboard</h1>
+        <h1 className="text-4xl font-extrabold text-gray-400 tracking-tight">Zero-Lab Dashboard</h1>
         <p className="text-gray-500 mt-2 font-medium">Pokémon Battle Assist AI</p>
       </header>
 
