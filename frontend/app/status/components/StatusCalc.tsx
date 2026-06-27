@@ -8,48 +8,37 @@ import PokemonSearchForm from "../../pokedex/components/PokemonSearchForm";
 // ==========================================
 // TYPES & INTERFACES
 // ==========================================
-type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
+// 画面に表示する順序と、対応する性格補正のキー(up/down)のマッピング用
+const STAT_KEYS = ["hp", "attack", "defense", "special-attack", "special-defense", "speed"] as const;
+type PokemonStatKey = typeof STAT_KEYS[number];
 
-export interface BaseStats {
-    hp: number;
-    atk: number;
-    def: number;
-    spa: number;
-    spd: number;
-    spe: number;
-}
-
-const statLabels: Record<StatType, string> = { 
-    H: "HP", A: "攻撃", B: "防御", C: "特攻", D: "特防", S: "素早さ" 
+// 性格補正の判定（NATURESのup/downが 'H' ~ 'S' の一文字表記である場合のマッピング）
+const NATURE_MAP: Record<PokemonStatKey, string> = {
+    "hp": "H", "attack": "A", "defense": "B", "special-attack": "C", "special-defense": "D", "speed": "S"
 };
 
-// BaseStats型からStatTypeレコードへのマッピングヘルパー
-const mapBaseStatsToRecord = (base?: BaseStats) => ({
-    H: { base: base?.hp ?? 108, ev: 0 },
-    A: { base: base?.atk ?? 130, ev: 0 },
-    B: { base: base?.def ?? 95,  ev: 0 },
-    C: { base: base?.spa ?? 80,  ev: 0 },
-    D: { base: base?.spd ?? 85,  ev: 0 },
-    S: { base: base?.spe ?? 102, ev: 0 },
-});
+// デフォルト種族値
+const DEFAULT_BASE_STATS: Record<PokemonStatKey, number> = {
+    "hp": 0, "attack": 0, "defense": 0, "special-attack": 0, "special-defense": 0, "speed": 0
+};
 
-const convertToBaseStats = (pokemon: PokemonInfo): BaseStats => {
-    return {
-        hp: pokemon.base_stats["hp"] ?? 0,
-        atk: pokemon.base_stats["attack"] ?? 0,
-        def: pokemon.base_stats["defense"] ?? 0,
-        spa: pokemon.base_stats["special-attack"] ?? 0,
-        spd: pokemon.base_stats["special-defense"] ?? 0,
-        spe: pokemon.base_stats["speed"] ?? 0,
-    };
+// 状態初期化ヘルパー
+const createInitialStats = (pokemon?: PokemonInfo | null) => {
+    const statsHashes = {} as Record<PokemonStatKey, { base: number; ev: number }>;
+    STAT_KEYS.forEach((key) => {
+        statsHashes[key] = {
+            base: pokemon?.base_stats[key] ?? DEFAULT_BASE_STATS[key],
+            ev: 0,
+        };
+    });
+    return statsHashes;
 };
 
 // ==========================================
 // Props
 // ==========================================
 interface StatusCalcProps {
-    // 他のページから初期値を入れたい場合のためにオプションで残しておきます
-    initialBaseStats?: BaseStats;
+    initialPokemon?: PokemonInfo | null;
     initialPokemonName?: string;
 }
 
@@ -57,8 +46,8 @@ interface StatusCalcProps {
 // DEFAULT FUNCTION
 // ==========================================
 export default function StatusCalc({ 
-    initialBaseStats,
-    initialPokemonName = "ガブリアス"
+    initialPokemon = null,
+    initialPokemonName = ""
 }: StatusCalcProps) {
 
     // 検索されたポケモン情報を内部で管理
@@ -74,11 +63,11 @@ export default function StatusCalc({
     const [natureIndex, setNatureIndex] = useState(18); 
 
     // 各ステータスの状態管理
-    const [stats, setStats] = useState(() => mapBaseStatsToRecord(initialBaseStats));
+    const [stats, setStats] = useState(() => createInitialStats(initialPokemon));
 
     // 計算結果
-    const [results, setResults] = useState<Record<StatType, number | null>>({
-        H: null, A: null, B: null, C: null, D: null, S: null
+    const [results, setResults] = useState<Record<PokemonStatKey, number | null>>({
+        "hp": null, "attack": null, "defense": null, "special-attack": null, "special-defense": null, "speed": null
     });
     const [isLoading, setIsLoading] = useState(false);
     const [globalError, setGlobalError] = useState<string | null>(null);
@@ -92,16 +81,11 @@ export default function StatusCalc({
         }
     }, [isSearchOpen]);
 
-    // 内部で管理しているポケモンデータ、またはPropsの初期値が変わったらステータスを更新
+    // ポケモンデータが変わったらステータスを更新
     useEffect(() => {
-        if (pokemon) {
-            const base = convertToBaseStats(pokemon);
-            setStats(mapBaseStatsToRecord(base));
-        } else {
-            setStats(mapBaseStatsToRecord(initialBaseStats));
-        }
-        setResults({ H: null, A: null, B: null, C: null, D: null, S: null });
-    }, [pokemon, initialBaseStats]);
+        setStats(createInitialStats(pokemon));
+        setResults({ "hp": null, "attack": null, "defense": null, "special-attack": null, "special-defense": null, "speed": null });
+    }, [pokemon]);
 
     // 検索フォーム用のイベントハンドラー
     const handleSearchStart = () => {
@@ -118,7 +102,7 @@ export default function StatusCalc({
     };
 
     // 入力変更ハンドラ
-    const handleStatChange = (stat: StatType, field: 'base' | 'ev', value: number) => {
+    const handleStatChange = (stat: PokemonStatKey, field: 'base' | 'ev', value: number) => {
         setStats(prev => ({
             ...prev,
             [stat]: { ...prev[stat], [field]: value }
@@ -126,9 +110,7 @@ export default function StatusCalc({
     };
 
     // 努力値の合計値を計算
-    const currentEVTotal = (Object.keys(stats) as StatType[]).reduce(
-        (sum, key) => sum + stats[key].ev, 0
-    );
+    const currentEVTotal = STAT_KEYS.reduce((sum, key) => sum + stats[key].ev, 0);
 
     // 一括計算処理
     const handleCalculate = async () => {
@@ -138,19 +120,21 @@ export default function StatusCalc({
         const selectedNature = NATURES[natureIndex];
 
         try {
-            const promises = (Object.keys(stats) as StatType[]).map(async (key) => {
+            const promises = STAT_KEYS.map(async (key) => {
                 let modifier = 1.0;
-                if (key !== 'H') {
-                    if (selectedNature.up === key) modifier = 1.1;
-                    if (selectedNature.down === key) modifier = 0.9;
+                const natureChar = NATURE_MAP[key]; // 'H', 'A', 'B' ...
+                
+                if (natureChar !== 'H') {
+                    if (selectedNature.up === natureChar) modifier = 1.1;
+                    if (selectedNature.down === natureChar) modifier = 0.9;
                 }
 
                 const requestData: StatusRequest = {
                     base_stat: stats[key].base,
                     iv: INDIVIDUAL_VALUE, 
                     ev: stats[key].ev,
-                    level: LEVEL, // Propsのレベルを使用
-                    is_hp: key === 'H',
+                    level: LEVEL,
+                    is_hp: key === 'hp',
                     nature_modifier: modifier
                 };
 
@@ -168,7 +152,7 @@ export default function StatusCalc({
                     } else if (Array.isArray(errorData.detail)) {
                         errorMessage = errorData.detail.map(e => e.msg).join(", ");
                     }
-                    throw new Error(`${statLabels[key]}: ${errorMessage}`);
+                    throw new Error(`${key}: ${errorMessage}`);
                 }
 
                 const data = (await response.json()) as StatusResponse;
@@ -240,10 +224,21 @@ export default function StatusCalc({
                         </tr>
                     </thead>
                     <tbody>
-                        {(Object.keys(stats) as StatType[]).map(key => {
+                        {STAT_KEYS.map(key => {
+                            const natureChar = NATURE_MAP[key];
+                            const selectedNature = NATURES[natureIndex];
+                            
+                            // 上昇補正・下降補正の判定
+                            const isUp = key !== 'hp' && selectedNature.up === natureChar;
+                            const isDown = key !== 'hp' && selectedNature.down === natureChar;
+
                             return (
                                 <tr key={key} className="border-b border-slate-800 last:border-0 hover:bg-slate-800/50 transition-colors">
-                                    <td className="p-3 font-bold text-slate-200">{statLabels[key]}</td>
+                                    <td className="p-3 font-bold text-slate-200 uppercase text-xs tracking-wider">
+                                        {key}
+                                        {isUp && <span className="text-red-400 ml-1">▲</span>}
+                                        {isDown && <span className="text-blue-400 ml-1">▼</span>}
+                                    </td>
                                     <td className="p-2">
                                         <input 
                                             type="number" 
