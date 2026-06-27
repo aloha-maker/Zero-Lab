@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
+import { useState, useEffect, useRef } from "react";
+import type { PokemonInfo,StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
 import { NATURES, API_URL,LEVEL,INDIVIDUAL_VALUE } from "@/app/types/constants";
+import PokemonSearchForm from "../../pokedex/components/PokemonSearchForm";
 
 // ==========================================
 // TYPES & INTERFACES
@@ -16,13 +17,6 @@ export interface BaseStats {
     spa: number;
     spd: number;
     spe: number;
-}
-
-// ==========================================
-// 親コンポーネントから受け取る Props の定義
-// ==========================================
-interface StatusCalcProps {
-    initialBaseStats?: BaseStats;
 }
 
 const statLabels: Record<StatType, string> = { 
@@ -39,13 +33,43 @@ const mapBaseStatsToRecord = (base?: BaseStats) => ({
     S: { base: base?.spe ?? 102, ev: 0 },
 });
 
+const convertToBaseStats = (pokemon: PokemonInfo): BaseStats => {
+    return {
+        hp: pokemon.base_stats["hp"] ?? 0,
+        atk: pokemon.base_stats["attack"] ?? 0,
+        def: pokemon.base_stats["defense"] ?? 0,
+        spa: pokemon.base_stats["special-attack"] ?? 0,
+        spd: pokemon.base_stats["special-defense"] ?? 0,
+        spe: pokemon.base_stats["speed"] ?? 0,
+    };
+};
+
+// ==========================================
+// Props
+// ==========================================
+interface StatusCalcProps {
+    // 他のページから初期値を入れたい場合のためにオプションで残しておきます
+    initialBaseStats?: BaseStats;
+    initialPokemonName?: string;
+}
+
 // ==========================================
 // DEFAULT FUNCTION
 // ==========================================
 export default function StatusCalc({ 
-    initialBaseStats
+    initialBaseStats,
+    initialPokemonName = "ガブリアス"
 }: StatusCalcProps) {
 
+    // 検索されたポケモン情報を内部で管理
+    const [pokemon, setPokemon] = useState<PokemonInfo | null>(null);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const dialogRef = useRef<HTMLDialogElement>(null);
+
+    // ポケモン名
+    const currentPokemonName = pokemon?.name ?? initialPokemonName;
+    
     // 性格設定 (初期値: ようき)
     const [natureIndex, setNatureIndex] = useState(18); 
 
@@ -59,11 +83,39 @@ export default function StatusCalc({
     const [isLoading, setIsLoading] = useState(false);
     const [globalError, setGlobalError] = useState<string | null>(null);
 
-    // 親から渡された種族値が変更されたら、ステートをリセットして再計算
+    // ダイアログの開閉制御
     useEffect(() => {
-        setStats(mapBaseStatsToRecord(initialBaseStats));
+        if (isSearchOpen) {
+            dialogRef.current?.showModal();
+        } else {
+            dialogRef.current?.close();
+        }
+    }, [isSearchOpen]);
+
+    // 内部で管理しているポケモンデータ、またはPropsの初期値が変わったらステータスを更新
+    useEffect(() => {
+        if (pokemon) {
+            const base = convertToBaseStats(pokemon);
+            setStats(mapBaseStatsToRecord(base));
+        } else {
+            setStats(mapBaseStatsToRecord(initialBaseStats));
+        }
         setResults({ H: null, A: null, B: null, C: null, D: null, S: null });
-    }, [initialBaseStats]);
+    }, [pokemon, initialBaseStats]);
+
+    // 検索フォーム用のイベントハンドラー
+    const handleSearchStart = () => {
+        setSearchError(null);
+    };
+
+    const handleSearchSuccess = (data: PokemonInfo) => {
+        setPokemon(data);
+        setIsSearchOpen(false); // 検索成功時にダイアログを閉じる
+    };
+
+    const handleSearchError = (message: string) => {
+        setSearchError(message);
+    };
 
     // 入力変更ハンドラ
     const handleStatChange = (stat: StatType, field: 'base' | 'ev', value: number) => {
@@ -138,15 +190,36 @@ export default function StatusCalc({
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 text-slate-100">
+            {/* ==========================================
+                共通設定エリア（ポケモン名 ＆ 性格設定）
+               ========================================== */}
+            <div className="mb-8 flex flex-col sm:flex-row">
+                
+                {/* 左側：対象ポケモン名と検索ボタン */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 truncate">
+                            {currentPokemonName}
+                        </h2>
+                        <button
+                            onClick={() => setIsSearchOpen(true)}
+                            className="bg-slate-900 hover:bg-slate-950 text-slate-300 border border-slate-700 hover:border-indigo-500/50 p-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0"
+                            title="ポケモンを検索"
+                            type="button"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
-            {/* 共通設定エリア*/}
-            <div className="mb-8 p-4 bg-slate-800 rounded-xl border border-slate-700">
-                <div>
-                    <label className="block text-sm font-bold text-slate-300 mb-2">性格</label>
+                {/* 右側：性格選択ドロップダウン */}
+                <div className="w-full sm:w-64 shrink-0">
                     <select
                         value={natureIndex}
                         onChange={(e) => setNatureIndex(Number(e.target.value))}
-                        className="w-full border border-slate-700 rounded-lg p-2.5 bg-slate-900 text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="w-full border border-slate-700 rounded-lg p-2 bg-slate-900 text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
                     >
                         {NATURES.map((n, i) => (
                             <option key={i} value={i}>{n.name}</option>
@@ -250,6 +323,42 @@ export default function StatusCalc({
                     <p>{globalError}</p>
                 </div>
             )}
+
+            {/* ==========================================
+                内包された検索ポップアップダイアログ (Modal)
+               ========================================== */}
+            <dialog
+                ref={dialogRef}
+                onClose={() => setIsSearchOpen(false)}
+                className="fixed inset-0 m-auto backdrop:bg-slate-950/70 bg-slate-900 border border-slate-800 text-slate-100 p-6 rounded-2xl max-w-md w-11/12 sm:w-full shadow-2xl outline-none"
+            >
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-slate-200">ポケモンの検索</h3>
+                    <button 
+                        onClick={() => setIsSearchOpen(false)}
+                        className="text-slate-400 hover:text-slate-200 transition-colors p-1"
+                        type="button"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* 検索フォームコンポーネント */}
+                <PokemonSearchForm 
+                    onSearchStart={handleSearchStart}
+                    onSearchSuccess={handleSearchSuccess}
+                    onSearchError={handleSearchError}
+                />
+
+                {/* 検索フォームのエラーメッセージ */}
+                {searchError && (
+                    <div className="mt-4 p-3 bg-red-950/50 border-l-4 border-red-500 text-red-200 text-sm rounded">
+                        <p>{searchError}</p>
+                    </div>
+                )}
+            </dialog>
 
         </div>
     );
