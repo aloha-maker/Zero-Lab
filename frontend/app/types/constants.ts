@@ -1,5 +1,6 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
+export const LEVEL = 50;
+export const INDIVIDUAL_VALUE = 31;
 export const NATURES = [
     { name: "さみしがり (攻撃↑ 防御↓)", up: "A", down: "B" },
     { name: "いじっぱり (攻撃↑ 特攻↓)", up: "A", down: "C" },

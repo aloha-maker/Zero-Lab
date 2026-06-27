@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { NATURES } from '../types/constants'
+import { NATURES } from '../../types/constants'
 
 // ==========================================
 // TYPES & INTERFACES

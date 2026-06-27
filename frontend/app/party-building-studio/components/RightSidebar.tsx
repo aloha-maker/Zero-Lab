@@ -19,19 +19,16 @@ const MOCK_SAVED_POKEMON_LIST: PokemonStatusState[] = [
   {
     name: 'ガブリアス', level: 50, nature: 'ようき',
     baseStats: { hp: 108, atk: 130, def: 95, spa: 80, spd: 85, spe: 102 },
-    individualValues: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 }, // 上限32ルール
+    effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
   },
   {
     name: 'ハバタクカミ', level: 50, nature: 'おくびょう',
     baseStats: { hp: 55, atk: 55, def: 55, spa: 135, spd: 135, spe: 135 },
-    individualValues: { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, spe: 31 },
     effortValues: { hp: 4, atk: 0, def: 0, spa: 32, spd: 0, spe: 32 },
   },
   {
     name: 'サーフゴー', level: 50, nature: 'ひかえめ',
     baseStats: { hp: 87, atk: 60, def: 95, spa: 133, spd: 91, spe: 84 },
-    individualValues: { hp: 31, atk: 0, def: 31, spa: 31, spd: 31, spe: 31 },
     effortValues: { hp: 32, atk: 0, def: 0, spa: 32, spd: 4, spe: 0 },
   }
 ];
@@ -43,43 +40,37 @@ export const RightSidebar: React.FC = () => {
     {
       id: 'build-001', name: 'ガブリアス', level: 50, nature: 'ようき (S↑ C↓)',
       baseStats: { hp: 108, atk: 130, def: 95, spa: 80, spd: 85, spe: 102 },
-      individualValues: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      effortValues: { hp: 0, atk: 252, def: 0, spa: 0, spd: 4, spe: 252 },
+      effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
       role: '物理アタッカー'
     },
     {
       id: 'build-002', name: 'ムクホーク', level: 50, nature: 'ようき (S↑ C↓)',
       baseStats: { hp: 85, atk: 120, def: 70, spa: 50, spd: 60, spe: 100 },
-      individualValues: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      effortValues: { hp: 4, atk: 252, def: 0, spa: 0, spd: 0, spe: 252 },
+      effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
       role: '-'
     },
     {
       id: 'build-003', name: 'イダイトウ', level: 50, nature: 'いじっぱり (A↑ C↓)',
       baseStats: { hp: 120, atk: 112, def: 65, spa: 80, spd: 75, spe: 78 },
-      individualValues: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      effortValues: { hp: 0, atk: 252, def: 4, spa: 0, spd: 0, spe: 252 },
+      effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
       role: '-'
     },
     {
       id: 'build-004', name: '未設定', level: 50, nature: 'てれや (補正なし)',
       baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
-      individualValues: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      effortValues: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
       role: '-'
     },
     {
       id: 'build-005', name: '未設定', level: 50, nature: 'てれや (補正なし)',
       baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
-      individualValues: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      effortValues: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
       role: '-'
     },
     {
       id: 'build-006', name: '未設定', level: 50, nature: 'てれや (補正なし)',
       baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
-      individualValues: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      effortValues: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      effortValues: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 32 },
       role: '-'
     },
   ]);
