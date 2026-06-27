@@ -1,41 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import StatusCalc from "./components/StatusCalc";
-
-// ダミーのポケモンマスターデータ
-const POKEMON_DATABASE = {
-    gaburiasu: { hp: 108, atk: 130, def: 95, spa: 80, spd: 85, spe: 102 },
-    habakami: { hp: 55, atk: 55, def: 55, spa: 135, spd: 135, spe: 135 },
-};
+import PokemonSearchForm from "../pokedex/components/PokemonSearchForm";
+import StatusCalc,{ BaseStats } from "./components/StatusCalc";
+import type { PokemonInfo } from "@/app/types/api";
 
 export default function MainPage() {
+    const [pokemon, setPokemon] = useState<PokemonInfo | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [selectedPokemon, setSelectedPokemon] = useState<"gaburiasu" | "habakami">("gaburiasu");
+
+    // 検索が始まったら、前の状態をクリアする
+    const handleSearchStart = () => {
+        setError(null);
+        setPokemon(null);
+    };
+
+    // 検索成功時の処理
+    const handleSearchSuccess = (data: PokemonInfo) => {
+        setPokemon(data);
+    };
+
+    // 検索失敗時の処理
+    const handleSearchError = (message: string) => {
+        setError(message);
+    };
+
+    // ステータス計算に渡すときのインターフェース
+    const getInitialBaseStats = (): BaseStats => {
+        if (pokemon?.base_stats) {
+            return {
+                hp: pokemon.base_stats["hp"] ?? 0,
+                atk: pokemon.base_stats["attack"] ?? 0,
+                def: pokemon.base_stats["defense"] ?? 0,
+                spa: pokemon.base_stats["special-attack"] ?? 0,
+                spd: pokemon.base_stats["special-defense"] ?? 0,
+                spe: pokemon.base_stats["speed"] ?? 0,
+            };
+        }
+        return { hp: 108, atk: 130, def: 95, spa: 80, spd: 85, spe: 102 };
+    };
 
     return (
         <main className="p-8 max-w-4xl mx-auto">
             <h1 className="text-2xl font-bold mb-4">ポケモンステータス計算</h1>
-            
-            {/* ポケモン切り替えボタン */}
-            <div className="flex gap-4 mb-6">
-                <button 
-                    onClick={() => setSelectedPokemon("gaburiasu")}
-                    className={`px-4 py-2 rounded ${selectedPokemon === "gaburiasu" ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-800"}`}
-                >
-                    ガブリアス
-                </button>
-                <button 
-                    onClick={() => setSelectedPokemon("habakami")}
-                    className={`px-4 py-2 rounded ${selectedPokemon === "habakami" ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-800"}`}
-                >
-                    ハバタクカミ
-                </button>
-            </div>
+
+            {/* 切り出した検索フォームコンポーネント */}
+            <PokemonSearchForm 
+                onSearchStart={handleSearchStart}
+                onSearchSuccess={handleSearchSuccess}
+                onSearchError={handleSearchError}
+            />
 
             {/* 引数を渡して呼び出す */}
-            <StatusCalc 
-                initialBaseStats={POKEMON_DATABASE[selectedPokemon]} 
-            />
+            <StatusCalc initialBaseStats={getInitialBaseStats()} />
         </main>
     );
 }

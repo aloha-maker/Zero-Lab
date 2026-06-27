@@ -9,7 +9,7 @@ import { NATURES, API_URL,LEVEL,INDIVIDUAL_VALUE } from "@/app/types/constants";
 // ==========================================
 type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
 
-interface BaseStats {
+export interface BaseStats {
     hp: number;
     atk: number;
     def: number;
@@ -142,7 +142,7 @@ export default function StatusCalc({
             {/* 共通設定エリア*/}
             <div className="mb-8 p-4 bg-slate-800 rounded-xl border border-slate-700">
                 <div>
-                    <label className="block text-sm font-bold text-slate-300 mb-2">性格 (Nature)</label>
+                    <label className="block text-sm font-bold text-slate-300 mb-2">性格</label>
                     <select
                         value={natureIndex}
                         onChange={(e) => setNatureIndex(Number(e.target.value))}
@@ -175,7 +175,7 @@ export default function StatusCalc({
                                         <input 
                                             type="number" 
                                             value={stats[key].base} 
-                                            disabled // 親から渡される想定のため読み取り専用に
+                                            disabled
                                             className="w-full border border-slate-800 rounded p-1.5 text-center outline-none text-slate-400 bg-slate-950 cursor-not-allowed"
                                         />
                                     </td>
@@ -231,6 +231,14 @@ export default function StatusCalc({
                         ></div>
                     </div>
                 </div>
+                {/* 計算ボタンをこちらへ移動 */}
+                <button
+                    onClick={handleCalculate}
+                    disabled={isLoading}
+                    className="w-full sm:w-auto min-w-[120px] bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-base hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50 active:transform active:scale-[0.99] whitespace-nowrap"
+                >
+                    {isLoading ? "計算中..." : "計算する"}
+                </button>
 
             </div>
             
@@ -243,13 +251,6 @@ export default function StatusCalc({
                 </div>
             )}
 
-            <button
-                onClick={handleCalculate}
-                disabled={isLoading}
-                className="w-full bg-indigo-600 text-white px-6 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition-all shadow-md disabled:opacity-50 active:transform active:scale-[0.99]"
-            >
-                {isLoading ? "バックエンドと通信して計算中..." : "計算する"}
-            </button>
         </div>
     );
 }
