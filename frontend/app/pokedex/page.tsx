@@ -1,55 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import type { PokemonInfo, ApiErrorResponse } from "@/app/types/api";
-import { API_URL } from "@/app/types/constants";
+import type { PokemonInfo } from "@/app/types/api";
+import PokemonSearchForm from "./components/PokemonSearchForm"; 
 
 export default function PokedexPage() {
-    const [searchQuery, setSearchQuery] = useState("");
-
-    // 変更点2: バックエンドと同期した PokemonInfo 型を使用
     const [pokemon, setPokemon] = useState<PokemonInfo | null>(null);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchQuery.trim()) return;
-
-        setLoading(true);
+    // 検索が始まったら、前の状態をクリアする
+    const handleSearchStart = () => {
         setError(null);
         setPokemon(null);
+    };
 
-        try {
+    // 検索成功時の処理
+    const handleSearchSuccess = (data: PokemonInfo) => {
+        setPokemon(data);
+    };
 
-            // 検索クエリ（名前または図鑑番号）をパスパラメータとして送信
-            const response = await fetch(`${API_URL}/api/v1/pokemon/${searchQuery.toLowerCase()}`);
-
-            // ApiErrorResponse を用いた詳細なエラーハンドリング
-            if (!response.ok) {
-                const errorData = (await response.json()) as ApiErrorResponse;
-                let errorMessage = "ポケモンの情報の取得に失敗しました";
-
-                if (response.status === 404) {
-                    errorMessage = "指定されたポケモンが見つかりませんでした";
-                } else if (typeof errorData.detail === 'string') {
-                    errorMessage = errorData.detail;
-                } else if (Array.isArray(errorData.detail)) {
-                    errorMessage = "入力内容に誤りがあります（" + errorData.detail.map(err => err.msg).join(", ") + "）";
-                }
-                throw new Error(errorMessage);
-            }
-
-            // 変更点4: レスポンスを PokemonInfo として受け取る
-            const data = (await response.json()) as PokemonInfo;
-            setPokemon(data);
-
-        } catch (err: any) {
-            console.error("Error:", err);
-            setError(err.message || "通信エラーが発生しました");
-        } finally {
-            setLoading(false);
-        }
+    // 検索失敗時の処理
+    const handleSearchError = (message: string) => {
+        setError(message);
     };
 
     return (
@@ -60,23 +32,12 @@ export default function PokedexPage() {
                     <p className="text-gray-600 mt-2">PokeAPIから取得した詳細情報を表示します</p>
                 </header>
 
-                {/* 検索フォーム */}
-                <form onSubmit={handleSearch} className="mb-8 flex gap-2">
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="ポケモン名 または 図鑑番号 (例: pikachu, 25)"
-                        className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-500 placeholder-gray-500"
-                    />
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition disabled:bg-gray-400"
-                    >
-                        {loading ? "検索中..." : "検索"}
-                    </button>
-                </form>
+                {/* 検索ロジックを内包したコンポーネント */}
+                <PokemonSearchForm 
+                    onSearchStart={handleSearchStart}
+                    onSearchSuccess={handleSearchSuccess}
+                    onSearchError={handleSearchError}
+                />
 
                 {/* エラー表示 */}
                 {error && (
