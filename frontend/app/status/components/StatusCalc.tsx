@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import type { PokemonInfo, StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
 import { NATURES, API_URL, LEVEL, INDIVIDUAL_VALUE } from "@/app/types/constants";
-import PokemonSearchModal from "../../pokedex/components/PokemonSearchModal"; 
+import PokemonSearchModal from "@/features/pokedex/components/PokemonSearchModal";
 
 // ==========================================
 // TYPES & INTERFACES
