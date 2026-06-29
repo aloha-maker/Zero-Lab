@@ -1,28 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import type { PokemonInfo,StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
-import { NATURES, API_URL,LEVEL,INDIVIDUAL_VALUE } from "@/app/types/constants";
-import PokemonSearchForm from "../../pokedex/components/PokemonSearchForm";
+import { useState, useEffect } from "react";
+import type { PokemonInfo, StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
+import { NATURES, API_URL, LEVEL, INDIVIDUAL_VALUE } from "@/app/types/constants";
+import PokemonSearchModal from "../../pokedex/components/PokemonSearchModal"; 
 
 // ==========================================
 // TYPES & INTERFACES
 // ==========================================
-// 画面に表示する順序と、対応する性格補正のキー(up/down)のマッピング用
 const STAT_KEYS = ["hp", "attack", "defense", "special-attack", "special-defense", "speed"] as const;
 type PokemonStatKey = typeof STAT_KEYS[number];
 
-// 性格補正の判定（NATURESのup/downが 'H' ~ 'S' の一文字表記である場合のマッピング）
 const NATURE_MAP: Record<PokemonStatKey, string> = {
     "hp": "H", "attack": "A", "defense": "B", "special-attack": "C", "special-defense": "D", "speed": "S"
 };
 
-// デフォルト種族値
 const DEFAULT_BASE_STATS: Record<PokemonStatKey, number> = {
     "hp": 0, "attack": 0, "defense": 0, "special-attack": 0, "special-defense": 0, "speed": 0
 };
 
-// 状態初期化ヘルパー
 const createInitialStats = (pokemon?: PokemonInfo | null) => {
     const statsHashes = {} as Record<PokemonStatKey, { base: number; ev: number }>;
     STAT_KEYS.forEach((key) => {
@@ -33,13 +29,18 @@ const createInitialStats = (pokemon?: PokemonInfo | null) => {
     });
     return statsHashes;
 };
-
 // ==========================================
 // Props
 // ==========================================
 interface StatusCalcProps {
     initialPokemon?: PokemonInfo | null;
     initialPokemonName?: string;
+    onStatusUpdate?: (data: {
+        pokemon_id?: number;
+        pokemon_name?: string;
+        nature?: string;
+        evs?: { H: number; A: number; B: number; C: number; D: number; S: number };
+    }) => void;
 }
 
 // ==========================================
@@ -47,61 +48,60 @@ interface StatusCalcProps {
 // ==========================================
 export default function StatusCalc({ 
     initialPokemon = null,
-    initialPokemonName = ""
+    initialPokemonName = "",
+    onStatusUpdate
 }: StatusCalcProps) {
 
-    // 検索されたポケモン情報を内部で管理
     const [pokemon, setPokemon] = useState<PokemonInfo | null>(null);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const dialogRef = useRef<HTMLDialogElement>(null);
 
-    // ポケモン名
     const currentPokemonName = pokemon?.name ?? initialPokemonName;
-    
-    // 性格設定 (初期値: ようき)
     const [natureIndex, setNatureIndex] = useState(18); 
-
-    // 各ステータスの状態管理
     const [stats, setStats] = useState(() => createInitialStats(initialPokemon));
 
-    // 計算結果
     const [results, setResults] = useState<Record<PokemonStatKey, number | null>>({
         "hp": null, "attack": null, "defense": null, "special-attack": null, "special-defense": null, "speed": null
     });
     const [isLoading, setIsLoading] = useState(false);
     const [globalError, setGlobalError] = useState<string | null>(null);
 
-    // ダイアログの開閉制御
-    useEffect(() => {
-        if (isSearchOpen) {
-            dialogRef.current?.showModal();
-        } else {
-            dialogRef.current?.close();
-        }
-    }, [isSearchOpen]);
-
-    // ポケモンデータが変わったらステータスを更新
     useEffect(() => {
         setStats(createInitialStats(pokemon));
         setResults({ "hp": null, "attack": null, "defense": null, "special-attack": null, "special-defense": null, "speed": null });
     }, [pokemon]);
 
-    // 検索フォーム用のイベントハンドラー
+    useEffect(() => {
+        if (onStatusUpdate) {
+            onStatusUpdate({
+                pokemon_id: pokemon?.id ?? 0,
+                pokemon_name: pokemon?.name ?? "",
+                nature: NATURES[natureIndex]?.name ?? "",
+                evs: {
+                    H: stats["hp"].ev,
+                    A: stats["attack"].ev,
+                    B: stats["defense"].ev,
+                    C: stats["special-attack"].ev,
+                    D: stats["special-defense"].ev,
+                    S: stats["speed"].ev,
+                }
+            });
+        }
+    }, [pokemon, natureIndex, stats, onStatusUpdate]);
+
     const handleSearchStart = () => {
         setSearchError(null);
     };
 
     const handleSearchSuccess = (data: PokemonInfo) => {
         setPokemon(data);
-        setIsSearchOpen(false); // 検索成功時にダイアログを閉じる
+        setIsSearchOpen(false);
     };
 
     const handleSearchError = (message: string) => {
         setSearchError(message);
     };
 
-    // 入力変更ハンドラ
     const handleStatChange = (stat: PokemonStatKey, field: 'base' | 'ev', value: number) => {
         setStats(prev => ({
             ...prev,
@@ -109,10 +109,8 @@ export default function StatusCalc({
         }));
     };
 
-    // 努力値の合計値を計算
     const currentEVTotal = STAT_KEYS.reduce((sum, key) => sum + stats[key].ev, 0);
 
-    // 一括計算処理
     const handleCalculate = async () => {
         setIsLoading(true);
         setGlobalError(null);
@@ -122,7 +120,7 @@ export default function StatusCalc({
         try {
             const promises = STAT_KEYS.map(async (key) => {
                 let modifier = 1.0;
-                const natureChar = NATURE_MAP[key]; // 'H', 'A', 'B' ...
+                const natureChar = NATURE_MAP[key];
                 
                 if (natureChar !== 'H') {
                     if (selectedNature.up === natureChar) modifier = 1.1;
@@ -174,12 +172,7 @@ export default function StatusCalc({
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 text-slate-100">
-            {/* ==========================================
-                共通設定エリア（ポケモン名 ＆ 性格設定）
-               ========================================== */}
             <div className="mb-8 flex flex-col sm:flex-row">
-                
-                {/* 左側：対象ポケモン名と検索ボタン */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
                         <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 truncate">
@@ -198,7 +191,6 @@ export default function StatusCalc({
                     </div>
                 </div>
 
-                {/* 右側：性格選択ドロップダウン */}
                 <div className="w-full sm:w-64 shrink-0">
                     <select
                         value={natureIndex}
@@ -212,7 +204,6 @@ export default function StatusCalc({
                 </div>
             </div>
 
-            {/* ステータス入力テーブル */}
             <div className="overflow-x-auto mb-8">
                 <table className="w-full text-left border-collapse min-w-[500px]">
                     <thead>
@@ -228,7 +219,6 @@ export default function StatusCalc({
                             const natureChar = NATURE_MAP[key];
                             const selectedNature = NATURES[natureIndex];
                             
-                            // 上昇補正・下降補正の判定
                             const isUp = key !== 'hp' && selectedNature.up === natureChar;
                             const isDown = key !== 'hp' && selectedNature.down === natureChar;
 
@@ -281,25 +271,23 @@ export default function StatusCalc({
                 </table>
             </div>
 
-            {/* フッター集計バー */}
             <div className="bg-slate-850/60 px-6 py-4 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="w-full sm:w-auto flex-1 max-w-sm">
-                <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-1.5">
-                    <span>努力値の合計配分</span>
-                    <span className={`${currentEVTotal > 66 ? 'text-red-400' : 'text-slate-200'}`}>
-                    {currentEVTotal} / 66
-                    </span>
-                </div>
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-1.5">
+                        <span>努力値の合計配分</span>
+                        <span className={`${currentEVTotal > 66 ? 'text-red-400' : 'text-slate-200'}`}>
+                            {currentEVTotal} / 66
+                        </span>
+                    </div>
                     <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800/60">
                         <div
-                        className={`h-full rounded-full transition-all duration-300 ${
-                            currentEVTotal > 66 ? 'bg-red-500' : 'bg-gradient-to-r from-indigo-500 to-pink-500'
-                        }`}
-                        style={{ width: `${Math.min(100, (currentEVTotal / 66) * 100)}%` }}
+                            className={`h-full rounded-full transition-all duration-300 ${
+                                currentEVTotal > 66 ? 'bg-red-500' : 'bg-gradient-to-r from-indigo-500 to-pink-500'
+                            }`}
+                            style={{ width: `${Math.min(100, (currentEVTotal / 66) * 100)}%` }}
                         ></div>
                     </div>
                 </div>
-                {/* 計算ボタンをこちらへ移動 */}
                 <button
                     onClick={handleCalculate}
                     disabled={isLoading}
@@ -307,11 +295,8 @@ export default function StatusCalc({
                 >
                     {isLoading ? "計算中..." : "計算する"}
                 </button>
-
             </div>
-            
 
-            {/* エラーメッセージ */}
             {globalError && (
                 <div className="mb-6 p-4 bg-red-950/50 border-l-4 border-red-500 text-red-200 rounded-r">
                     <p className="font-bold">エラー</p>
@@ -319,42 +304,15 @@ export default function StatusCalc({
                 </div>
             )}
 
-            {/* ==========================================
-                内包された検索ポップアップダイアログ (Modal)
-               ========================================== */}
-            <dialog
-                ref={dialogRef}
+            {/* 切り出したダイアログコンポーネントを配置 */}
+            <PokemonSearchModal 
+                isOpen={isSearchOpen}
                 onClose={() => setIsSearchOpen(false)}
-                className="fixed inset-0 m-auto backdrop:bg-slate-950/70 bg-slate-900 border border-slate-800 text-slate-100 p-6 rounded-2xl max-w-md w-11/12 sm:w-full shadow-2xl outline-none"
-            >
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-slate-200">ポケモンの検索</h3>
-                    <button 
-                        onClick={() => setIsSearchOpen(false)}
-                        className="text-slate-400 hover:text-slate-200 transition-colors p-1"
-                        type="button"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* 検索フォームコンポーネント */}
-                <PokemonSearchForm 
-                    onSearchStart={handleSearchStart}
-                    onSearchSuccess={handleSearchSuccess}
-                    onSearchError={handleSearchError}
-                />
-
-                {/* 検索フォームのエラーメッセージ */}
-                {searchError && (
-                    <div className="mt-4 p-3 bg-red-950/50 border-l-4 border-red-500 text-red-200 text-sm rounded">
-                        <p>{searchError}</p>
-                    </div>
-                )}
-            </dialog>
-
+                onSearchStart={handleSearchStart}
+                onSearchSuccess={handleSearchSuccess}
+                onSearchError={handleSearchError}
+                searchError={searchError}
+            />
         </div>
     );
 }
