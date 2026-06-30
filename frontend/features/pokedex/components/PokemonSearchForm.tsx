@@ -3,7 +3,7 @@
 
 import React from "react";
 import { usePokemonSearchForm } from "../hooks/usePokemonSearchForm";
-import type { PokemonInfo } from "@/app/types/api";
+import type { PokemonInfo } from "@/features/pokedex/types";
 
 interface SearchFormProps {
     onSearchStart: () => void;

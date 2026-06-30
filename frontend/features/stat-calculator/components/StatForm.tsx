@@ -1,177 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { PokemonInfo, StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
-import { NATURES, API_URL, LEVEL, INDIVIDUAL_VALUE } from "@/app/types/constants";
+import React from "react";
 import PokemonSearchModal from "@/features/pokedex/components/PokemonSearchModal";
+import { NATURES } from "@/features/stat-calculator/types";
+import { STAT_KEYS, type StatusCalcProps } from "../types";
+import { NATURE_MAP } from "../utils/calculateStats";
+import { usePokemonStats } from "../hooks/usePokemonStats";
 
-// ==========================================
-// TYPES & INTERFACES
-// ==========================================
-const STAT_KEYS = ["hp", "attack", "defense", "special-attack", "special-defense", "speed"] as const;
-type PokemonStatKey = typeof STAT_KEYS[number];
-
-const NATURE_MAP: Record<PokemonStatKey, string> = {
-    "hp": "H", "attack": "A", "defense": "B", "special-attack": "C", "special-defense": "D", "speed": "S"
-};
-
-const DEFAULT_BASE_STATS: Record<PokemonStatKey, number> = {
-    "hp": 0, "attack": 0, "defense": 0, "special-attack": 0, "special-defense": 0, "speed": 0
-};
-
-const createInitialStats = (pokemon?: PokemonInfo | null) => {
-    const statsHashes = {} as Record<PokemonStatKey, { base: number; ev: number }>;
-    STAT_KEYS.forEach((key) => {
-        statsHashes[key] = {
-            base: pokemon?.base_stats[key] ?? DEFAULT_BASE_STATS[key],
-            ev: 0,
-        };
-    });
-    return statsHashes;
-};
-// ==========================================
-// Props
-// ==========================================
-interface StatusCalcProps {
-    initialPokemon?: PokemonInfo | null;
-    initialPokemonName?: string;
-    onStatusUpdate?: (data: {
-        pokemon_id?: number;
-        pokemon_name?: string;
-        nature?: string;
-        evs?: { H: number; A: number; B: number; C: number; D: number; S: number };
-    }) => void;
-}
-
-// ==========================================
-// DEFAULT FUNCTION
-// ==========================================
-export default function StatusCalc({ 
-    initialPokemon = null,
-    initialPokemonName = "",
-    onStatusUpdate
-}: StatusCalcProps) {
-
-    const [pokemon, setPokemon] = useState<PokemonInfo | null>(null);
-    const [searchError, setSearchError] = useState<string | null>(null);
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-    const currentPokemonName = pokemon?.name ?? initialPokemonName;
-    const [natureIndex, setNatureIndex] = useState(18); 
-    const [stats, setStats] = useState(() => createInitialStats(initialPokemon));
-
-    const [results, setResults] = useState<Record<PokemonStatKey, number | null>>({
-        "hp": null, "attack": null, "defense": null, "special-attack": null, "special-defense": null, "speed": null
-    });
-    const [isLoading, setIsLoading] = useState(false);
-    const [globalError, setGlobalError] = useState<string | null>(null);
-
-    useEffect(() => {
-        setStats(createInitialStats(pokemon));
-        setResults({ "hp": null, "attack": null, "defense": null, "special-attack": null, "special-defense": null, "speed": null });
-    }, [pokemon]);
-
-    useEffect(() => {
-        if (onStatusUpdate) {
-            onStatusUpdate({
-                pokemon_id: pokemon?.id ?? 0,
-                pokemon_name: pokemon?.name ?? "",
-                nature: NATURES[natureIndex]?.name ?? "",
-                evs: {
-                    H: stats["hp"].ev,
-                    A: stats["attack"].ev,
-                    B: stats["defense"].ev,
-                    C: stats["special-attack"].ev,
-                    D: stats["special-defense"].ev,
-                    S: stats["speed"].ev,
-                }
-            });
-        }
-    }, [pokemon, natureIndex, stats, onStatusUpdate]);
-
-    const handleSearchStart = () => {
-        setSearchError(null);
-    };
-
-    const handleSearchSuccess = (data: PokemonInfo) => {
-        setPokemon(data);
-        setIsSearchOpen(false);
-    };
-
-    const handleSearchError = (message: string) => {
-        setSearchError(message);
-    };
-
-    const handleStatChange = (stat: PokemonStatKey, field: 'base' | 'ev', value: number) => {
-        setStats(prev => ({
-            ...prev,
-            [stat]: { ...prev[stat], [field]: value }
-        }));
-    };
-
-    const currentEVTotal = STAT_KEYS.reduce((sum, key) => sum + stats[key].ev, 0);
-
-    const handleCalculate = async () => {
-        setIsLoading(true);
-        setGlobalError(null);
-
-        const selectedNature = NATURES[natureIndex];
-
-        try {
-            const promises = STAT_KEYS.map(async (key) => {
-                let modifier = 1.0;
-                const natureChar = NATURE_MAP[key];
-                
-                if (natureChar !== 'H') {
-                    if (selectedNature.up === natureChar) modifier = 1.1;
-                    if (selectedNature.down === natureChar) modifier = 0.9;
-                }
-
-                const requestData: StatusRequest = {
-                    base_stat: stats[key].base,
-                    iv: INDIVIDUAL_VALUE, 
-                    ev: stats[key].ev,
-                    level: LEVEL,
-                    is_hp: key === 'hp',
-                    nature_modifier: modifier
-                };
-
-                const response = await fetch(`${API_URL}/api/v1/status`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(requestData),
-                });
-
-                if (!response.ok) {
-                    const errorData = (await response.json()) as ApiErrorResponse;
-                    let errorMessage = "通信エラー";
-                    if (typeof errorData.detail === 'string') {
-                        errorMessage = errorData.detail;
-                    } else if (Array.isArray(errorData.detail)) {
-                        errorMessage = errorData.detail.map(e => e.msg).join(", ");
-                    }
-                    throw new Error(`${key}: ${errorMessage}`);
-                }
-
-                const data = (await response.json()) as StatusResponse;
-                return { key, val: data.real_stat };
-            });
-
-            const resArray = await Promise.all(promises);
-            const newResults = { ...results };
-            resArray.forEach(r => { newResults[r.key] = r.val; });
-            setResults(newResults);
-
-        } catch (error: any) {
-            console.error("Error:", error);
-            setGlobalError(error.message || "サーバーとの通信に失敗しました。");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+export default function StatForm(props: StatusCalcProps) {
+    const {
+        currentPokemonName,
+        natureIndex,
+        setNatureIndex,
+        stats,
+        results,
+        isLoading,
+        globalError,
+        isSearchOpen,
+        setIsSearchOpen,
+        searchError,
+        handleSearchStart,
+        handleSearchSuccess,
+        handleSearchError,
+        handleStatChange,
+        handleCalculate,
+        currentEVTotal
+    } = usePokemonStats(props);
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 text-slate-100">
+            {/* ヘッダーエリア */}
             <div className="mb-8 flex flex-col sm:flex-row">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3">
@@ -204,6 +62,7 @@ export default function StatusCalc({
                 </div>
             </div>
 
+            {/* ステータス入力テーブル */}
             <div className="overflow-x-auto mb-8">
                 <table className="w-full text-left border-collapse min-w-[500px]">
                     <thead>
@@ -242,7 +101,7 @@ export default function StatusCalc({
                                             <input
                                                 type="range"
                                                 min={0}
-                                                max={32}
+                                                max={32} // ※仕様によっては252等に変更
                                                 step={1}
                                                 value={stats[key].ev}
                                                 onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
@@ -251,7 +110,7 @@ export default function StatusCalc({
                                             <input
                                                 type="number"
                                                 min={0}
-                                                max={32}
+                                                max={32} // ※仕様によっては252等に変更
                                                 step={1}
                                                 value={stats[key].ev}
                                                 onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
@@ -271,6 +130,7 @@ export default function StatusCalc({
                 </table>
             </div>
 
+            {/* フッター・計算ボタンエリア */}
             <div className="bg-slate-850/60 px-6 py-4 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="w-full sm:w-auto flex-1 max-w-sm">
                     <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-1.5">
@@ -297,14 +157,15 @@ export default function StatusCalc({
                 </button>
             </div>
 
+            {/* エラー表示 */}
             {globalError && (
-                <div className="mb-6 p-4 bg-red-950/50 border-l-4 border-red-500 text-red-200 rounded-r">
+                <div className="mb-6 mt-4 p-4 bg-red-950/50 border-l-4 border-red-500 text-red-200 rounded-r">
                     <p className="font-bold">エラー</p>
                     <p>{globalError}</p>
                 </div>
             )}
 
-            {/* 切り出したダイアログコンポーネントを配置 */}
+            {/* 検索モーダル */}
             <PokemonSearchModal 
                 isOpen={isSearchOpen}
                 onClose={() => setIsSearchOpen(false)}
