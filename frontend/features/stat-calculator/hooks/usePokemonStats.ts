@@ -1,3 +1,4 @@
+// frontend/features/stat-calculator/hooks/usePokemonStats.ts
 import { useState, useEffect } from "react";
 import type { ApiErrorResponse } from "@/lib/api-client";
 import type { PokemonInfo } from "@/features/pokedex/types";

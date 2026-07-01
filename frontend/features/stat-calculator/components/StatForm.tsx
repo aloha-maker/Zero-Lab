@@ -1,3 +1,4 @@
+// frontend/features/stat-calculator/components/StatForm.tsx
 "use client";
 
 import React from "react";
