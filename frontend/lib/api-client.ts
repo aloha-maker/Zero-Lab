@@ -1,7 +1,16 @@
 // src/lib/api-client.ts
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-import { API_URL } from "@/app/types/constants";
-import type { ApiErrorResponse } from "@/app/types/api";
+export interface ApiValidationError {
+    loc: (string | number)[];
+    msg: string;
+    type: string;
+}
+
+export interface ApiErrorResponse {
+    detail: string | ApiValidationError[];
+}
+
 
 /**
  * カスタムエラークラス

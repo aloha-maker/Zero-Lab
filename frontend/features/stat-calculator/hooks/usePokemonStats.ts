@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import type { ApiErrorResponse } from "@/types/common";
+import type { ApiErrorResponse } from "@/lib/api-client";
 import type { PokemonInfo } from "@/features/pokedex/types";
 import type { StatusRequest, StatusResponse } from "@/features/stat-calculator/types";
-import { API_URL } from "@/types/common";
+import { API_URL } from "@/lib/api-client";
 import { NATURES, LEVEL, INDIVIDUAL_VALUE } from "@/features/stat-calculator/types";
 
 import { STAT_KEYS, type PokemonStatKey, type ResultRecord, type StatusCalcProps } from "../types";
