@@ -2,7 +2,8 @@
 "use client";
 
 import React from "react";
-import PokemonSearchModal from "@/features/pokedex/components/PokemonSearchModal";
+// モーダル版からインライン版のコンポーネントに変更（必要に応じてインポートパスや名前を調整してください）
+import PokemonSearchForm from "@/features/pokedex/components/PokemonSearchForm";
 import { NATURES } from "@/features/stat-calculator/types";
 import { STAT_KEYS, type StatusCalcProps } from "../types";
 import { NATURE_MAP } from "../utils/calculateStats";
@@ -17,7 +18,6 @@ export default function StatForm(props: StatusCalcProps) {
         results,
         isLoading,
         globalError,
-        isSearchOpen,
         setIsSearchOpen,
         searchError,
         handleSearchStart,
@@ -28,40 +28,56 @@ export default function StatForm(props: StatusCalcProps) {
         currentEVTotal
     } = usePokemonStats(props);
 
+    // 検索成功時のラッパー関数（検索が完了したらインライン検索UIを閉じる）
+    const onSearchSuccessInline = (data: any) => {
+        handleSearchSuccess(data);
+        setIsSearchOpen(false);
+    };
+
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 text-slate-100">
-            {/* ヘッダーエリア */}
-            <div className="mb-8 flex flex-col sm:flex-row">
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 truncate">
-                            {currentPokemonName}
-                        </h2>
-                        <button
-                            onClick={() => setIsSearchOpen(true)}
-                            className="bg-slate-900 hover:bg-slate-950 text-slate-300 border border-slate-700 hover:border-indigo-500/50 p-2 rounded-lg transition-all shadow-sm flex items-center justify-center shrink-0"
-                            title="ポケモンを検索"
-                            type="button"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </button>
-                    </div>
+            {/* ヘッダー・検索エリア */}
+            <div className="mb-8 flex flex-col gap-6">
+                
+                {/* 検索エリアを常に表示 */}
+                <div className="bg-slate-950/50 border border-slate-700 rounded-xl p-4 shadow-inner">
+                    <h3 className="text-sm font-bold text-slate-400 mb-4">ポケモンを検索</h3>
+                    <PokemonSearchForm 
+                        onSearchStart={handleSearchStart}
+                        onSearchSuccess={handleSearchSuccess}
+                        onSearchError={handleSearchError}
+                    />
                 </div>
 
-                <div className="w-full sm:w-64 shrink-0">
-                    <select
-                        value={natureIndex}
-                        onChange={(e) => setNatureIndex(Number(e.target.value))}
-                        className="w-full border border-slate-700 rounded-lg p-2 bg-slate-900 text-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
-                    >
-                        {NATURES.map((n, i) => (
-                            <option key={i} value={i}>{n.name}</option>
-                        ))}
-                    </select>
+                {/* 現在の選択ポケモン表示 */}
+                <div className="flex items-center justify-between border-t border-slate-800 pt-4">
+                    <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400">
+                        {currentPokemonName || "未選択"}
+                    </h2>
+                    
+                    {/* 性格選択 */}
+                    <div className="w-48">
+                        <label className="text-xs font-bold text-slate-400 mb-1.5 block">性格</label>
+                        <select
+                            value={natureIndex}
+                            onChange={(e) => setNatureIndex(Number(e.target.value))}
+                            className="w-full border border-slate-700 rounded-lg p-2.5 bg-slate-900 text-slate-100 text-sm outline-none"
+                        >
+                            {NATURES.map((n, i) => (
+                                <option key={i} value={i}>{n.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
+
+            {/* エラー表示 */}
+            {globalError && (
+                <div className="mb-6 p-4 bg-red-950/50 border-l-4 border-red-500 text-red-200 rounded-r">
+                    <p className="font-bold">エラー</p>
+                    <p>{globalError}</p>
+                </div>
+            )}
 
             {/* ステータス入力テーブル */}
             <div className="overflow-x-auto mb-8">
@@ -102,7 +118,7 @@ export default function StatForm(props: StatusCalcProps) {
                                             <input
                                                 type="range"
                                                 min={0}
-                                                max={32} // ※仕様によっては252等に変更
+                                                max={32}
                                                 step={1}
                                                 value={stats[key].ev}
                                                 onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
@@ -111,7 +127,7 @@ export default function StatForm(props: StatusCalcProps) {
                                             <input
                                                 type="number"
                                                 min={0}
-                                                max={32} // ※仕様によっては252等に変更
+                                                max={32}
                                                 step={1}
                                                 value={stats[key].ev}
                                                 onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
@@ -157,24 +173,6 @@ export default function StatForm(props: StatusCalcProps) {
                     {isLoading ? "計算中..." : "計算する"}
                 </button>
             </div>
-
-            {/* エラー表示 */}
-            {globalError && (
-                <div className="mb-6 mt-4 p-4 bg-red-950/50 border-l-4 border-red-500 text-red-200 rounded-r">
-                    <p className="font-bold">エラー</p>
-                    <p>{globalError}</p>
-                </div>
-            )}
-
-            {/* 検索モーダル */}
-            <PokemonSearchModal 
-                isOpen={isSearchOpen}
-                onClose={() => setIsSearchOpen(false)}
-                onSearchStart={handleSearchStart}
-                onSearchSuccess={handleSearchSuccess}
-                onSearchError={handleSearchError}
-                searchError={searchError}
-            />
         </div>
     );
 }
