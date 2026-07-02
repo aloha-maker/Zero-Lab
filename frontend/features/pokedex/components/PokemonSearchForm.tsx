@@ -1,8 +1,9 @@
 // src/features/pokedex/components/PokemonSearchForm.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { usePokemonSearchForm } from "../hooks/usePokemonSearchForm";
+import { usePokemonMaster } from "../hooks/usePokemonMaster";
 import type { PokemonInfo } from "@/features/pokedex/types";
 
 interface SearchFormProps {
@@ -16,47 +17,117 @@ export default function PokemonSearchForm({
     onSearchSuccess,
     onSearchError,
 }: SearchFormProps) {
+    const { candidates, isMasterLoading } = usePokemonMaster();
+    
     const { searchQuery, setSearchQuery, loading, handleSearch } = usePokemonSearchForm({
         onSearchStart,
         onSearchSuccess,
         onSearchError,
     });
 
-    // Enterキーを押した時の処理
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault(); // 親の BuildForm が submit されるのを防ぐ
-            // @ts-ignore - handleSearchがFormEventを要求する場合の回避
-            handleSearch(e);
+    // リスト選択や確定時に「裏でAPIに送るための英語名」を安全に保持・同期するためのRef
+    const pendingEnglishSearchRef = useRef<string | null>(null);
+    // 検索ボックスに最終的に表示させたい日本語名を保持するRef
+    const displayJapaneseNameRef = useRef<string | null>(null);
+
+    // 入力値が変わった時（またはリスト選択時）の処理
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        
+        // 1. まずはユーザーが入力・選択した文字（日本語名）をそのまま検索ボックスに表示
+        setSearchQuery(value);
+
+        if (!value.trim()) return;
+
+        // 2. 入力された値がマスタデータの「日本語名」に完全一致するか検証
+        const matchedPokemon = candidates.find((p) => p.jaName === value);
+
+        // マスタに存在＝リストから日本語名が選ばれた、または日本語名が正しく入力完了した瞬間
+        if (matchedPokemon) {
+            // 後で戻すための日本語名と、APIに送るための英語名をRefに保存
+            displayJapaneseNameRef.current = matchedPokemon.jaName;
+            pendingEnglishSearchRef.current = matchedPokemon.name;
+
+            // 3. 既存フックがURL生成に使う searchQuery ステートを一時的に「英語名」に書き換える
+            setSearchQuery(matchedPokemon.name);
         }
     };
 
-    // 検索ボタンをクリックした時の処理
-    const handleButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault(); // 親の BuildForm が submit されるのを防ぐ
-        // @ts-ignore
-        handleSearch(e);
+    // フック内の searchQuery ステートが「英語名」に切り替わった瞬間を安全にキャッチする
+    useEffect(() => {
+        // ステートがRefに保存した英語名と一致したら、準備完了として検索を実行
+        if (pendingEnglishSearchRef.current && searchQuery === pendingEnglishSearchRef.current) {
+            
+            // 二重発火を防ぐために即座にクリア
+            pendingEnglishSearchRef.current = null;
+
+            // ダミーイベントで handleSearch を実行（裏側では英語名でリクエストが飛びます）
+            const dummyEvent = {
+                preventDefault: () => {},
+            } as React.FormEvent;
+            handleSearch(dummyEvent);
+
+            // 4. 検索処理が走り出した直後に、検索ボックスの表示を日本語名にキープ・引き戻す
+            if (displayJapaneseNameRef.current) {
+                setSearchQuery(displayJapaneseNameRef.current);
+                displayJapaneseNameRef.current = null;
+            }
+        }
+    }, [searchQuery, handleSearch, setSearchQuery]);
+
+    // 手動でEnterを押したときのフォールバック
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            
+            // もし入力されたものが日本語名マスタにあれば英語名に変えて検索
+            const matchedPokemon = candidates.find((p) => p.jaName === searchQuery);
+            if (matchedPokemon) {
+                displayJapaneseNameRef.current = matchedPokemon.jaName;
+                pendingEnglishSearchRef.current = matchedPokemon.name;
+                setSearchQuery(matchedPokemon.name);
+            } else {
+                handleSearch(e as unknown as React.FormEvent);
+            }
+        }
     };
 
+    const placeholderText = isMasterLoading
+        ? "マスタデータ読み込み中..."
+        : loading
+        ? "検索中..."
+        : "ポケモン名を入力...";
+
     return (
-        // <form> を <div> に変更
-        <div className="flex gap-2">
-            <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown} // Enterキーの検知を追加
-                placeholder="ポケモン名 または 図鑑番号 (例: pikachu, 25)"
-                className="flex-1 p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-100 placeholder-slate-500"
-            />
-            <button
-                type="button" // "submit" から "button" に変更（超重要）
-                onClick={handleButtonClick}
-                disabled={loading}
-                className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 transition disabled:bg-slate-700 disabled:text-slate-400"
-            >
-                {loading ? "検索中..." : "検索"}
-            </button>
+        <div className="flex flex-col gap-1 w-full relative">
+            <div className="flex items-center w-full relative">
+                <input
+                    type="text"
+                    list="pokemon-options"
+                    value={searchQuery}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholderText}
+                    className="w-full p-3 pr-10 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-slate-100 placeholder-slate-500 disabled:opacity-50"
+                    disabled={loading || isMasterLoading}
+                />
+                
+                {loading && (
+                    <div className="absolute right-3 flex items-center justify-center">
+                        <div className="animate-spin h-5 w-5 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                    </div>
+                )}
+            </div>
+
+            {/* リストの選択肢も日本語名のみ */}
+            <datalist id="pokemon-options">
+                {candidates.map((pokemon) => (
+                    <option 
+                        key={pokemon.id} 
+                        value={pokemon.jaName}
+                    />
+                ))}
+            </datalist>
         </div>
     );
 }

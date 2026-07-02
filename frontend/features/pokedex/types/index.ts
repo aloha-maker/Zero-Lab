@@ -27,3 +27,13 @@ export interface PokemonInfo {
     moves: MoveDetail[];
     image_url?: string;
 }
+
+/**
+ * サジェスト候補用の軽量なポケモン情報（修正）
+ */
+export interface CandidatePokemon {
+    id: number;
+    name: string;      // API検索に使う英名（例: pikachu）
+    jaName: string;    // 表示に使う日本語名（例: ピカチュウ）
+    imageUrl?: string; // 必要に応じて画像URLも保持可能
+}
