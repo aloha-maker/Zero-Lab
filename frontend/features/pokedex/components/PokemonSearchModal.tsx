@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { PokemonInfo } from "@/app/types/api";
-import PokemonSearchForm from "./PokemonSearchForm";
+import type { PokemonInfo } from "@/features/pokedex/types";
+import PokemonSearchForm from "@/features/pokedex/components/PokemonSearchForm";
 
 interface PokemonSearchModalProps {
     isOpen: boolean;

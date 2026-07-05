@@ -10,6 +10,18 @@ export default function Home() {
 
       {/* カードを並べるグリッド（PCでは3列、タブレットでは2列、スマホでは1列に自動調整） */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* ▼▼ 機能カード：ポケモン図鑑 ▼▼ */}
+        <Link href="/pokedex" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
+            <h2 className="text-xl font-bold text-gray-500 mb-2">📖 ポケモン図鑑</h2>
+            <p className="text-sm text-gray-500 flex-grow">
+              種族値、タイプ、覚える技などの基本データを検索します。
+            </p>
+            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
+              稼働中
+            </span>
+          </div>
+        </Link>
 
         {/* ▼▼ 機能カード：ステータス計算（稼働中） ▼▼ */}
         <Link href="/status" className="block group h-full">
@@ -17,6 +29,32 @@ export default function Home() {
             <h2 className="text-xl font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition">📊 ステータス計算</h2>
             <p className="text-sm text-gray-600 flex-grow">
               種族値・個体値・努力値から実数値を計算します。（API連携テスト済）
+            </p>
+            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
+              稼働中
+            </span>
+          </div>
+        </Link>
+
+        {/* ▼▼ 機能カード：育成ボックス ▼▼ */}
+        <Link href="/builds" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
+            <h2 className="text-xl font-bold text-gray-500 mb-2">🗄 育成ボックス</h2>
+            <p className="text-sm text-gray-500 flex-grow">
+              育成したポケモンを保存・管理・コピーできます。
+            </p>
+            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
+              稼働中
+            </span>
+          </div>
+        </Link>
+
+        {/* ▼▼ 機能カード：パーティ（構築）管理 ▼▼ */}
+        <Link href="/parties" className="block group h-full">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
+            <h2 className="text-xl font-bold text-gray-500 mb-2">📋 パーティ管理</h2>
+            <p className="text-sm text-gray-500 flex-grow">
+              作成したパーティを一覧表示・管理できます。
             </p>
             <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
               稼働中
@@ -50,19 +88,6 @@ export default function Home() {
           </div>
         </Link>
 
-        {/* ▼▼ 機能カード：ポケモン図鑑 ▼▼ */}
-        <Link href="/pokedex" className="block group h-full">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
-            <h2 className="text-xl font-bold text-gray-500 mb-2">📖 ポケモン図鑑</h2>
-            <p className="text-sm text-gray-500 flex-grow">
-              種族値、タイプ、覚える技などの基本データを検索します。
-            </p>
-            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
-              稼働中
-            </span>
-          </div>
-        </Link>
-
         {/* ▼▼ 機能カード：タイプ相性チェッカー ▼▼ */}
         <Link href="/type-matchup" className="block group h-full">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
@@ -76,31 +101,9 @@ export default function Home() {
           </div>
         </Link>
 
-        {/* ▼▼ 機能カード：育成ボックス ▼▼ */}
-        <Link href="/builds" className="block group h-full">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
-            <h2 className="text-xl font-bold text-gray-500 mb-2">🗄 育成ボックス</h2>
-            <p className="text-sm text-gray-500 flex-grow">
-              育成したポケモンを保存・管理・コピーできます。
-            </p>
-            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
-              稼働中
-            </span>
-          </div>
-        </Link>
+        
 
-        {/* ▼▼ 機能カード：パーティ（構築）管理 ▼▼ */}
-        <Link href="/parties" className="block group h-full">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-300 transition h-full flex flex-col">
-            <h2 className="text-xl font-bold text-gray-500 mb-2">📋 パーティ管理</h2>
-            <p className="text-sm text-gray-500 flex-grow">
-              作成したパーティを一覧表示・管理できます。
-            </p>
-            <span className="mt-4 text-xs font-bold text-blue-500 bg-blue-50 py-1 px-3 rounded-full w-fit">
-              稼働中
-            </span>
-          </div>
-        </Link>
+        
 
         {/* ▼▼ 機能カード：パーティ戦略 ▼▼ */}
         <Link href="/strategy" className="block group h-full">

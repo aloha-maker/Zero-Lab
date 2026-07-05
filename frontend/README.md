@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+src/
+├── app/ # ① ルーティングと画面の定義（Next.jsのコア）
+│ ├── layout.tsx # アプリ共通レイアウト
+│ ├── page.tsx # トップページ
+│ ├── pokedex/
+│ │ ├── page.tsx # 図鑑一覧ページ
+│ │ └── [id]/
+│ │ page.tsx # ポケモン詳細ページ
+│ └── trained/
+│ └── page.tsx # 育成ポケモン管理ページ
+├── components/ # ② ドメイン（業務知識）を持たない完全共通のUI
+│ └── ui/ # ボタン、インプット、ダイアログなどの汎用部品
+│ ├── Button.tsx
+│ ├── Input.tsx
+│ └── Dialog.tsx
+├── features/ # ③ 【重要】機能ごとのモジュール（ロジックとUIの分離拠点）
+│ ├── pokedex/ # ─── 図鑑・検索ドメイン
+│ │ ├── components/ # 見た目（TSX）に集中するファイル
+│ │ │ ├── PokedexList.tsx
+│ │ │ └── PokemonCard.tsx
+│ │ ├── hooks/ # 状態管理・API通信（useState, useEffect）
+│ │ │ └── usePokemonSearch.ts
+│ │ ├── utils/ # Reactに依存しない純粋な関数（検索フィルタなど）
+│ │ │ └── filterPokemon.ts
+│ │ └── types/ # この機能で使うTypeScriptの型定義
+│ │ └── index.ts # Pokemon, Type, Ability などの型
+│ └── trained-management/ # ─── 育成管理ドメイン
+│ ├── components/
+│ │ ├── TrainedList.tsx
+│ │ └── StatForm.tsx
+│ ├── hooks/
+│ │ └── usePokemonStats.ts # 個体値・努力値などの状態を管理するフック
+│ ├── utils/
+│ │ └── statCalcs.ts # 種族値・個体値・努力値から実数値を出す純粋な計算式
+│ └── types/
+│ └── index.ts # TrainedPokemon, Party などの型
+├── lib/ # ④ 外部ライブラリやクライアントの設定
+│ └── api-client.ts # Pythonバックエンド（FastAPI等）への共通Fetch/Axios設定
+└── types/ # ⑤ アプリ全体で共有するグローバルな型定義
+└── common.ts
+```
