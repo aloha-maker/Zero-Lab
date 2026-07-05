@@ -2,20 +2,54 @@
 import { useState, useEffect } from "react";
 import type { CandidatePokemon } from "../types";
 
-export const usePokemonMaster = () => {
+interface UsePokemonMasterResult {
+    candidates: CandidatePokemon[];
+    isMasterLoading: boolean;
+    error: string | null;
+}
+
+interface PokemonSpeciesName {
+    name: string;
+}
+
+interface PokemonSpecy {
+    pokemonspeciesnames: PokemonSpeciesName[];
+}
+
+interface RawPokemon {
+    id: number;
+    name: string;
+    pokemonspecy: PokemonSpecy | null;
+}
+
+interface PokemonMasterResponse {
+    data: {
+        pokemon: RawPokemon[];
+    } | null;
+    errors?: { message: string }[];
+}
+
+// v1beta(beta.pokeapi.co)は廃止済み。新エンドポイントに移行。
+// https://pokeapi.co/docs/graphql 参照
+const POKEAPI_GRAPHQL_ENDPOINT = 'https://graphql.pokeapi.co/v1beta2';
+
+export const usePokemonMaster = (): UsePokemonMasterResult => {
     const [candidates, setCandidates] = useState<CandidatePokemon[]>([]);
     const [isMasterLoading, setIsMasterLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const controller = new AbortController();
+
         const fetchPokemonMaster = async () => {
-            // 日本語名と英名（name）、IDを取得するGraphQLクエリ
+            // v1beta2ではpokemon_v2_接頭辞が廃止されている
             const query = `
                 query getPokemonMaster {
-                    pokemon_v2_pokemon {
+                    pokemon {
                         id
                         name
-                        pokemon_v2_pokemonspecy {
-                            pokemon_v2_pokemonspeciesnames(where: {language_id: {_eq: 1}}) {
+                        pokemonspecy {
+                            pokemonspeciesnames(where: {language_id: {_eq: 1}}) {
                                 name
                             }
                         }
@@ -24,37 +58,52 @@ export const usePokemonMaster = () => {
             `;
 
             try {
-                const res = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
+                const res = await fetch(POKEAPI_GRAPHQL_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query }),
+                    signal: controller.signal,
                 });
 
-                if (!res.ok) throw new Error('PokeAPI GraphQL request failed');
+                if (!res.ok) throw new Error(`PokeAPI GraphQL request failed: ${res.status}`);
 
-                const { data } = await res.json();
-                
-                // 配列形式にマッピングしてステートに保存
-                const mappedCandidates: CandidatePokemon[] = data.pokemon_v2_pokemon.map((p: any) => {
-                    const jaName = p.pokemon_v2_pokemonspecy?.pokemon_v2_pokemonspeciesnames?.[0]?.name || p.name;
+                const { data, errors }: PokemonMasterResponse = await res.json();
+
+                if (errors?.length) {
+                    throw new Error(errors[0]?.message ?? 'Unknown GraphQL error');
+                }
+                if (!data?.pokemon) {
+                    throw new Error('Unexpected response shape: pokemon missing');
+                }
+
+                const mappedCandidates: CandidatePokemon[] = data.pokemon.map((p) => {
+                    const jaName =
+                        p.pokemonspecy?.pokemonspeciesnames?.[0]?.name || p.name;
                     return {
                         id: p.id,
-                        name: p.name, // 英名 (API検索用)
-                        jaName: jaName, // 日本語名 (表示用)
-                        imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`
+                        name: p.name,
+                        jaName,
+                        imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png`,
                     };
                 });
 
                 setCandidates(mappedCandidates);
-            } catch (error) {
-                console.error('🔥 PokeAPIマスターフェッチに失敗しました:', error);
+            } catch (err) {
+                if (err instanceof DOMException && err.name === 'AbortError') return;
+
+                const message = err instanceof Error ? err.message : 'Unknown error';
+                console.error('🔥 PokeAPIマスターフェッチに失敗しました:', err);
+                setError(message);
             } finally {
-                setIsMasterLoading(false);
+                if (!controller.signal.aborted) {
+                    setIsMasterLoading(false);
+                }
             }
         };
 
         fetchPokemonMaster();
+        return () => controller.abort();
     }, []);
 
-    return { candidates, isMasterLoading };
+    return { candidates, isMasterLoading, error };
 };

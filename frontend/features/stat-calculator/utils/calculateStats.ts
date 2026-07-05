@@ -1,3 +1,5 @@
+// frontend/features/stat-calculator/utils/calculateStats.ts
+
 import type { PokemonInfo } from "@/features/pokedex/types";
 import { STAT_KEYS, type PokemonStatKey, type StatRecord } from "../types";
 
