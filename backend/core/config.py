@@ -2,13 +2,18 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    # APIの基本設定など、ガイドラインにあるプレフィックス等もここで管理すると良いです
+    # APIの基本設定など
     API_PREFIX: str = "/api/v1"
     PROJECT_NAME: str = "Zero-Lab Pokemon API"
     
     # PokeAPIの言語設定
-    # デフォルト値を設定しない場合は環境変数がないと起動時にエラーになります（Fail Fast）
     TARGET_LANGUAGE: str = "ja-Hrkt" 
+    
+    # --- 同期バッチ用の設定を追加 ---
+    # .env で設定されなかった場合のデフォルト値（テスト用）
+    SYNC_API_KEY_HEADER: str = "X-API-Key"
+    SYNC_API_KEY: str = "your-secret-api-key-here" 
+    POKEAPI_GRAPHQL_URL: str = "https://graphql.pokeapi.co/v1beta2"
     
     # .env ファイルからの読み込み設定
     model_config = SettingsConfigDict(
