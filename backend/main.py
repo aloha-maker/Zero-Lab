@@ -1,7 +1,8 @@
+# backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import status, damage, pokemon, type_matchup, builds, parties, battles, seasons, strategy
+from routers import status, damage, pokemon, type_matchup, builds, parties, battles, seasons, strategy,sync
 from core.config import settings
 
 app = FastAPI(title=settings.PROJECT_NAME, version="1.0.0")
@@ -25,6 +26,7 @@ app.include_router(parties.router, prefix=f"{settings.API_PREFIX}/parties", tags
 app.include_router(battles.router)
 app.include_router(seasons.router, prefix=f"{settings.API_PREFIX}/seasons", tags=["seasons"])
 app.include_router(strategy.router, prefix=f"{settings.API_PREFIX}/strategy", tags=["strategy"])
+app.include_router(sync.router, prefix=f"{settings.API_PREFIX}/sync", tags=["sync"])
 
 # サーバーが動いているか確認するためのルート
 @app.get("/")
