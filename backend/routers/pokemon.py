@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Path, Query, HTTPException,Depends
 from core.supabase import get_supabase, SupabaseClient
 from typing import List, Optional
-from schemas.pokemon import PokemonInfo, PokemonListItem
-from services.pokemon_list import get_pokemon_list_by_rule
+from schemas.pokemon import PokemonInfo, PokemonListItem,CandidatePokemon
+from services.pokemon_list import get_pokemon_list_by_rule,fetch_pokemon_candidates
 from services.pokemon_detail import fetch_pokemon_data
 
 router = APIRouter()
@@ -25,6 +25,18 @@ async def get_pokemon_list(
         )
     return await get_pokemon_list_by_rule(rule_id, supabase)
 
+
+@router.get("/list", response_model=list[CandidatePokemon])
+async def get_pokemon_candidates(
+    supabase: SupabaseClient = Depends(get_supabase)
+):
+    """
+    フロントエンドのサジェスト（プルダウン）用に、
+    軽量化・フォーマット済みの全ポケモン一覧データを返します。
+    """
+    print('reach')
+    candidates = await fetch_pokemon_candidates(supabase)
+    return candidates
 
 @router.get("/{name_or_id}", response_model=PokemonInfo)
 async def get_pokemon(

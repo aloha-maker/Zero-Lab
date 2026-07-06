@@ -26,7 +26,7 @@ export const usePokemonSearchForm = ({
 
         try {
             // エラーパースやURLの結合は apiClient が全てやってくれるため、これだけで済みます
-            const data = await apiClient.get<PokemonInfo>(`/api/v1/pokemon/${searchQuery.toLowerCase()}`);
+            const data = await apiClient.get<PokemonInfo>(`/api/v1/pokemon/${searchQuery}`);
             onSearchSuccess(data);
 
         } catch (err: unknown) {
