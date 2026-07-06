@@ -28,6 +28,7 @@ async def get_pokemon_list(
 
 @router.get("/{name_or_id}", response_model=PokemonInfo)
 async def get_pokemon(
+    supabase: SupabaseClient = Depends(get_supabase),
     name_or_id: str = Path(..., description="検索したいポケモンの英語名または図鑑番号")
 ):
-    return await fetch_pokemon_data(name_or_id)
+    return await fetch_pokemon_data(supabase,name_or_id)

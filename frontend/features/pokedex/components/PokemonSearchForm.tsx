@@ -114,7 +114,7 @@ export default function PokemonSearchForm({
 
                 <input
                     type="text"
-                    list="pokemon-options"
+                    // list="pokemon-options"
                     value={searchQuery}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
