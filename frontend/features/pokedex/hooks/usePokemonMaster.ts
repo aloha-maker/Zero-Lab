@@ -1,7 +1,8 @@
 // src/features/pokedex/hooks/usePokemonMaster.ts
 import { useState, useEffect } from "react";
 import type { CandidatePokemon } from "../types";
-import { apiClient, ApiError } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
+import { getPokemonMaster } from "../api/getPokemonMaster"; // 作成したAPI関数をインポート
 
 interface UsePokemonMasterResult {
     candidates: CandidatePokemon[];
@@ -23,8 +24,8 @@ export const usePokemonMaster = (): UsePokemonMasterResult => {
             setError(null);
 
             try {
-                // apiClient が URLの結合やJSONパースを全てやってくれる
-                const data = await apiClient.get<CandidatePokemon[]>("/api/v1/pokemon/list");
+                // API通信を切り出した関数で実行
+                const data = await getPokemonMaster();
                 
                 if (isMounted) {
                     setCandidates(data);

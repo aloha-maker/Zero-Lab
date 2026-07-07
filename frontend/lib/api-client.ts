@@ -1,5 +1,6 @@
 // src/lib/api-client.ts
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_PREFIX = "/api/v1";
 
 export interface ApiValidationError {
     loc: (string | number)[];
@@ -33,7 +34,7 @@ export class ApiError extends Error {
  */
 async function fetchClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     // スラッシュの重複を防ぐためのフォーマット
-    const url = `${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = `${API_URL}${API_PREFIX}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     
     const defaultHeaders = {
         "Content-Type": "application/json",
