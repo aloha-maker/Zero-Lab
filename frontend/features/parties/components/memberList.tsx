@@ -1,7 +1,8 @@
+// frontend/features/parties/components/memberList.tsx
 'use client';
 
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+// import { Plus } from 'lucide-react'; // 不要なら削除可能
 import { TrainedPokemon } from '../../bulids/types/mock';
 import { PokemonInfo } from '../../pokedex/types';
 import { PokemonCard } from '../../bulids/components/BuildFormCard'
@@ -24,7 +25,7 @@ const initialParty: TrainedPokemon[] = [
     evs: { H: 4, A: 252, B: 0, C: 0, D: 0, S: 252 },
     actualStats: { H: 167, A: 204, B: 115, C: 108, D: 120, S: 132 },
     notes: '竜舞からの全抜きエース。',
-    imageUrl: '',
+    imageUrl: '', // 実際の運用では初期データにも画像URLが入る想定
   }
 ];
 
@@ -71,20 +72,31 @@ export const TrainedList = () => {
 
   // ★ 検索成功時：バックエンドのデータを元に、編集ステートを初期化して育成フォームを開く
   const handleSearchSuccess = (data: PokemonInfo) => {
+    // APIから取得した base_stats を H, A, B, C, D, S 形式にマッピング
+    const baseStatsMap = {
+      H: data.base_stats?.["hp"] ?? 100,
+      A: data.base_stats?.["attack"] ?? 100,
+      B: data.base_stats?.["defense"] ?? 100,
+      C: data.base_stats?.["special-attack"] ?? 100,
+      D: data.base_stats?.["special-defense"] ?? 100,
+      S: data.base_stats?.["speed"] ?? 100,
+    };
+
     const newPokemon: Partial<TrainedPokemon> = {
       id: crypto.randomUUID(), // 新規ID
       species: data.name || '不明',
       nickname: '',
       item: '',
-      ability: '',
+      ability: data.abilities?.[0] || '', // 初期値として最初の特性をセット
       teraType: 'ノーマル',
       moves: ['', '', '', ''],
-      // 実際にはAPIからの種族値を設定します（今回はモック値）
-      baseStats: { H: 100, A: 100, B: 100, C: 100, D: 100, S: 100 }, 
+      // モック値を実際のAPIデータに置き換え
+      baseStats: baseStatsMap, 
       evs: { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
-      actualStats: { H: 100, A: 100, B: 100, C: 100, D: 100, S: 100 },
+      // 初期値は一旦種族値をそのまま入れておくか、空にしてフォーム側で再計算させる想定
+      actualStats: { ...baseStatsMap }, 
       notes: '',
-      imageUrl: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${data.id || 1}.png`,
+      imageUrl: data.image_url || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${data.id || 1}.png`,
     };
     
     setEditingPokemon(newPokemon);
