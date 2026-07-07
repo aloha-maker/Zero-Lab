@@ -124,3 +124,86 @@ async def get_all_pokemon_list() -> list[PokemonListItem]:
     結果は alru_cache でサーバー起動中メモリにキャッシュする(再起動まで再取得しない)。
     """
     return await _query_pokemon_list(pokemon_ids=None)
+
+
+
+# backend/services/pokemon_master.py
+"""
+サジェスト・マスターデータ一覧取得サービス
+"""
+
+from async_lru import alru_cache
+from core.supabase import SupabaseClient
+from schemas.pokemon import CandidatePokemon
+
+# マスターデータは頻繁に変わらないため、キャッシュを長めに設定
+@alru_cache(maxsize=1)
+async def fetch_pokemon_candidates(supabase: SupabaseClient) -> list[CandidatePokemon]:
+    select_query = (
+        "id, form_category, form_name_ja, form_name_en, image_url, "
+        "species:pokemon_species!inner(name_ja, name_en)"
+    )
+
+    all_data = []
+    offset = 0
+    limit_size = 1000
+
+    # 1000件の取得上限(Supabaseの仕様)を回避するため、全件取得できるまでループ
+    while True:
+        response = supabase.table("pokemon").select(select_query) \
+            .order("id") \
+            .range(offset, offset + limit_size - 1) \
+            .execute()
+        
+        data_chunk = response.data
+        if not data_chunk:
+            break
+            
+        all_data.extend(data_chunk)
+        
+        if len(data_chunk) < limit_size:
+            break  # 取得件数がlimit未満なら全件取得完了
+            
+        offset += limit_size
+
+    candidates = []
+
+    # 先ほど作成した表示名整形ロジックを適用
+    for data in all_data:
+        species = data.get("species", {})
+        form_category = data.get("form_category", "")
+        
+        base_name_ja = species.get("name_ja", "")
+        form_name_ja = data.get("form_name_ja", "")
+        
+        base_name_en = species.get("name_en", "")
+        form_name_en = data.get("form_name_en", "")
+        
+        # 表示名の決定ロジック
+        if form_category == "normal":
+            ja_name = base_name_ja
+            en_name = base_name_en
+        elif form_category == "mega":
+            ja_name = form_name_ja if form_name_ja else base_name_ja
+            en_name = form_name_en if form_name_en else base_name_en
+        else:
+            if form_name_ja:
+                ja_name = f"{base_name_ja}({form_name_ja})"
+            else:
+                ja_name = base_name_ja
+
+            if form_name_en:
+                en_name = f"{base_name_en} ({form_name_en})"
+            else:
+                en_name = base_name_en
+
+        candidates.append(
+            CandidatePokemon(
+                id=data["id"],
+                name=en_name,
+                jaName=ja_name,
+                imageUrl=data.get("image_url")
+            )
+        )
+
+    return candidates

@@ -1,3 +1,4 @@
+// frontend/app/party-building-studio/components/pages/step2/PokemonConfigSection.tsx
 "use client";
 
 import { useState, useEffect } from "react";

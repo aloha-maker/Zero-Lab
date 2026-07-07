@@ -1,3 +1,4 @@
+// frontend/features/settings/hooks/usePokemonSync.ts
 "use client";
 
 import { useEffect, useState } from "react";

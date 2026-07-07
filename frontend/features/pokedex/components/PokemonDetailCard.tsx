@@ -1,5 +1,7 @@
-// src/features/pokedex/components/PokemonDetailCard.tsx
-import React from "react";
+// frontend/features/pokedex/components/PokemonDetailCard.tsx
+"use client";
+
+import React, { useState } from "react";
 import type { PokemonInfo } from "../types";
 
 interface PokemonDetailCardProps {
@@ -7,6 +9,8 @@ interface PokemonDetailCardProps {
 }
 
 export default function PokemonDetailCard({ pokemon }: PokemonDetailCardProps) {
+    const [isMovesOpen, setIsMovesOpen] = useState(false);
+
     return (
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
             {/* ヘッダー部分 */}
@@ -79,17 +83,66 @@ export default function PokemonDetailCard({ pokemon }: PokemonDetailCardProps) {
                 </div>
             </div>
 
-            {/* 覚える技（一部のみ表示） */}
+            {/* 覚える技（折りたたみ表形式） */}
             <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200">
-                <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">覚える技 (主要な技)</h3>
-                <div className="flex flex-wrap gap-2">
-                    {pokemon.moves.slice(0, 15).map(move => (
-                        <span key={move.name} className="px-3 py-1 bg-white border border-gray-200 rounded text-sm text-gray-600 capitalize">
-                            {move.name}
-                        </span>
-                    ))}
-                    {pokemon.moves.length > 15 && <span className="text-gray-400 text-sm italic py-1">and more...</span>}
-                </div>
+                <button
+                    onClick={() => setIsMovesOpen(!isMovesOpen)}
+                    className="w-full flex justify-between items-center bg-white hover:bg-gray-100 px-4 py-3 rounded-lg border border-gray-200 font-medium text-sm text-gray-700 transition shadow-sm"
+                >
+                    <span>覚える技一覧 ({pokemon.moves.length}件)</span>
+                    <span className={`transform transition-transform duration-200 text-gray-400 ${isMovesOpen ? "rotate-180" : ""}`}>
+                        ▼
+                    </span>
+                </button>
+
+                {isMovesOpen && (
+                    <div className="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm text-gray-600">
+                                <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-4 py-3">技名</th>
+                                        <th className="px-4 py-3">タイプ</th>
+                                        <th className="px-4 py-3 text-center">カテゴリ</th>
+                                        <th className="px-4 py-3 text-right">威力</th>
+                                        <th className="px-4 py-3 text-right">命中</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {pokemon.moves.map((move, index) => {
+                                        const damageClassColors = {
+                                            "ぶつり": "bg-orange-50 text-orange-700 border-orange-200",
+                                            "とくしゅ": "bg-blue-50 text-blue-700 border-blue-200",
+                                            "へんか": "bg-gray-100 text-gray-600 border-gray-300",
+                                        }[move.damage_class] || "bg-gray-50 text-gray-500 border-gray-200";
+
+                                        return (
+                                            <tr key={index} className="hover:bg-gray-50/70 transition-colors">
+                                                <td className="px-4 py-3 font-medium text-gray-800">{move.name}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                                                        {move.type}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full border ${damageClassColors}`}>
+                                                        {move.damage_class}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-mono text-gray-600 font-medium">
+                                                    {move.power !== null && move.power !== undefined ? move.power : "—"}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-mono text-gray-500">
+                                                    {move.accuracy !== null && move.accuracy !== undefined ? `${move.accuracy}%` : "—"}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -8,7 +8,7 @@ import { RightSidebar } from './components/RightSidebar';
 import { MatrixResultRow } from "@/app/types/api";
 import { ConfiguredMainPokemon } from "./components/pages/step2/types";
 import { PokemonCandidate } from './components/pages/step3/types';
-import { TrainedList } from '@/features/parties/components/menberList'
+import { TrainedList } from '@/features/parties/components/memberList'
 
 export const Layout: React.FC = () => {
   // 現在のページ状態を管理するState（初期値は 'home'）

@@ -67,4 +67,9 @@ class PokemonListItem(BaseModel):
     name: str
     english_name: str
     image_url: Optional[str] = None
-    
+
+class CandidatePokemon(BaseModel):
+    id: int
+    name: str          # 検索APIで使われる英名（表示整形済み）
+    jaName: str        # 画面表示用の日本語名（表示整形済み）
+    imageUrl: Optional[str] = None

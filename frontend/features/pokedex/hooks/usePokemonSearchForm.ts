@@ -1,7 +1,8 @@
 // src/features/pokedex/hooks/usePokemonSearchForm.ts
 import { useState } from "react";
 import type { PokemonInfo } from "../types";
-import { apiClient, ApiError } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
+import { searchPokemon } from "../api/searchPokemon"; // 作成したAPI関数をインポート
 
 interface UsePokemonSearchFormProps {
     onSearchStart: () => void;
@@ -25,8 +26,8 @@ export const usePokemonSearchForm = ({
         setLoading(true);
 
         try {
-            // エラーパースやURLの結合は apiClient が全てやってくれるため、これだけで済みます
-            const data = await apiClient.get<PokemonInfo>(`/api/v1/pokemon/${searchQuery.toLowerCase()}`);
+            // API通信を別ファイルに切り出した関数で実行
+            const data = await searchPokemon(searchQuery);
             onSearchSuccess(data);
 
         } catch (err: unknown) {

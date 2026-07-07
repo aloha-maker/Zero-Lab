@@ -1,3 +1,4 @@
+// frontend/features/parties/components/AddPokemonModal.tsx
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
