@@ -1,15 +1,12 @@
 // frontend/features/stat-calculator/utils/calculateStats.ts
 
 import type { PokemonInfo } from "@/features/pokedex/types";
-import { STAT_KEYS, type PokemonStatKey, type StatRecord } from "../types";
+import { STAT_KEYS, EV_MAX_PER_STAT, type PokemonStatKey, type StatRecord } from "../types";
 
-export const NATURE_MAP: Record<PokemonStatKey, string> = {
-    "hp": "H", "attack": "A", "defense": "B", "special-attack": "C", "special-defense": "D", "speed": "S"
-};
-
-const DEFAULT_BASE_STATS: Record<PokemonStatKey, number> = {
-    "hp": 0, "attack": 0, "defense": 0, "special-attack": 0, "special-defense": 0, "speed": 0
-};
+const DEFAULT_BASE_STATS: Record<PokemonStatKey, number> = STAT_KEYS.reduce((acc, key) => {
+    acc[key] = 0;
+    return acc;
+}, {} as Record<PokemonStatKey, number>);
 
 export const createInitialStats = (pokemon?: PokemonInfo | null): StatRecord => {
     const statsHashes = {} as StatRecord;
@@ -20,4 +17,14 @@ export const createInitialStats = (pokemon?: PokemonInfo | null): StatRecord => 
         };
     });
     return statsHashes;
+};
+
+/**
+ * EV入力値を 0 〜 EV_MAX_PER_STAT の範囲にクランプする。
+ * UI側の input[max] だけに依存すると直接入力・ペーストで上限を超えられるため、
+ * ロジック側でも必ず正規化する。
+ */
+export const clampEv = (value: number): number => {
+    if (Number.isNaN(value)) return 0;
+    return Math.min(EV_MAX_PER_STAT, Math.max(0, value));
 };

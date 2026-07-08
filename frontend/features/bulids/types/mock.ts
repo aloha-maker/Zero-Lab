@@ -1,12 +1,10 @@
-export type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
-
 export type Stats = {
-  H: number;
-  A: number;
-  B: number;
-  C: number;
-  D: number;
-  S: number;
+  HP: number;
+  attack: number;
+  defense: number;
+  sp_attack: number;
+  sp_defense: number;
+  speed: number;
 };
 
 export interface TrainedPokemon {

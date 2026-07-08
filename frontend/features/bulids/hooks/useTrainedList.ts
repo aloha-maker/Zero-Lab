@@ -1,7 +1,8 @@
 // frontend/features/bulids/hooks/useTrainedList.ts
 
 import { useState, useEffect, useCallback } from "react";
-import { API_URL,ApiErrorResponse } from "@/lib/api-client";
+import { getBuilds } from "../api/getBuilds";
+import { deleteBuild } from "../api/deleteBuild";
 import type { PokemonBuildResponse } from "../types";
 
 export const useTrainedList = () => {
@@ -11,15 +12,9 @@ export const useTrainedList = () => {
     const fetchBuilds = useCallback(async () => {
         setErrorMsg(null);
         try {
-            const res = await fetch(`${API_URL}/api/v1/builds`);
-
-            if (!res.ok) {
-                throw new Error("データの取得に失敗しました");
-            }
-
-            const json = await res.json();
-            if (json.status === "success") {
-                setBuilds(json.data);
+            const res = await getBuilds();
+            if (res.status === "success") {
+                setBuilds(res.data);
             } else {
                 setBuilds([]);
             }
@@ -38,20 +33,10 @@ export const useTrainedList = () => {
         if (!confirm("削除しますか？")) return;
 
         try {
-            const res = await fetch(`${API_URL}/api/v1/builds/${id}`, { method: "DELETE" });
-
-            if (!res.ok) {
-                const errorData = (await res.json()) as ApiErrorResponse;
-                let errorMessage = "削除に失敗しました";
-                if (typeof errorData.detail === 'string') {
-                    errorMessage = errorData.detail;
-                }
-                throw new Error(errorMessage);
-            }
-
+            await deleteBuild(id);
             fetchBuilds(); // 成功したら再取得
         } catch (error: any) {
-            alert(error.message);
+            alert(error.message || "削除に失敗しました");
         }
     };
 

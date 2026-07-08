@@ -3,11 +3,12 @@
 
 import React, { useState } from 'react';
 // import { Plus } from 'lucide-react'; // 不要なら削除可能
-import { TrainedPokemon } from '../../bulids/types/mock';
+import { TrainedPokemon, Stats } from '@/features/bulids/types/mock';
+import { BuildCreateRequest } from '../../bulids/types/index';
 import { PokemonInfo } from '../../pokedex/types';
 import { PokemonCard } from '../../bulids/components/BuildFormCard'
+import { AddPokemonModal } from '../../bulids/components/AddPokemonModal';
 
-import { AddPokemonModal } from './AddPokemonModal';
 import { LoadPartyModal } from './LoadPartyModal';
 import { StatFormModal } from './StatFormModal';
 
@@ -21,9 +22,9 @@ const initialParty: TrainedPokemon[] = [
     ability: 'マルチスケイル',
     teraType: 'ノーマル',
     moves: ['スケイルショット', 'しんそく', 'じしん', 'りゅうのまい'],
-    baseStats: { H: 91, A: 134, B: 95, C: 100, D: 100, S: 80 },
-    evs: { H: 4, A: 252, B: 0, C: 0, D: 0, S: 252 },
-    actualStats: { H: 167, A: 204, B: 115, C: 108, D: 120, S: 132 },
+    baseStats: { HP: 91, attack: 134, defense: 95, sp_attack: 100, sp_defense: 100, speed: 80 },
+    evs: { HP: 4, attack: 252, defense: 0, sp_attack: 0, sp_defense: 0, speed: 252 },
+    actualStats: { HP: 167, attack: 204, defense: 115, sp_attack: 108, sp_defense: 120, speed: 132 },
     notes: '竜舞からの全抜きエース。',
     imageUrl: '', // 実際の運用では初期データにも画像URLが入る想定
   }
@@ -73,13 +74,8 @@ export const TrainedList = () => {
   // ★ 検索成功時：バックエンドのデータを元に、編集ステートを初期化して育成フォームを開く
   const handleSearchSuccess = (data: PokemonInfo) => {
     // APIから取得した base_stats を H, A, B, C, D, S 形式にマッピング
-    const baseStatsMap = {
-      H: data.base_stats?.["hp"] ?? 100,
-      A: data.base_stats?.["attack"] ?? 100,
-      B: data.base_stats?.["defense"] ?? 100,
-      C: data.base_stats?.["special-attack"] ?? 100,
-      D: data.base_stats?.["special-defense"] ?? 100,
-      S: data.base_stats?.["speed"] ?? 100,
+    const defaultStats: Stats = {
+      HP: 0, attack: 0, defense: 0, sp_attack: 0, sp_defense: 0, speed: 0
     };
 
     const newPokemon: Partial<TrainedPokemon> = {
@@ -91,10 +87,10 @@ export const TrainedList = () => {
       teraType: 'ノーマル',
       moves: ['', '', '', ''],
       // モック値を実際のAPIデータに置き換え
-      baseStats: baseStatsMap, 
-      evs: { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
+      baseStats: (data.base_stats as unknown as Stats) || { ...defaultStats },
+      evs: { HP: 0, attack: 0, defense: 0, sp_attack: 0, sp_defense: 0, speed: 0 },
       // 初期値は一旦種族値をそのまま入れておくか、空にしてフォーム側で再計算させる想定
-      actualStats: { ...baseStatsMap }, 
+      actualStats: { ...defaultStats },
       notes: '',
       imageUrl: data.image_url || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${data.id || 1}.png`,
     };
@@ -115,6 +111,45 @@ export const TrainedList = () => {
     setEditingPokemon(null); // モーダルを閉じる
   };
 
+
+// ヘルパーマッピング関数
+const mapTrainedToRequest = (tp: TrainedPokemon): BuildCreateRequest => ({
+  pokemon_id: Number(tp.id) || 0,
+  pokemon_name: tp.species,
+  nickname: tp.nickname,
+  nature: "",
+  ability: tp.ability,
+  item: tp.item,
+  tera_type: tp.teraType,
+  moves: tp.moves,
+  evs: {
+    H: tp.evs.HP,
+    A: tp.evs.attack,
+    B: tp.evs.defense,
+    C: tp.evs.sp_attack,
+    D: tp.evs.sp_defense,
+    S: tp.evs.speed,
+  },
+  ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
+  memo: tp.notes,
+});
+
+const dummyInfo = (tp: TrainedPokemon): PokemonInfo => ({
+  id: Number(tp.id) || 0,
+  name: tp.species,
+  types: [tp.teraType],
+  abilities: [tp.ability],
+  moves: tp.moves.map(name => ({ name } as any)),
+  base_stats: {
+    hp: tp.baseStats.HP,
+    attack: tp.baseStats.attack,
+    defense: tp.baseStats.defense,
+    sp_attack: tp.baseStats.sp_attack,
+    sp_defense: tp.baseStats.sp_defense,
+    speed: tp.baseStats.speed,
+  },
+  image_url: tp.imageUrl,
+} as unknown as PokemonInfo);
 
   return (
     <div className="flex flex-col gap-6 relative">
@@ -160,7 +195,8 @@ export const TrainedList = () => {
         {party.map(pokemon => (
           <PokemonCard 
             key={pokemon.id} 
-            pokemon={pokemon} 
+            pokemon={mapTrainedToRequest(pokemon)} 
+            pokemonInfo={dummyInfo(pokemon)}
             onEdit={() => handleEdit(pokemon.id)}
             onDelete={() => handleDelete(pokemon.id)}
           />

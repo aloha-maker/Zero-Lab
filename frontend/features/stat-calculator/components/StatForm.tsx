@@ -1,99 +1,64 @@
 // frontend/features/stat-calculator/components/StatForm.tsx
 "use client";
 
-import React from "react";
-// モーダル版からインライン版のコンポーネントに変更（必要に応じてインポートパスや名前を調整してください）
-import PokemonSearchForm from "@/features/pokedex/components/PokemonSearchForm";
-import { NATURES } from "@/features/stat-calculator/types";
+import React, { useEffect } from "react";
+import { NATURES, EV_MAX_PER_STAT, EV_TOTAL_MAX } from "@/features/stat-calculator/types";
 import { STAT_KEYS, type StatusCalcProps } from "../types";
-import { NATURE_MAP } from "../utils/calculateStats";
 import { usePokemonStats } from "../hooks/usePokemonStats";
+import type { PokemonInfo } from "@/features/pokedex/types";
 
-export default function StatForm(props: StatusCalcProps) {
+interface ExtendedStatusCalcProps extends StatusCalcProps {
+    pokemon?: PokemonInfo | null;
+}
+
+export default function StatForm(props: ExtendedStatusCalcProps) {
     const {
-        currentPokemonName,
         natureIndex,
         setNatureIndex,
         stats,
         results,
         isLoading,
-        globalError,
-        setIsSearchOpen,
-        searchError,
-        handleSearchStart,
         handleSearchSuccess,
-        handleSearchError,
         handleStatChange,
         handleCalculate,
         currentEVTotal
     } = usePokemonStats(props);
 
-    // 検索成功時のラッパー関数（検索が完了したらインライン検索UIを閉じる）
-    const onSearchSuccessInline = (data: any) => {
-        handleSearchSuccess(data);
-        setIsSearchOpen(false);
-    };
+    useEffect(() => {
+        if (props.pokemon) {
+            handleSearchSuccess(props.pokemon);
+        }
+    }, [props.pokemon, handleSearchSuccess]);
 
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 text-slate-100">
-            {/* 検索 */}
-            <div className="mb-5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">
-                    ポケモンを検索
-                </label>
-                <PokemonSearchForm
-                    onSearchStart={handleSearchStart}
-                    onSearchSuccess={handleSearchSuccess}
-                    onSearchError={handleSearchError}
-                />
-            </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-4 text-slate-100">
 
-            {/* 選択中ポケモン・性格 */}
-            <div className="flex items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
-                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 truncate">
-                    {currentPokemonName || "未選択"}
-                </h2>
-
-                <div className="w-40 shrink-0">
-                    <label className="text-xs font-bold text-slate-500 mb-1.5 block">性格</label>
-                    <select
-                        value={natureIndex}
-                        onChange={(e) => setNatureIndex(Number(e.target.value))}
-                        className="w-full border border-slate-800 rounded-lg p-2 bg-slate-950 text-slate-100 text-sm outline-none focus:border-indigo-500"
-                    >
-                        {NATURES.map((n, i) => (
-                            <option key={i} value={i}>{n.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            {/* エラー表示 */}
-            {globalError && (
-                <div className="mb-5 p-4 bg-red-950/50 border-l-4 border-red-500 text-red-200 rounded-r text-sm">
-                    <p className="font-bold">エラー</p>
-                    <p>{globalError}</p>
-                </div>
-            )}
-
-            {/* ステータス入力テーブル */}
+            {/* ステータス入力テーブル（変更なしのため省略） */}
             <div className="overflow-x-auto mb-6 border border-slate-800 rounded-xl">
-                <table className="w-full text-left border-collapse min-w-[500px]">
+                <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-950/60 text-slate-500 text-xs uppercase tracking-wide">
-                            <th className="p-3 border-b border-slate-800 font-bold w-1/5">ステータス</th>
-                            <th className="p-3 border-b border-slate-800 font-bold text-center w-1/5">種族値</th>
-                            <th className="p-3 border-b border-slate-800 font-bold text-center w-2/5">努力値</th>
-                            <th className="p-3 border-b border-slate-800 font-bold text-center w-1/5">実数値</th>
+                            <th className="p-2 border-b border-slate-800 font-bold">
+                                <select
+                                    value={natureIndex}
+                                    onChange={(e) => setNatureIndex(Number(e.target.value))}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                >
+                                    {NATURES.map((n, i) => (
+                                        <option key={i} value={i}>{n.name}</option>
+                                    ))}
+                                </select>
+                            </th>
+                            <th className="p-3 border-b border-slate-800 font-bold text-center text-xs">種族値</th>
+                            <th className="p-3 border-b border-slate-800 font-bold text-center text-xs">努力値</th>
+                            <th className="p-3 border-b border-slate-800 font-bold text-center text-xs">実数値</th>
                         </tr>
                     </thead>
                     <tbody>
                         {STAT_KEYS.map(key => {
-                            const natureChar = NATURE_MAP[key];
                             const selectedNature = NATURES[natureIndex];
-                            
-                            const isUp = key !== 'hp' && selectedNature.up === natureChar;
-                            const isDown = key !== 'hp' && selectedNature.down === natureChar;
+                            const isUp = selectedNature.up === key;
+                            const isDown = selectedNature.down === key;
 
                             return (
                                 <tr key={key} className="border-b border-slate-800 last:border-0 hover:bg-slate-800/40 transition-colors">
@@ -103,32 +68,23 @@ export default function StatForm(props: StatusCalcProps) {
                                         {isDown && <span className="text-blue-400 ml-1">▼</span>}
                                     </td>
                                     <td className="p-2">
-                                        <input 
-                                            type="number" 
-                                            value={stats[key].base} 
+                                        <input
+                                            type="number"
+                                            value={stats[key].base}
                                             disabled
                                             className="w-full border border-slate-800 rounded p-1.5 text-center outline-none text-slate-500 bg-slate-950 cursor-not-allowed"
                                         />
                                     </td>
                                     <td className="p-2">
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <input
-                                                type="range"
-                                                min={0}
-                                                max={32}
-                                                step={1}
-                                                value={stats[key].ev}
-                                                onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
-                                                className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer hidden md:block"
-                                            />
+                                        <div className="flex items-center justify-center">
                                             <input
                                                 type="number"
                                                 min={0}
-                                                max={32}
+                                                max={EV_MAX_PER_STAT}
                                                 step={1}
                                                 value={stats[key].ev}
                                                 onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
-                                                className="w-16 text-center bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg py-1 text-xs font-bold text-slate-100 focus:outline-none"
+                                                className="w-20 text-center bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg py-1 text-sm font-bold text-slate-100 focus:outline-none"
                                             />
                                         </div>
                                     </td>
@@ -149,16 +105,16 @@ export default function StatForm(props: StatusCalcProps) {
                 <div className="w-full sm:w-auto flex-1 max-w-sm">
                     <div className="flex justify-between items-center text-xs font-bold text-slate-500 mb-1.5">
                         <span>努力値の合計配分</span>
-                        <span className={`${currentEVTotal > 66 ? 'text-red-400' : 'text-slate-300'}`}>
-                            {currentEVTotal} / 66
+                        <span className={`${currentEVTotal > EV_TOTAL_MAX ? 'text-red-400' : 'text-slate-300'}`}>
+                            {currentEVTotal} / {EV_TOTAL_MAX}
                         </span>
                     </div>
                     <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
                         <div
                             className={`h-full rounded-full transition-all duration-300 ${
-                                currentEVTotal > 66 ? 'bg-red-500' : 'bg-gradient-to-r from-indigo-500 to-pink-500'
+                                currentEVTotal > EV_TOTAL_MAX ? 'bg-red-500' : 'bg-gradient-to-r from-indigo-500 to-pink-500'
                             }`}
-                            style={{ width: `${Math.min(100, (currentEVTotal / 66) * 100)}%` }}
+                            style={{ width: `${Math.min(100, (currentEVTotal / EV_TOTAL_MAX) * 100)}%` }}
                         ></div>
                     </div>
                 </div>
