@@ -7,7 +7,6 @@ import { STAT_KEYS, type StatusCalcProps } from "../types";
 import { usePokemonStats } from "../hooks/usePokemonStats";
 import type { PokemonInfo } from "@/features/pokedex/types";
 
-// 既存の StatusCalcProps を拡張して pokemon を受け取れるようにする
 interface ExtendedStatusCalcProps extends StatusCalcProps {
     pokemon?: PokemonInfo | null;
 }
@@ -25,9 +24,6 @@ export default function StatForm(props: ExtendedStatusCalcProps) {
         currentEVTotal
     } = usePokemonStats(props);
 
-    // 親から渡された pokemon データが変更されたら、内部ステータスを更新する
-    // handleSearchSuccess は usePokemonStats 内で useCallback 化されているため、
-    // props.pokemon が実際に変わったときだけ発火する
     useEffect(() => {
         if (props.pokemon) {
             handleSearchSuccess(props.pokemon);
@@ -35,40 +31,32 @@ export default function StatForm(props: ExtendedStatusCalcProps) {
     }, [props.pokemon, handleSearchSuccess]);
 
     return (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-6 text-slate-100">
-
-            {/* 選択中ポケモン・性格 */}
-            <div className="flex items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
-            </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl p-4 text-slate-100">
 
             {/* ステータス入力テーブル（変更なしのため省略） */}
             <div className="overflow-x-auto mb-6 border border-slate-800 rounded-xl">
-                <table className="w-full text-left border-collapse min-w-[500px]">
+                <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-950/60 text-slate-500 text-xs uppercase tracking-wide">
-                            <th className="p-2 border-b border-slate-800 font-bold w-1/5">
+                            <th className="p-2 border-b border-slate-800 font-bold">
                                 <select
                                     value={natureIndex}
                                     onChange={(e) => setNatureIndex(Number(e.target.value))}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-100 focus:border-indigo-500 focus:outline-none"
                                 >
                                     {NATURES.map((n, i) => (
-                                        <option key={i} value={i}>
-                                            {n.name}
-                                        </option>
+                                        <option key={i} value={i}>{n.name}</option>
                                     ))}
                                 </select>
                             </th>
-                            <th className="p-3 border-b border-slate-800 font-bold text-center w-1/5">種族値</th>
-                            <th className="p-3 border-b border-slate-800 font-bold text-center w-2/5">努力値</th>
-                            <th className="p-3 border-b border-slate-800 font-bold text-center w-1/5">実数値</th>
+                            <th className="p-3 border-b border-slate-800 font-bold text-center text-xs">種族値</th>
+                            <th className="p-3 border-b border-slate-800 font-bold text-center text-xs">努力値</th>
+                            <th className="p-3 border-b border-slate-800 font-bold text-center text-xs">実数値</th>
                         </tr>
                     </thead>
                     <tbody>
                         {STAT_KEYS.map(key => {
                             const selectedNature = NATURES[natureIndex];
-
-                            // up/down が PokemonStatKey を直接持つため、NATURE_MAP経由の変換は不要
                             const isUp = selectedNature.up === key;
                             const isDown = selectedNature.down === key;
 
@@ -88,16 +76,7 @@ export default function StatForm(props: ExtendedStatusCalcProps) {
                                         />
                                     </td>
                                     <td className="p-2">
-                                        <div className="flex items-center gap-2 justify-center">
-                                            <input
-                                                type="range"
-                                                min={0}
-                                                max={EV_MAX_PER_STAT}
-                                                step={1}
-                                                value={stats[key].ev}
-                                                onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
-                                                className="flex-1 accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer hidden md:block"
-                                            />
+                                        <div className="flex items-center justify-center">
                                             <input
                                                 type="number"
                                                 min={0}
@@ -105,7 +84,7 @@ export default function StatForm(props: ExtendedStatusCalcProps) {
                                                 step={1}
                                                 value={stats[key].ev}
                                                 onChange={(e) => handleStatChange(key, 'ev', parseInt(e.target.value) || 0)}
-                                                className="w-16 text-center bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg py-1 text-xs font-bold text-slate-100 focus:outline-none"
+                                                className="w-20 text-center bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-lg py-1 text-sm font-bold text-slate-100 focus:outline-none"
                                             />
                                         </div>
                                     </td>

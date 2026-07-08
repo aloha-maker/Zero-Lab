@@ -2,40 +2,8 @@
 import React from 'react';
 import { Edit2, Trash2, Diamond, Zap, Package, Activity, MessageSquare, Swords } from 'lucide-react';
 import { TrainedPokemon } from '../../bulids/types/mock';
-// ↓ PokemonInfo の定義場所に合わせてパスを調整してください
 import StatForm from "@/features/stat-calculator/components/StatForm";
 import { PokemonInfo } from '@/features/pokedex/types'; 
-
-// ステータス行のコンポーネント
-const StatRow = ({ 
-  label, base, ev, actual, isEditable, onEvChange 
-}: { 
-  label: string, base: number, ev: number, actual: number, 
-  isEditable?: boolean, onEvChange?: (val: number) => void
-}) => (
-  <tr className="border-b border-gray-100 last:border-0 hover:bg-white transition-colors">
-    <td className="py-2 px-2 font-black text-gray-600 uppercase text-center w-12">{label}</td>
-    <td className="py-2 px-2 text-center text-gray-500 font-medium">{base || '-'}</td>
-    <td className="py-2 px-2 text-center">
-      {isEditable ? (
-        <input 
-          type="number" 
-          min="0" 
-          max="252" 
-          value={ev || ''} 
-          onChange={(e) => onEvChange && onEvChange(Number(e.target.value))}
-          placeholder="0"
-          className="w-16 text-center border border-gray-300 rounded-md px-2 py-1 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white shadow-sm"
-        />
-      ) : (
-        <span className={`inline-block px-2 py-0.5 rounded text-sm ${ev >= 252 ? 'bg-orange-100 text-orange-700 font-bold shadow-sm' : ev > 0 ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-400'}`}>
-          {ev}
-        </span>
-      )}
-    </td>
-    <td className="py-2 px-2 text-center font-bold text-gray-800 text-base">{actual || '-'}</td>
-  </tr>
-);
 
 interface PokemonCardProps {
   pokemon: TrainedPokemon;
@@ -52,15 +20,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
   const handleChange = (field: keyof TrainedPokemon, value: string) => {
     if (onChange) onChange({ ...pokemon, [field]: value });
-  };
-
-  const handleEvChange = (stat: string, value: number) => {
-    if (onChange) {
-      onChange({ 
-        ...pokemon, 
-        evs: { ...pokemon.evs, [stat]: value } as TrainedPokemon['evs'] 
-      });
-    }
   };
 
   const handleMoveChange = (index: number, value: string) => {
