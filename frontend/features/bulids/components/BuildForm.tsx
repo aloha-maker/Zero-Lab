@@ -82,7 +82,7 @@ export function BuildForm({ id }: BuildFormProps) {
                 <div className="px-6 md:px-8 pb-7">
                     <StatForm
                         initialPokemonName={isEditMode ? initialPokemonName : undefined}
-                        onStatusUpdate={handleStatusUpdate}
+                        // onStatusUpdate={handleStatusUpdate}
                     />
                 </div>
 
