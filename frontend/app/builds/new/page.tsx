@@ -1,15 +1,22 @@
-// frontend/app/builds2/page.tsx
+// frontend/app/builds/new/page.tsx
 'use client';
 
 import React, { useState } from 'react';
-
 import { PokemonCard } from '@/features/bulids/components/BuildFormCard';
-import { TrainedPokemon, Stats } from '@/features/bulids/types/mock';
 import PokemonSearchForm from '@/features/pokedex/components/PokemonSearchForm'; 
 import { PokemonInfo } from '@/features/pokedex/types'; 
+import { useBuildForm } from '@/features/bulids/hooks/useBuildForm';
 
 export default function PokemonCardDevPage() {
-  const [currentPokemon, setCurrentPokemon] = useState<TrainedPokemon | null>(null);
+  const {
+    formData,
+    setFormData,
+    saving,
+    errorMsg,
+    handlePokemonSelect,
+    handleSubmit
+  } = useBuildForm();
+
   const [currentPokemonInfo, setCurrentPokemonInfo] = useState<PokemonInfo | undefined>(undefined);
 
   const handleLoadSaved = () => {
@@ -19,7 +26,7 @@ export default function PokemonCardDevPage() {
   return (
     <main className="min-h-screen bg-slate-100 p-8 flex flex-col items-center">
       <div className="w-full max-w-4xl">
-        <h1 className="text-xl font-bold mb-6 text-gray-700">🧪 PokemonCard 単体テスト & 検索画面</h1>
+        <h1 className="text-xl font-bold mb-6 text-gray-700">🧪 新規ポケモン登録</h1>
         
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
           
@@ -29,30 +36,7 @@ export default function PokemonCardDevPage() {
               
               onSearchSuccess={(data: PokemonInfo) => {
                 setCurrentPokemonInfo(data);
-                
-                const defaultStats: Stats = {
-                  HP: 0, attack: 0, defense: 0, sp_attack: 0, sp_defense: 0, speed: 0
-                };
-
-                const newPokemon: TrainedPokemon = {
-                  id: String(data.id || Date.now()),
-                  nickname: '',
-                  species: data.name,
-                  item: '',
-                  ability: data.abilities?.[0] || '未設定',
-                  teraType: data.types?.[0] || '未設定',
-                  moves: [],
-                  
-                  baseStats: (data.base_stats as unknown as Stats) || { ...defaultStats },
-                  
-                  evs: { ...defaultStats },
-                  actualStats: { ...defaultStats },
-                  
-                  notes: '',
-                  imageUrl: data.image_url || '',
-                };
-                
-                setCurrentPokemon(newPokemon);
+                handlePokemonSelect(data);
               }}
               onSearchError={(msg) => alert(`エラー: ${msg}`)}
             />
@@ -66,14 +50,29 @@ export default function PokemonCardDevPage() {
           </button>
         </div>
 
-        {currentPokemon ? (
+        {formData.pokemon_id > 0 ? (
           <PokemonCard
-            pokemon={currentPokemon}
+            pokemon={formData}
             pokemonInfo={currentPokemonInfo}
-            onChange={setCurrentPokemon}
+            onChange={setFormData}
+            onSubmit={handleSubmit}
+            saving={saving}
+            errorMsg={errorMsg}
             onDelete={() => {
               if (window.confirm('このポケモンをクリアしますか？')) {
-                setCurrentPokemon(null);
+                setFormData({
+                  pokemon_id: 0,
+                  pokemon_name: "",
+                  nickname: "",
+                  nature: "",
+                  ability: "",
+                  item: "",
+                  tera_type: "",
+                  moves: ["", "", "", ""],
+                  evs: { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
+                  ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
+                  memo: ""
+                });
                 setCurrentPokemonInfo(undefined);
               }
             }}

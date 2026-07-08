@@ -2,8 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { apiClient, ApiError } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
+import { getBuild } from "../api/getBuild";
+import { createBuild } from "../api/createBuild";
+import { updateBuild } from "../api/updateBuild";
 import type { BuildCreateRequest, BuildUpdateRequest, PokemonBuildResponse } from "@/app/types/api";
+import type { PokemonInfo } from "@/features/pokedex/types";
 
 interface UseBuildFormProps {
     id?: string;
@@ -41,7 +45,7 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
         const fetchBuild = async () => {
             try {
                 setLoading(true);
-                const data = await apiClient.get<PokemonBuildResponse>(`/api/v1/builds/${id}`);
+                const data = await getBuild(id);
                 
                 setFormData({
                     pokemon_id: data.pokemon_id,
@@ -86,14 +90,21 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
         pokemon_id?: number; 
         pokemon_name?: string; 
         nature?: string; 
-        evs: { H: number; A: number; B: number; C: number; D: number; S: number; } 
+        evs: { hp: number; attack: number; defense: number; sp_attack: number; sp_defense: number; speed: number; } 
     }) => {
         setFormData(prev => ({
             ...prev,
             pokemon_id: update.pokemon_id ?? prev.pokemon_id,
             pokemon_name: update.pokemon_name ?? prev.pokemon_name,
             nature: update.nature ?? prev.nature,
-            evs: update.evs
+            evs: {
+                H: update.evs.hp,
+                A: update.evs.attack,
+                B: update.evs.defense,
+                C: update.evs.sp_attack,
+                D: update.evs.sp_defense,
+                S: update.evs.speed,
+            }
         }));
     }, []);
 
@@ -105,11 +116,11 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
         try {
             if (isEditMode && id) {
                 // 編集時は PUT
-                await apiClient.put(`/api/v1/builds/${id}`, formData);
+                await updateBuild(id, formData);
                 alert("変更を保存しました！");
             } else {
                 // 新規登録時は POST
-                await apiClient.post("/api/v1/builds/", formData);
+                await createBuild(formData);
                 alert("新規登録しました！");
             }
             router.push("/builds");
@@ -126,9 +137,22 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
         }
     };
 
+    const handlePokemonSelect = useCallback((pokemon: PokemonInfo) => {
+        setFormData(prev => ({
+            ...prev,
+            pokemon_id: pokemon.id,
+            pokemon_name: pokemon.name,
+            ability: pokemon.abilities?.[0] || "",
+            tera_type: pokemon.types?.[0] || "ノーマル",
+            moves: ["", "", "", ""],
+            evs: { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 }
+        }));
+    }, []);
+
     return {
         isEditMode,
         formData,
+        setFormData,
         loading,
         saving,
         errorMsg,
@@ -136,6 +160,7 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
         handleChange,
         handleMoveChange,
         handleStatusUpdate,
+        handlePokemonSelect,
         handleSubmit
     };
 };

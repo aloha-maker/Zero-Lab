@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 // import { Plus } from 'lucide-react'; // 不要なら削除可能
 import { TrainedPokemon, Stats } from '@/features/bulids/types/mock';
+import { BuildCreateRequest } from '../../bulids/types/index';
 import { PokemonInfo } from '../../pokedex/types';
 import { PokemonCard } from '../../bulids/components/BuildFormCard'
 import { AddPokemonModal } from '../../bulids/components/AddPokemonModal';
@@ -111,6 +112,45 @@ export const TrainedList = () => {
   };
 
 
+// ヘルパーマッピング関数
+const mapTrainedToRequest = (tp: TrainedPokemon): BuildCreateRequest => ({
+  pokemon_id: Number(tp.id) || 0,
+  pokemon_name: tp.species,
+  nickname: tp.nickname,
+  nature: "",
+  ability: tp.ability,
+  item: tp.item,
+  tera_type: tp.teraType,
+  moves: tp.moves,
+  evs: {
+    H: tp.evs.HP,
+    A: tp.evs.attack,
+    B: tp.evs.defense,
+    C: tp.evs.sp_attack,
+    D: tp.evs.sp_defense,
+    S: tp.evs.speed,
+  },
+  ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
+  memo: tp.notes,
+});
+
+const dummyInfo = (tp: TrainedPokemon): PokemonInfo => ({
+  id: Number(tp.id) || 0,
+  name: tp.species,
+  types: [tp.teraType],
+  abilities: [tp.ability],
+  moves: tp.moves.map(name => ({ name } as any)),
+  base_stats: {
+    hp: tp.baseStats.HP,
+    attack: tp.baseStats.attack,
+    defense: tp.baseStats.defense,
+    sp_attack: tp.baseStats.sp_attack,
+    sp_defense: tp.baseStats.sp_defense,
+    speed: tp.baseStats.speed,
+  },
+  image_url: tp.imageUrl,
+} as unknown as PokemonInfo);
+
   return (
     <div className="flex flex-col gap-6 relative">
       <header className="flex flex-col sm:flex-row items-center justify-between mb-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
@@ -155,7 +195,8 @@ export const TrainedList = () => {
         {party.map(pokemon => (
           <PokemonCard 
             key={pokemon.id} 
-            pokemon={pokemon} 
+            pokemon={mapTrainedToRequest(pokemon)} 
+            pokemonInfo={dummyInfo(pokemon)}
             onEdit={() => handleEdit(pokemon.id)}
             onDelete={() => handleDelete(pokemon.id)}
           />
