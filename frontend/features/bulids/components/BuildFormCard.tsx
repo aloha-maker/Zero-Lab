@@ -1,149 +1,255 @@
 // frontend/features/bulids/components/BuildFormCard.tsx
 import React from 'react';
-import { Edit2, Trash2, Diamond, Zap, Package, Activity, MessageSquare } from 'lucide-react';
-import { TrainedPokemon, StatType } from '../../bulids/types/mock';
+import { Edit2, Trash2, Diamond, Zap, Package, Activity, MessageSquare, Swords } from 'lucide-react';
+import { TrainedPokemon } from '../../bulids/types/mock';
+// ↓ PokemonInfo の定義場所に合わせてパスを調整してください
+import StatForm from "@/features/stat-calculator/components/StatForm";
+import { PokemonInfo } from '@/features/pokedex/types'; 
 
-const StatRow = ({ label, base, ev, actual, colorClass }: { label: StatType, base: number, ev: number, actual: number, colorClass: string }) => (
-<tr className="border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-    <td className={`py-1 px-2 font-bold ${colorClass} text-center`}>{label}</td>
-    <td className="py-1 px-2 text-center text-gray-600">{base || '-'}</td>
-    <td className="py-1 px-2 text-center">
-    <span className={`inline-block px-1.5 rounded-sm ${ev >= 252 ? 'bg-orange-100 text-orange-700 font-bold' : ev > 0 ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}>
-        {ev}
-    </span>
+// ステータス行のコンポーネント
+const StatRow = ({ 
+  label, base, ev, actual, isEditable, onEvChange 
+}: { 
+  label: string, base: number, ev: number, actual: number, 
+  isEditable?: boolean, onEvChange?: (val: number) => void
+}) => (
+  <tr className="border-b border-gray-100 last:border-0 hover:bg-white transition-colors">
+    <td className="py-2 px-2 font-black text-gray-600 uppercase text-center w-12">{label}</td>
+    <td className="py-2 px-2 text-center text-gray-500 font-medium">{base || '-'}</td>
+    <td className="py-2 px-2 text-center">
+      {isEditable ? (
+        <input 
+          type="number" 
+          min="0" 
+          max="252" 
+          value={ev || ''} 
+          onChange={(e) => onEvChange && onEvChange(Number(e.target.value))}
+          placeholder="0"
+          className="w-16 text-center border border-gray-300 rounded-md px-2 py-1 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white shadow-sm"
+        />
+      ) : (
+        <span className={`inline-block px-2 py-0.5 rounded text-sm ${ev >= 252 ? 'bg-orange-100 text-orange-700 font-bold shadow-sm' : ev > 0 ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-400'}`}>
+          {ev}
+        </span>
+      )}
     </td>
-    <td className="py-1 px-2 text-center font-bold text-gray-800">{actual || '-'}</td>
-</tr>
+    <td className="py-2 px-2 text-center font-bold text-gray-800 text-base">{actual || '-'}</td>
+  </tr>
 );
 
 interface PokemonCardProps {
   pokemon: TrainedPokemon;
-  onEdit: () => void;
-  onDelete: () => void;
+  pokemonInfo?: PokemonInfo;
+  onChange?: (updatedPokemon: TrainedPokemon) => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onEdit, onDelete }) => {
-  const statColors: Record<StatType, string> = {
-    H: 'text-green-600',
-    A: 'text-red-500',
-    B: 'text-orange-500',
-    C: 'text-blue-500',
-    D: 'text-yellow-600',
-    S: 'text-pink-500',
+export const PokemonCard: React.FC<PokemonCardProps> = ({ 
+  pokemon, pokemonInfo, onChange, onEdit, onDelete 
+}) => {
+  const isEditable = !!onChange;
+
+  const handleChange = (field: keyof TrainedPokemon, value: string) => {
+    if (onChange) onChange({ ...pokemon, [field]: value });
   };
-  const statLabels: StatType[] = ['H', 'A', 'B', 'C', 'D', 'S'];
+
+  const handleEvChange = (stat: string, value: number) => {
+    if (onChange) {
+      onChange({ 
+        ...pokemon, 
+        evs: { ...pokemon.evs, [stat]: value } as TrainedPokemon['evs'] 
+      });
+    }
+  };
+
+  const handleMoveChange = (index: number, value: string) => {
+    if (onChange) {
+      const newMoves = [...pokemon.moves];
+      while (newMoves.length < 4) newMoves.push('');
+      newMoves[index] = value;
+      onChange({ ...pokemon, moves: newMoves });
+    }
+  };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden border border-gray-100 flex flex-col xl:flex-row">
-      {/* 1. 基本情報セクション */}
-      <div className="p-5 flex-1 border-b xl:border-b-0 xl:border-r border-gray-100 bg-gradient-to-br from-white to-gray-50 flex flex-col sm:flex-row xl:flex-col gap-4 relative">
-        <div className="absolute top-3 right-3 flex gap-2">
-          <button onClick={onEdit} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="編集">
-            <Edit2 size={16} />
-          </button>
-          <button onClick={onDelete} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="削除">
-            <Trash2 size={16} />
-          </button>
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+      
+      {/* 1. ヘッダー部分 */}
+      <div className="bg-slate-800 p-6 text-white flex flex-col md:flex-row items-center gap-6 relative">
+        <div className="absolute top-4 right-4 flex gap-2">
+          {onEdit && (
+            <button onClick={onEdit} className="p-2 bg-slate-700/50 hover:bg-blue-500 rounded-full transition-colors backdrop-blur-sm" title="編集">
+              <Edit2 size={16} className="text-white" />
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={onDelete} className="p-2 bg-slate-700/50 hover:bg-red-500 rounded-full transition-colors backdrop-blur-sm" title="削除">
+              <Trash2 size={16} className="text-white" />
+            </button>
+          )}
         </div>
 
-        <div className="flex-shrink-0 flex justify-center items-center">
-          <img src={pokemon.imageUrl} alt={pokemon.species} className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-sm object-cover" />
+        <div className="bg-white p-2 rounded-full shadow-inner flex-shrink-0">
+          {pokemon.imageUrl ? (
+            <img src={pokemon.imageUrl} alt={pokemon.species} className="w-24 h-24 md:w-28 md:h-28 object-contain" />
+          ) : (
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold">No Image</div>
+          )}
         </div>
         
-        <div className="flex-1">
-          <div className="mb-3 text-center sm:text-left xl:text-center mt-2 sm:mt-0 xl:mt-2">
-            <h2 className="text-xl font-bold text-gray-800">{pokemon.nickname || pokemon.species}</h2>
-            {pokemon.nickname && <p className="text-sm text-gray-500 font-medium">{pokemon.species}</p>}
-          </div>
-
-          <div className="space-y-2 text-sm text-gray-700">
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
-              <Package size={14} className="text-gray-400" />
-              <span className="font-medium min-w-[3rem] text-gray-500">持ち物</span>
-              <span className="truncate">{pokemon.item}</span>
+        <div className="text-center md:text-left w-full md:w-auto">
+          {isEditable ? (
+            <div className="space-y-2">
+              <input 
+                type="text" 
+                value={pokemon.nickname || ''} 
+                onChange={e => handleChange('nickname', e.target.value)}
+                placeholder="ニックネーム (任意)"
+                className="bg-slate-700/50 text-white placeholder-slate-400 px-3 py-1.5 rounded-lg border border-slate-600 focus:border-blue-400 focus:ring-1 focus:ring-blue-400 outline-none w-full md:w-64 text-2xl font-black"
+              />
+              <div className="text-slate-300 opacity-80 text-sm tracking-widest">{pokemon.species}</div>
             </div>
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
-              <Zap size={14} className="text-yellow-500" />
-              <span className="font-medium min-w-[3rem] text-gray-500">特性</span>
-              <span className="truncate">{pokemon.ability}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
-              <Diamond size={14} className="text-cyan-500" />
-              <span className="font-medium min-w-[3rem] text-gray-500">テラス</span>
-              <span className="font-bold">{pokemon.teraType}</span>
-            </div>
-          </div>
+          ) : (
+            <>
+              <h2 className="text-3xl md:text-4xl font-black">{pokemon.nickname || pokemon.species || '未設定'}</h2>
+              {pokemon.nickname && <p className="text-slate-300 opacity-80 tracking-widest mt-1">{pokemon.species}</p>}
+            </>
+          )}
         </div>
       </div>
 
-      {/* 2. ステータスセクション */}
-      <div className="p-5 flex-1 xl:max-w-[300px] border-b xl:border-b-0 xl:border-r border-gray-100 flex flex-col justify-center">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity size={18} className="text-indigo-500" />
-          <h3 className="font-bold text-gray-700">ステータス</h3>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="py-2 px-2 text-gray-500 font-medium w-12"></th>
-                <th className="py-2 px-2 text-gray-500 font-medium">種族値</th>
-                <th className="py-2 px-2 text-gray-500 font-medium">努力値</th>
-                <th className="py-2 px-2 text-gray-500 font-medium">実数値</th>
-              </tr>
-            </thead>
-            <tbody>
-              {statLabels.map(stat => (
-                <StatRow
-                  key={stat}
-                  label={stat}
-                  base={pokemon.baseStats[stat]}
-                  ev={pokemon.evs[stat]}
-                  actual={pokemon.actualStats[stat]}
-                  colorClass={statColors[stat]}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* 2. 詳細スペック */}
+      <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* 左カラム：基本構成 */}
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+              <Package size={16} /> バトル構成 (Build)
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase">持ち物</label>
+                {isEditable ? (
+                  <input type="text" value={pokemon.item || ''} onChange={e => handleChange('item', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="きあいのタスキ など" />
+                ) : (
+                  <div className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 font-medium text-gray-700">{pokemon.item || '未設定'}</div>
+                )}
+              </div>
 
-      {/* 3. 技＆メモセクション */}
-      <div className="p-5 flex-[1.5] flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Zap size={12} className="text-yellow-500"/> 特性</label>
+                {isEditable ? (
+                  pokemonInfo && pokemonInfo.abilities.length > 0 ? (
+                    <select
+                      value={pokemon.ability || ''}
+                      onChange={e => handleChange('ability', e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                    >
+                      <option value="">選択してください</option>
+                      {pokemonInfo.abilities.map(ability => (
+                        <option key={ability} value={ability}>{ability}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    // マスターデータがない場合のフォールバック
+                    <input type="text" value={pokemon.ability || ''} onChange={e => handleChange('ability', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="特性" />
+                  )
+                ) : (
+                  <div className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 font-medium text-gray-700">{pokemon.ability || '未設定'}</div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Diamond size={12} className="text-cyan-500"/> テラスタイプ</label>
+                {isEditable ? (
+                  <input type="text" value={pokemon.teraType || ''} onChange={e => handleChange('teraType', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 font-bold focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="ノーマル など" />
+                ) : (
+                  <div className="px-4 py-2 rounded-lg bg-gray-50 border border-gray-200 font-bold text-gray-800">{pokemon.teraType || '未設定'}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 右カラム：ステータス */}
         <div>
-          <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
-            <span className="inline-block w-4 h-4 rounded-full bg-red-400"></span>
-            技構成
+          <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+            <Activity size={16} /> ステータス (Stats)
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {pokemon.moves.map((move, idx) => (
-              <div key={idx} className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-800 flex items-center shadow-sm">
-                <span className="w-5 h-5 rounded-full bg-white text-gray-400 flex items-center justify-center text-xs mr-2 border border-gray-200 shadow-sm">{idx + 1}</span>
-                {move || <span className="text-gray-400 italic">未設定</span>}
-              </div>
-            ))}
-            {Array.from({ length: Math.max(0, 4 - pokemon.moves.length) }).map((_, idx) => (
-              <div key={`empty-${idx}`} className="bg-gray-50 border border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-400 flex items-center">
-                 <span className="w-5 h-5 rounded-full bg-white text-gray-300 flex items-center justify-center text-xs mr-2 border border-gray-200">-</span>
-                 未設定
-              </div>
-            ))}
+          <StatForm
+              pokemon={pokemonInfo}
+              /* 必要なprops */
+          />
+        </div>
+      </div>
+
+      {/* 3. 技構成 ＆ メモ */}
+      <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <div>
+          <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+            <Swords size={16} className="text-red-400" /> 技構成 (Moves)
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, idx) => {
+              const move = pokemon.moves[idx] || '';
+              return (
+                <div key={idx} className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 flex items-center shadow-sm transition-shadow hover:shadow-md">
+                  <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs mr-3 font-bold flex-shrink-0">{idx + 1}</span>
+                  {isEditable ? (
+                    // ★ 技をリストボックスに変更
+                    pokemonInfo && pokemonInfo.moves.length > 0 ? (
+                      <select
+                        value={move}
+                        onChange={e => handleMoveChange(idx, e.target.value)}
+                        className="w-full bg-transparent outline-none border-b border-gray-200 focus:border-indigo-500 transition-colors py-1 cursor-pointer truncate"
+                      >
+                        <option value="">技を選択...</option>
+                        {pokemonInfo.moves.map(m => (
+                          <option key={m.name} value={m.name}>{m.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input 
+                        type="text" 
+                        value={move} 
+                        onChange={e => handleMoveChange(idx, e.target.value)} 
+                        placeholder="技名"
+                        className="w-full bg-transparent outline-none border-b border-gray-200 focus:border-indigo-500 transition-colors py-1"
+                      />
+                    )
+                  ) : (
+                    <span className="truncate">{move || <span className="text-gray-400 italic">未設定</span>}</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col">
-          <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
-            <MessageSquare size={16} className="text-blue-400" />
-            育成メモ
+        <div className="flex flex-col">
+          <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+            <MessageSquare size={16} className="text-blue-400" /> 育成メモ (Notes)
           </h3>
-          <div className="bg-yellow-50/50 border border-yellow-100 rounded-lg p-3 text-sm text-gray-700 flex-1 min-h-[4rem]">
-            {pokemon.notes ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-4 text-sm text-gray-700 flex-1 min-h-[6rem] shadow-sm">
+            {isEditable ? (
+              <textarea 
+                value={pokemon.notes || ''} 
+                onChange={e => handleChange('notes', e.target.value)}
+                placeholder="役割、ダメージ計算、選出パターンなどを入力..."
+                className="w-full h-full min-h-[6rem] bg-transparent outline-none resize-y"
+              />
+            ) : pokemon.notes ? (
               <p className="whitespace-pre-wrap leading-relaxed">{pokemon.notes}</p>
             ) : (
               <p className="text-gray-400 italic">メモはありません</p>
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

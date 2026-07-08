@@ -14,7 +14,6 @@ interface ExtendedStatusCalcProps extends StatusCalcProps {
 
 export default function StatForm(props: ExtendedStatusCalcProps) {
     const {
-        currentPokemonName,
         natureIndex,
         setNatureIndex,
         stats,
@@ -40,22 +39,6 @@ export default function StatForm(props: ExtendedStatusCalcProps) {
 
             {/* 選択中ポケモン・性格 */}
             <div className="flex items-center justify-between gap-4 pb-5 mb-5 border-b border-slate-800">
-                <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-400 truncate">
-                    {currentPokemonName || "未選択"}
-                </h2>
-
-                <div className="w-40 shrink-0">
-                    <label className="text-xs font-bold text-slate-500 mb-1.5 block">性格</label>
-                    <select
-                        value={natureIndex}
-                        onChange={(e) => setNatureIndex(Number(e.target.value))}
-                        className="w-full border border-slate-800 rounded-lg p-2 bg-slate-950 text-slate-100 text-sm outline-none focus:border-indigo-500"
-                    >
-                        {NATURES.map((n, i) => (
-                            <option key={i} value={i}>{n.name}</option>
-                        ))}
-                    </select>
-                </div>
             </div>
 
             {/* ステータス入力テーブル（変更なしのため省略） */}
@@ -63,7 +46,19 @@ export default function StatForm(props: ExtendedStatusCalcProps) {
                 <table className="w-full text-left border-collapse min-w-[500px]">
                     <thead>
                         <tr className="bg-slate-950/60 text-slate-500 text-xs uppercase tracking-wide">
-                            <th className="p-3 border-b border-slate-800 font-bold w-1/5">ステータス</th>
+                            <th className="p-2 border-b border-slate-800 font-bold w-1/5">
+                                <select
+                                    value={natureIndex}
+                                    onChange={(e) => setNatureIndex(Number(e.target.value))}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-slate-100 focus:border-indigo-500 focus:outline-none"
+                                >
+                                    {NATURES.map((n, i) => (
+                                        <option key={i} value={i}>
+                                            {n.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </th>
                             <th className="p-3 border-b border-slate-800 font-bold text-center w-1/5">種族値</th>
                             <th className="p-3 border-b border-slate-800 font-bold text-center w-2/5">努力値</th>
                             <th className="p-3 border-b border-slate-800 font-bold text-center w-1/5">実数値</th>
@@ -126,7 +121,7 @@ export default function StatForm(props: ExtendedStatusCalcProps) {
                 </table>
             </div>
 
-            {/* フッター・計算ボタンエリア（変更なしのため省略） */}
+            {/* フッター・計算ボタンエリア */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="w-full sm:w-auto flex-1 max-w-sm">
                     <div className="flex justify-between items-center text-xs font-bold text-slate-500 mb-1.5">
