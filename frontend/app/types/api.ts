@@ -1,22 +1,11 @@
+import type { PokemonInfo } from "@/features/pokedex/types";
+
 export interface MoveDetail {
     name: string;          // 技の日本語名
     type: string;          // タイプの日本語名
     power: number | null;
     damage_class: string;  // カテゴリ
     accuracy: number | null; // 命中率 (null の可能性あり)
-}
-
-export interface PokemonInfo {
-    id: number;
-    name: string;
-    english_name: string;
-    types: string[];
-    abilities: string[];
-    base_stats: Record<string, number>;
-    weight_kg: number;
-    height_m: number;
-    moves: MoveDetail[];
-    image_url?: string;
 }
 
 export interface SeasonPokemonInfo extends PokemonInfo {
@@ -29,19 +18,6 @@ export interface PokemonListItem {
     name: string;
     english_name: string;
     image_url?: string;
-}
-
-export interface StatusRequest {
-    is_hp: boolean;
-    base_stat: number;
-    iv: number;
-    ev: number;
-    level: number;
-    nature_modifier: number;
-}
-
-export interface StatusResponse {
-    real_stat: number;
 }
 
 export interface DamageRequest {
@@ -68,27 +44,6 @@ export interface TypeMatchupResponse {
     message: string;
 }
 
-// Pydanticモデル（schemas/builds.py）と同期する型
-export interface BuildCreateRequest {
-    pokemon_id: number;
-    pokemon_name: string;
-    nickname?: string;
-    nature: string;
-    ability: string;
-    item: string;
-    tera_type: string;
-    moves: string[];
-    evs: { H: number, A: number, B: number, C: number, D: number, S: number };
-    ivs: { H: number, A: number, B: number, C: number, D: number, S: number };
-    memo?: string;
-}
-
-export interface BuildUpdateRequest extends BuildCreateRequest { }
-
-export interface PokemonBuildResponse extends BuildCreateRequest {
-    id: string;
-    created_at?: string;
-}
 
 export interface ApiValidationError {
     loc: (string | number)[];

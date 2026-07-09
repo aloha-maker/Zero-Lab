@@ -1,13 +1,13 @@
 // frontend/features/stat-calculator/hooks/usePokemonStats.ts
 import { useState, useEffect, useCallback } from "react";
-import { ApiError } from "@/lib/api-client"; // ApiError をインポート
+import { ApiError } from "@/lib/api-client";
 import type { PokemonInfo } from "@/features/pokedex/types";
 import type { StatusRequest } from "@/features/stat-calculator/types";
 import { NATURES, LEVEL, INDIVIDUAL_VALUE, createEmptyResults } from "@/features/stat-calculator/types";
 
 import { STAT_KEYS, type PokemonStatKey, type ResultRecord, type StatusCalcProps } from "../types";
 import { createInitialStats, clampEv } from "../utils/calculateStats";
-import { calculateStatus } from "../api/calculateStatus"; // 作成したAPI関数をインポート
+import { calculateStatus } from "../api/calculateStatus";
 
 export const usePokemonStats = ({ initialPokemon, initialPokemonName, onStatusUpdate }: StatusCalcProps) => {
     const [pokemon, setPokemon] = useState<PokemonInfo | null>(initialPokemon ?? null);

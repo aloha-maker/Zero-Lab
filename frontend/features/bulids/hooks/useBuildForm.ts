@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api-client";
 import { getBuild } from "../api/getBuild";
 import { createBuild } from "../api/createBuild";
 import { updateBuild } from "../api/updateBuild";
-import type { BuildCreateRequest, BuildUpdateRequest, PokemonBuildResponse } from "@/app/types/api";
+import type { BuildCreateRequest, BuildUpdateRequest } from '@/features/bulids/types';
 import type { PokemonInfo } from "@/features/pokedex/types";
 
 interface UseBuildFormProps {

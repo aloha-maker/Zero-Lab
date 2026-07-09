@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import PartyForm from '@/app/parties/components/PartyForm';
+import PartyForm from '@/features/parties/components/PartyForm';
 import type { PartyResponse } from '@/app/types/api';
 import { API_URL } from "@/app/types/constants";
 
