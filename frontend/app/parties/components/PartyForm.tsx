@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PartyCreateRequest, PartyResponse, PartyMember, PokemonBuildResponse } from '@/app/types/api';
+import type {  PokemonBuildResponse } from '@/app/types/api';
+import {  PartyCreateRequest, PartyResponse, PartyMember } from '@/features/parties/types';
 import { API_URL } from "@/app/types/constants";
 
 interface PartyFormProps {

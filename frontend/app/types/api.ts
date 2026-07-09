@@ -100,22 +100,11 @@ export interface ApiErrorResponse {
     detail: string | ApiValidationError[];
 }
 
-// schemas/party.py と同期する型
-export interface PartyMember {
-    build_id: string;
-    slot_index: number;
-}
 
-export interface PartyCreateRequest {
-    name: string;
-    description?: string;
-    members: PartyMember[];
-}
 
-export interface PartyResponse extends PartyCreateRequest {
-    id: string;
-    created_at?: string;
-}
+
+
+
 
 /** GET /seasons/ のレスポンス型 */
 export interface RuleResponse {
