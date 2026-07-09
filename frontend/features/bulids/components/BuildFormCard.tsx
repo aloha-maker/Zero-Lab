@@ -1,71 +1,118 @@
 // frontend/features/bulids/components/BuildFormCard.tsx
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Edit2, Trash2, Diamond, Zap, Package, Activity, MessageSquare, Swords } from 'lucide-react';
 import { BuildCreateRequest } from '../../bulids/types/index';
 import StatForm from "@/features/stat-calculator/components/StatForm";
-import { PokemonInfo } from '@/features/pokedex/types'; 
+import { PokemonInfo } from '@/features/pokedex/types';
+import { useBuildForm } from '@/features/bulids/hooks/useBuildForm';
+import { searchPokemon } from '@/features/pokedex/api/searchPokemon';
 
 interface PokemonCardProps {
-  pokemon: BuildCreateRequest;
-  pokemonInfo?: PokemonInfo;
-  onChange?: (updated: BuildCreateRequest | ((prev: BuildCreateRequest) => BuildCreateRequest)) => void;
+  id?: string;               // 編集画面で渡されるID
+  pokemonInfo?: PokemonInfo; // 新規作成画面の検索機能などから渡されるマスタデータ
   onEdit?: () => void;
   onDelete?: () => void;
-  onSubmit?: (e: React.FormEvent) => void;
-  saving?: boolean;
-  errorMsg?: string | null;
   submitLabel?: string;
 }
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({ 
-  pokemon, pokemonInfo, onChange, onEdit, onDelete, onSubmit, saving, errorMsg, submitLabel
+  id, pokemonInfo, onEdit, onDelete, submitLabel
 }) => {
-  const isEditable = !!onChange;
+  const {
+    formData: pokemon,
+    setFormData,
+    loading,
+    saving,
+    errorMsg,
+    initialPokemonName,
+    handlePokemonSelect,
+    handleSubmit
+  } = useBuildForm(id ? { id } : undefined);
+
+  const [currentPokemonInfo, setCurrentPokemonInfo] = useState<PokemonInfo | undefined>(pokemonInfo);
+  const [loadingPokemonInfo, setLoadingPokemonInfo] = useState(false);
+
+  // 【新規作成】外部から新しいポケモン情報が渡されたらフォームとローカルマスタを更新
+  useEffect(() => {
+    if (pokemonInfo) {
+      setCurrentPokemonInfo(pokemonInfo);
+      handlePokemonSelect(pokemonInfo);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pokemonInfo]);
+
+  // 【編集】initialPokemonName がAPIから取得できたら、マスタデータを検索して取得する
+  useEffect(() => {
+    if (!initialPokemonName) return;
+
+    const fetchPokemonInfo = async () => {
+      try {
+        setLoadingPokemonInfo(true);
+        const info = await searchPokemon(initialPokemonName);
+        setCurrentPokemonInfo(info);
+      } catch (err) {
+        console.error("ポケモン情報の取得に失敗しました", err);
+      } finally {
+        setLoadingPokemonInfo(false);
+      }
+    };
+
+    fetchPokemonInfo();
+  }, [initialPokemonName]);
+
+  const isEditable = true;
 
   const handleChange = (field: keyof BuildCreateRequest, value: any) => {
-    if (onChange) {
-      onChange(prev => {
-        // 関数型アップデートの中では、prev が引数として渡されるオブジェクトなので、
-        // 確実に BuildCreateRequest にアサーションするか、そのままスプレッドします。
-        const next = typeof prev === 'function' ? (prev as any)() : prev;
-        return { ...next, [field]: value };
-      });
-    }
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleMoveChange = (index: number, value: string) => {
-    if (onChange) {
-      onChange(prev => {
-        const next = typeof prev === 'function' ? (prev as any)() : prev;
-        const newMoves = [...next.moves];
-        while (newMoves.length < 4) newMoves.push('');
-        newMoves[index] = value;
-        return { ...next, moves: newMoves };
-      });
-    }
+    setFormData(prev => {
+      const newMoves = [...prev.moves];
+      while (newMoves.length < 4) newMoves.push('');
+      newMoves[index] = value;
+      return { ...prev, moves: newMoves };
+    });
   };
 
   const handleStatusUpdate = useCallback((data: any) => {
-    if (onChange) {
-      onChange(prev => ({
-        ...prev,
-        pokemon_id: data.pokemon_id || prev.pokemon_id,
-        pokemon_name: data.pokemon_name || prev.pokemon_name,
-        nature: data.nature || prev.nature,
-        evs: {
-          H: data.evs.hp,
-          A: data.evs.attack,
-          B: data.evs.defense,
-          C: data.evs.sp_attack,
-          D: data.evs.sp_defense,
-          S: data.evs.speed,
-        }
-      }));
-    }
-  }, [onChange]);
+    setFormData(prev => ({
+      ...prev,
+      pokemon_id: data.pokemon_id || prev.pokemon_id,
+      pokemon_name: data.pokemon_name || prev.pokemon_name,
+      nature: data.nature || prev.nature,
+      evs: {
+        H: data.evs.hp,
+        A: data.evs.attack,
+        B: data.evs.defense,
+        C: data.evs.sp_attack,
+        D: data.evs.sp_defense,
+        S: data.evs.speed,
+      }
+    }));
+  }, [setFormData]);
+
+  // 編集時のデータロード中の表示
+  if (loading || loadingPokemonInfo) {
+    return (
+      <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-12 flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin h-10 w-10 border-4 border-indigo-500 border-t-transparent rounded-full" />
+        <span className="text-gray-500 font-bold">データを読み込み中...</span>
+      </div>
+    );
+  }
+
+  // 編集時にデータが見つからなかった場合の表示
+  if (id && !loading && pokemon.pokemon_id === 0) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+        ポケモンのデータが見つかりませんでした。
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={onSubmit} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
+    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
       
       {/* 1. ヘッダー部分 */}
       <div className="bg-slate-800 p-6 text-white flex flex-col md:flex-row items-center gap-6 relative">
@@ -83,8 +130,8 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
         </div>
 
         <div className="bg-white p-2 rounded-full shadow-inner flex-shrink-0">
-          {pokemonInfo?.image_url ? (
-            <img src={pokemonInfo.image_url} alt={pokemon.pokemon_name} className="w-24 h-24 md:w-28 md:h-28 object-contain" />
+          {currentPokemonInfo?.image_url ? (
+            <img src={currentPokemonInfo.image_url} alt={pokemon.pokemon_name} className="w-24 h-24 md:w-28 md:h-28 object-contain" />
           ) : (
             <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 font-bold">No Image</div>
           )}
@@ -134,19 +181,18 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Zap size={12} className="text-yellow-500"/> 特性</label>
                 {isEditable ? (
-                  pokemonInfo && pokemonInfo.abilities.length > 0 ? (
+                  currentPokemonInfo && currentPokemonInfo.abilities.length > 0 ? (
                     <select
                       value={pokemon.ability || ''}
                       onChange={e => handleChange('ability', e.target.value)}
                       className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     >
                       <option value="">選択してください</option>
-                      {pokemonInfo.abilities.map(ability => (
+                      {currentPokemonInfo.abilities.map(ability => (
                         <option key={ability} value={ability}>{ability}</option>
                       ))}
                     </select>
                   ) : (
-                    // マスターデータがない場合のフォールバック
                     <input type="text" value={pokemon.ability || ''} onChange={e => handleChange('ability', e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="特性" />
                   )
                 ) : (
@@ -172,8 +218,8 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
             <Activity size={16} /> ステータス (Stats)
           </h3>
           <StatForm
-              pokemon={pokemonInfo}
-              initialPokemon={pokemonInfo}
+              pokemon={currentPokemonInfo}
+              initialPokemon={currentPokemonInfo}
               initialPokemonName={pokemon.pokemon_name}
               onStatusUpdate={handleStatusUpdate}
           />
@@ -194,14 +240,14 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
                 <div key={idx} className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-sm font-medium text-gray-800 flex items-center shadow-sm transition-shadow hover:shadow-md">
                   <span className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs mr-3 font-bold flex-shrink-0">{idx + 1}</span>
                   {isEditable ? (
-                    pokemonInfo && pokemonInfo.moves.length > 0 ? (
+                    currentPokemonInfo && currentPokemonInfo.moves.length > 0 ? (
                       <select
                         value={move}
                         onChange={e => handleMoveChange(idx, e.target.value)}
                         className="w-full bg-transparent outline-none border-b border-gray-200 focus:border-indigo-500 transition-colors py-1 cursor-pointer truncate"
                       >
                         <option value="">技を選択...</option>
-                        {pokemonInfo.moves.map(m => (
+                        {currentPokemonInfo.moves.map(m => (
                           <option key={m.name} value={m.name}>{m.name}</option>
                         ))}
                       </select>
@@ -245,32 +291,30 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
       </div>
 
-      {onSubmit && (
-        <div className="px-6 md:px-8 py-5 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
-          {errorMsg ? (
-            <p className="text-red-500 text-sm font-bold">{errorMsg}</p>
+      <div className="px-6 md:px-8 py-5 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+        {errorMsg ? (
+          <p className="text-red-500 text-sm font-bold">{errorMsg}</p>
+        ) : (
+          <div />
+        )}
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full sm:w-auto px-8 py-2.5 text-sm bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50 transition-all shadow-md flex items-center justify-center min-w-[180px]"
+        >
+          {saving ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {submitLabel ? `${submitLabel.replace('する', '')}中...` : "登録中..."}
+            </>
           ) : (
-            <div />
+            submitLabel || "ポケモンを登録する"
           )}
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full sm:w-auto px-8 py-2.5 text-sm bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50 transition-all shadow-md flex items-center justify-center min-w-[180px]"
-          >
-            {saving ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {submitLabel ? `${submitLabel.replace('する', '')}中...` : "登録中..."}
-              </>
-            ) : (
-              submitLabel || "ポケモンを登録する"
-            )}
-          </button>
-        </div>
-      )}
+        </button>
+      </div>
     </form>
   );
 };

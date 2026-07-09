@@ -5,18 +5,8 @@ import React, { useState } from 'react';
 import { PokemonCard } from '@/features/bulids/components/BuildFormCard';
 import PokemonSearchForm from '@/features/pokedex/components/PokemonSearchForm'; 
 import { PokemonInfo } from '@/features/pokedex/types'; 
-import { useBuildForm } from '@/features/bulids/hooks/useBuildForm';
 
 export default function PokemonCardDevPage() {
-  const {
-    formData,
-    setFormData,
-    saving,
-    errorMsg,
-    handlePokemonSelect,
-    handleSubmit
-  } = useBuildForm();
-
   const [currentPokemonInfo, setCurrentPokemonInfo] = useState<PokemonInfo | undefined>(undefined);
 
   const handleLoadSaved = () => {
@@ -33,10 +23,8 @@ export default function PokemonCardDevPage() {
           <div className="w-full sm:w-96 flex-shrink-0 z-10 relative">
             <PokemonSearchForm
               onSearchStart={() => console.log('検索を開始します...')}
-              
               onSearchSuccess={(data: PokemonInfo) => {
                 setCurrentPokemonInfo(data);
-                handlePokemonSelect(data);
               }}
               onSearchError={(msg) => alert(`エラー: ${msg}`)}
             />
@@ -50,29 +38,11 @@ export default function PokemonCardDevPage() {
           </button>
         </div>
 
-        {formData.pokemon_id > 0 ? (
+        {currentPokemonInfo ? (
           <PokemonCard
-            pokemon={formData}
             pokemonInfo={currentPokemonInfo}
-            onChange={setFormData}
-            onSubmit={handleSubmit}
-            saving={saving}
-            errorMsg={errorMsg}
             onDelete={() => {
               if (window.confirm('このポケモンをクリアしますか？')) {
-                setFormData({
-                  pokemon_id: 0,
-                  pokemon_name: "",
-                  nickname: "",
-                  nature: "",
-                  ability: "",
-                  item: "",
-                  tera_type: "",
-                  moves: ["", "", "", ""],
-                  evs: { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
-                  ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
-                  memo: ""
-                });
                 setCurrentPokemonInfo(undefined);
               }
             }}
