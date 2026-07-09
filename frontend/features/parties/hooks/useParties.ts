@@ -14,15 +14,15 @@ interface UsePartiesResult {
 
 export const useParties = (): UsePartiesResult => {
     const [parties, setParties] = useState<PartyResponse[]>([]);
-    const [isLoading, setIsLoading] = useState(true); // ローディング状態を追加[cite: 2]
-    const [error, setError] = useState<string | null>(null); // エラー状態を追加[cite: 2]
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchParties = useCallback(async (isMounted = true) => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const data = await getParties(); // 切り出したAPI関数を実行[cite: 2]
+            const data = await getParties();
             if (isMounted) {
                 setParties(data);
             }
@@ -30,7 +30,7 @@ export const useParties = (): UsePartiesResult => {
             console.error("🔥 パーティデータの取得に失敗しました:", err);
             if (isMounted) {
                 if (err instanceof ApiError) {
-                    setError(err.message); // ApiErrorのメッセージをセット[cite: 2]
+                    setError(err.message);
                 } else {
                     setError("予期せぬエラーが発生しました");
                 }
@@ -43,12 +43,12 @@ export const useParties = (): UsePartiesResult => {
     }, []);
 
     useEffect(() => {
-        let isMounted = true; // アンマウント時の状態更新を防ぐフラグ[cite: 2]
+        let isMounted = true;
         
         fetchParties(isMounted);
 
         return () => {
-            isMounted = false; // クリーンアップ関数[cite: 2]
+            isMounted = false;
         };
     }, [fetchParties]);
 
