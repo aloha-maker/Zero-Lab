@@ -100,13 +100,26 @@ export const TrainedList = () => {
         moves: selectedBuild.moves || ["", "", "", ""],
       };
 
-      const newEntry: PartyMemberEntry = {
-        entryId: crypto.randomUUID(),
-        pokemon: safePokemonData as any, // 安全になったデータを渡す
-        pokemonInfo: info,
-      };
+      if (editingEntryId) {
+        // ★ 編集モード：該当するentryIdのカードだけを更新する（新規追加しない）
+        setParty(prev =>
+          prev.map(p =>
+            p.entryId === editingEntryId
+              ? { ...p, pokemon: safePokemonData as any, pokemonInfo: info }
+              : p
+          )
+        );
+      } else {
+        // 新規追加モード
+        const newEntry: PartyMemberEntry = {
+          entryId: crypto.randomUUID(),
+          pokemon: safePokemonData as any, // 安全になったデータを渡す
+          pokemonInfo: info,
+        };
+        setParty(prev => [...prev, newEntry]);
+      }
 
-      setParty(prev => [...prev, newEntry]);
+      setIsAddModalOpen(false);
 
     } catch (error) {
       console.error('ポケモン情報の取得に失敗しました', error);
@@ -173,19 +186,35 @@ export const TrainedList = () => {
   // ※ 一旦は「保存成功＝モーダルを閉じる」のみとし、パーティへの追加ロジックは別途APIから再取得するなどの設計が必要です。
   // ==========================================
   const handleStatModalSuccess = (savedData: any) => {
-    
-    const newEntry: PartyMemberEntry = {
-      entryId: crypto.randomUUID(), // フロントエンド用の適当なID
-      pokemon: savedData as BuildCreateRequest, // 入力した育成データ
-      pokemonInfo: activePokemonInfo, // 検索時にキープしておいたマスタデータ（画像や種族値）
-    };
 
-    setParty(prev => [...prev, newEntry]);
-    
+    if (editingEntryId) {
+      // ★ 編集モード：該当するentryIdのカードだけを更新する（新規追加しない）
+      setParty(prev =>
+        prev.map(p =>
+          p.entryId === editingEntryId
+            ? {
+                ...p,
+                pokemon: savedData as BuildCreateRequest,
+                // 検索し直していれば新しいマスタデータを、していなければ元のものを保持
+                pokemonInfo: activePokemonInfo ?? p.pokemonInfo,
+              }
+            : p
+        )
+      );
+    } else {
+      const newEntry: PartyMemberEntry = {
+        entryId: crypto.randomUUID(), // フロントエンド用の適当なID
+        pokemon: savedData as BuildCreateRequest, // 入力した育成データ
+        pokemonInfo: activePokemonInfo, // 検索時にキープしておいたマスタデータ（画像や種族値）
+      };
+      setParty(prev => [...prev, newEntry]);
+    }
+
     // モーダルを閉じて状態をリセット
     setIsStatModalOpen(false);
     setActivePokemonInfo(undefined);
     setActiveBuildId(undefined);
+    setEditingEntryId(null);
   };
 
   return (
@@ -238,7 +267,9 @@ export const TrainedList = () => {
 
       <AddPokemonModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+        }}
         onSearchSuccess={handleSearchSuccess}
         onSavedSelect={handleSavedBuildSelect}
       />
@@ -255,6 +286,7 @@ export const TrainedList = () => {
           setIsStatModalOpen(false);
           setActivePokemonInfo(undefined);
           setActiveBuildId(undefined);
+          setEditingEntryId(null);
         }}
         buildId={activeBuildId}          // 編集用ID
         pokemonInfo={activePokemonInfo}  // 新規作成用マスタデータ
