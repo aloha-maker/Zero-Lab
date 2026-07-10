@@ -1,134 +1,72 @@
+// frontend/features/parties/components/StatFormModal.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { TrainedPokemon } from '../../bulids/types/mock';
+import React from 'react';
+// ※ PokemonCard の import パスは実際の配置に合わせてください
+import { PokemonCard } from '@/features/bulids/components/BuildFormCard'; 
+import { PokemonInfo } from '@/features/pokedex/types';
 
 interface StatFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialData: Partial<TrainedPokemon> | null;
-  onSave: (pokemon: TrainedPokemon) => void;
+  // 仮の initialData の代わりに、PokemonCard が必要とするデータを定義
+  buildId?: string;              // 既存のデータを編集・流用する場合
+  pokemonInfo?: PokemonInfo;     // 新規作成の場合のマスタデータ
+  onSuccess?: (data: any) => void;        // 保存成功時のコールバック
 }
 
-export const StatFormModal: React.FC<StatFormModalProps> = ({ isOpen, onClose, initialData, onSave }) => {
-  const [formData, setFormData] = useState<Partial<TrainedPokemon>>({});
+export const StatFormModal: React.FC<StatFormModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  buildId, 
+  pokemonInfo, 
+  onSuccess 
+}) => {
+  if (!isOpen) return null;
 
-  useEffect(() => {
-    if (initialData) {
-      setFormData(initialData);
-    }
-  }, [initialData]);
-
-  if (!isOpen || !initialData) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData as TrainedPokemon);
+  // APIでの保存が完了した時の処理
+  const handleSuccess = (savedData: any) => {
+    if (onSuccess) onSuccess(savedData);
+    onClose(); 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 sticky top-0 z-10">
-          <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
-            <span role="img" aria-label="memo">📝</span> 育成データの入力
-          </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
-            <span role="img" aria-label="close">✖️</span>
-          </button>
-        </div>
+    // 背景の黒帯。全体をスクロール可能にしておく
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm overflow-y-auto">
+      
+      {/* 
+        モーダルのコンテンツ領域 
+        PokemonCardが広いので max-w-5xl など横幅を広く取ります
+      */}
+      <div className="relative w-full max-w-5xl my-auto animate-in fade-in zoom-in-95 duration-200">
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="flex gap-4 items-center">
-            <img src={formData.imageUrl} alt={formData.species} className="w-16 h-16 object-contain bg-gray-50 rounded-full border border-gray-200" />
-            <div>
-              <h4 className="font-bold text-xl">{formData.species}</h4>
-              <p className="text-xs text-gray-500">基本ステータスを元に育成情報を入力してください</p>
-            </div>
-          </div>
+        {/* 閉じるボタン（カードの外側・右上に配置すると見栄えがスッキリします） */}
+        <button 
+          onClick={onClose} 
+          className="absolute -top-12 right-0 text-white hover:text-gray-200 p-2 rounded-full transition-colors z-10 flex items-center gap-2"
+          aria-label="閉じる"
+        >
+          <span className="font-bold text-sm hidden sm:block">閉じる</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">ニックネーム</label>
-              <input 
-                type="text" 
-                value={formData.nickname || ''} 
-                onChange={e => setFormData({...formData, nickname: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                placeholder="任意"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">持ち物</label>
-              <input 
-                type="text" 
-                value={formData.item || ''} 
-                onChange={e => setFormData({...formData, item: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">特性</label>
-              <input 
-                type="text" 
-                value={formData.ability || ''} 
-                onChange={e => setFormData({...formData, ability: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">テラスタイプ</label>
-              <input 
-                type="text" 
-                value={formData.teraType || ''} 
-                onChange={e => setFormData({...formData, teraType: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-             <label className="block text-sm font-bold text-gray-700 mb-1">技構成</label>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[0,1,2,3].map(index => (
-                    <input 
-                        key={index}
-                        type="text"
-                        value={formData.moves?.[index] || ''}
-                        onChange={e => {
-                            const newMoves = [...(formData.moves || ['', '', '', ''])];
-                            newMoves[index] = e.target.value;
-                            setFormData({...formData, moves: newMoves});
-                        }}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                        placeholder={`技${index + 1}`}
-                    />
-                ))}
-             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">育成メモ</label>
-            <textarea 
-                value={formData.notes || ''} 
-                onChange={e => setFormData({...formData, notes: e.target.value})}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 min-h-[4rem]"
-                placeholder="調整意図など"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold">
-              キャンセル
-            </button>
-            <button type="submit" className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg font-bold shadow-sm">
-              パーティに追加
-            </button>
-          </div>
-        </form>
+        {/* 
+          フォーム本体の表示領域 
+          画面の高さを超えないように max-h-[85vh] を指定し、内部をスクロールさせます
+        */}
+        <div className="max-h-[85vh] overflow-y-auto rounded-2xl shadow-2xl bg-white custom-scrollbar">
+           
+           <PokemonCard 
+              id={buildId}
+              pokemonInfo={pokemonInfo}
+              submitLabel="パーティに追加" // ボタンのテキストを上書き
+              onSuccess={handleSuccess}   // ★前のステップで PokemonCard に追加した想定の Props
+           />
+           
+        </div>
       </div>
     </div>
   );

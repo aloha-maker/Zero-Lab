@@ -1,8 +1,7 @@
 // src/features/pokedex/hooks/usePokemonMaster.ts
 import { useState, useEffect } from "react";
 import type { CandidatePokemon } from "../types";
-import { ApiError } from "@/lib/api-client";
-import { getPokemonMaster } from "../api/getPokemonMaster"; // 作成したAPI関数をインポート
+import { getPokemonMaster } from "../api/getPokemonMaster";
 
 interface UsePokemonMasterResult {
     candidates: CandidatePokemon[];
@@ -34,11 +33,11 @@ export const usePokemonMaster = (): UsePokemonMasterResult => {
                 console.error("🔥 ポケモンマスターデータの取得に失敗しました:", err);
                 
                 if (isMounted) {
-                    if (err instanceof ApiError) {
-                        // apiClient で構築済みのエラーメッセージをそのまま渡す
+                    // API層で成形されたメッセージをそのまま利用する
+                    if (err instanceof Error) {
                         setError(err.message);
                     } else {
-                        setError("予期せぬエラーが発生しました");
+                        setError("不明なエラーが発生しました");
                     }
                 }
             } finally {

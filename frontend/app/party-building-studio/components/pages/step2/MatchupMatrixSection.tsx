@@ -7,7 +7,7 @@ import {
   MatrixResponse 
 } from "@/app/types/api"; 
 
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 interface MatchupMatrixSectionProps {
   mainPokemonName?: string;

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { PokemonInfo } from "@/app/types/api";
-import { NATURES, API_URL } from "@/app/types/constants";
+import type { PokemonInfo } from "@/features/pokedex/types";
+import { NATURES } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 import { StatType, ConfiguredMainPokemon } from "../../types";
 
 const statLabels: Record<StatType, string> = { H: "HP", A: "攻撃", B: "防御", C: "特攻", D: "特防", S: "素早さ" };

@@ -1,8 +1,7 @@
 // src/features/pokedex/hooks/usePokemonSearchForm.ts
 import { useState } from "react";
 import type { PokemonInfo } from "../types";
-import { ApiError } from "@/lib/api-client";
-import { searchPokemon } from "../api/searchPokemon"; // 作成したAPI関数をインポート
+import { searchPokemon } from "../api/searchPokemon";
 
 interface UsePokemonSearchFormProps {
     onSearchStart: () => void;
@@ -32,11 +31,11 @@ export const usePokemonSearchForm = ({
 
         } catch (err: unknown) {
             console.error("Error:", err);
-            if (err instanceof ApiError) {
-                // apiClient で構築済みのエラーメッセージをそのまま渡す
+            // API層で成形されたメッセージをそのまま利用する
+            if (err instanceof Error) {
                 onSearchError(err.message);
             } else {
-                onSearchError("予期せぬエラーが発生しました");
+                onSearchError("不明なエラーが発生しました");
             }
         } finally {
             setLoading(false);

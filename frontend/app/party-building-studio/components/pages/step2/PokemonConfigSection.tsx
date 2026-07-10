@@ -2,8 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { PokemonInfo } from "@/app/types/api";
-import { NATURES, API_URL } from "@/app/types/constants";
+import type { PokemonInfo } from "@/features/pokedex/types";
+import { NATURES } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 import { ConfiguredMainPokemon,StatType,statLabels,keyMapping } from "./types";
 
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useBattleStore } from '../store/useBattleStore';
-import { PokemonBuildResponse } from '../../types/api';
-import { API_URL } from "@/app/types/constants";
+import type { PokemonBuildResponse } from '@/features/bulids/types';
+import { API_URL } from '@/lib/api-client';
 
 // APIから返却されるパーティの型定義
 interface PartyMember {

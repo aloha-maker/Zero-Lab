@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import type { SeasonPokemonInfo,RealDamageRankingResult } from "@/app/types/api";
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 type SeasonPokemonResponse = {
     pokemons: SeasonPokemonInfo[];

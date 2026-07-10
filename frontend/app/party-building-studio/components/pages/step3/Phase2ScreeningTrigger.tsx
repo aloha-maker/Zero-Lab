@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { MatrixResultRow, TypeMatchupRequest, TypeMatchupResponse, SeasonPokemonInfo } from "@/app/types/api";
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 import { PokemonCandidate } from './types';
 
 type SeasonPokemonResponse = {

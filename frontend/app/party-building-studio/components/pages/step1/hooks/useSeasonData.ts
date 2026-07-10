@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import type { SeasonPokemonInfo, RealDamageRankingResult } from "@/app/types/api";
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 import { SeasonPokemonResponse, SortKey, SortOrder } from "../types";
 
 export function useSeasonData() {

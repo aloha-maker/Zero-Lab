@@ -1,22 +1,68 @@
+// frontend/features/parties/components/LoadPartyModal.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParties } from '../hooks/useParties';
+import { usePartyDetail } from '../hooks/usePartyDetail';
+import type { PartyResponse } from '../types';
 
 interface LoadPartyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoadParty: (partyId: string) => void;
+  onLoadParty: (party: PartyResponse) => void;
 }
 
 export const LoadPartyModal: React.FC<LoadPartyModalProps> = ({ isOpen, onClose, onLoadParty }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPartyId, setSelectedPartyId] = useState<string | undefined>(undefined);
 
-  if (!isOpen) return null;
+  const { parties, isLoading, error } = useParties();
+  const {
+    party: selectedPartyDetail,
+    isLoading: isDetailLoading,
+    errorMsg: selectError,
+  } = usePartyDetail(selectedPartyId);
+
+  // 検索文字列に基づいてパーティをフィルタリング[cite: 8]
+  const filteredParties = parties.filter(party => 
+    party.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // モーダルが閉じた時に状態をリセットする[cite: 8]
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setSelectedPartyId(undefined);
+    }
+  }, [isOpen]);
+
+  // ★ usePartyDetailが選択中のIDに対する詳細取得を終えたら、親に渡してリセットする
+  useEffect(() => {
+    if (!selectedPartyId) return;
+
+    if (selectedPartyDetail) {
+      onLoadParty(selectedPartyDetail);
+      setSelectedPartyId(undefined);
+    } else if (selectError) {
+      setSelectedPartyId(undefined);
+    }
+  }, [selectedPartyId, selectedPartyDetail, selectError, onLoadParty]);
+
+  // ★ 一覧のパーティは概要のみのため、選択時に詳細（育成データ込み）を取得してから親に渡す
+  const handleSelect = (partyId: string) => {
+    if (selectedPartyId) return; // 取得中は二重クリック防止
+    setSelectedPartyId(partyId);
+  };
+
+  if (!isOpen) return null; //[cite: 8]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+      {/* overflow-visibleに変更し、リストボックスが親要素の外にはみ出せるようにする[cite: 8] */}
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-visible">
+        
+        {/* ヘッダー[cite: 8] */}
+        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
           <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
             <span role="img" aria-label="folder">📁</span> 登録済みパーティを呼び出す
           </h3>
@@ -28,45 +74,82 @@ export const LoadPartyModal: React.FC<LoadPartyModalProps> = ({ isOpen, onClose,
           </button>
         </div>
         
-        <div className="p-6 space-y-6">
-          {/* パーティ検索 */}
-          <div>
+        <div className="p-6">
+          {/* 検索入力とサジェストリストボックス[cite: 8] */}
+          <div className="relative">
             <label className="block text-sm font-bold text-gray-700 mb-2">パーティ名で検索</label>
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="シーズン10用..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-              />
-              <button 
-                onClick={() => alert(`「${searchTerm}」でパーティを検索します。`)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors whitespace-nowrap shadow-sm"
-              >
-                検索
-              </button>
-            </div>
-          </div>
+            <input 
+              type="text" 
+              placeholder="シーズン10用..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 transition-shadow"
+              role="combobox"
+              aria-expanded={isOpen}
+              aria-controls="party-listbox"
+            />
 
-          {/* 最近のパーティリスト（モック） */}
-          <div className="space-y-3">
-            <p className="text-sm font-bold text-gray-700">最近のパーティ</p>
-            <button 
-              onClick={() => onLoadParty('party-1')}
-              className="w-full text-left p-4 border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm bg-white"
+            {/* サジェスト表示用リストボックス[cite: 8] */}
+            <div 
+              id="party-listbox"
+              role="listbox"
+              className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg max-h-72 overflow-y-auto custom-scrollbar"
             >
-              <p className="font-bold text-gray-800">シーズン10 ランクマッチ用</p>
-              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">カイリュー / ハバタクカミ / オーガポン / サーフゴー / ウーラオス / ガチグマ</p>
-            </button>
-            <button 
-              onClick={() => onLoadParty('party-2')}
-              className="w-full text-left p-4 border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-colors shadow-sm bg-white"
-            >
-              <p className="font-bold text-gray-800">大会用 ギミック構築</p>
-              <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">イエッサン / グレンアルマ / テツノカシラ / 悪ウーラオス / トルネロス / ゴリランダー</p>
-            </button>
+              {error ? (
+                <div className="text-red-500 text-sm font-bold p-4 text-center">
+                  {error}
+                </div>
+              ) : isLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin h-6 w-6 border-4 border-blue-500 border-t-transparent rounded-full" />
+                </div>
+              ) : filteredParties.length > 0 ? (
+                <ul className="py-2">
+                  {filteredParties.map((party) => {
+                    const isRowLoading = selectedPartyId === party.id && isDetailLoading;
+                    return (
+                      <li 
+                        key={party.id}
+                        role="option"
+                        aria-selected="false"
+                        aria-disabled={isRowLoading}
+                        onClick={() => handleSelect(party.id)}
+                        className={`px-4 py-3 border-b border-gray-50 last:border-0 group transition-colors flex justify-between items-center ${
+                          isRowLoading ? 'opacity-60 cursor-wait' : 'hover:bg-blue-50 cursor-pointer'
+                        }`}
+                      >
+                        <div>
+                          <h4 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
+                            {party.name}
+                          </h4>
+                          {party.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{party.description}</p>
+                          )}
+                        </div>
+                        {isRowLoading ? (
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+                        ) : (
+                          <div className="text-xs text-gray-400 font-medium bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-600 px-2 py-1 rounded-md transition-colors">
+                            {party.members?.length || 0} / 6 匹
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <span role="img" aria-label="ghost" className="text-2xl mb-2 block">👻</span>
+                  一致するパーティが見つかりません
+                </div>
+              )}
+            </div>
+
+            {selectError && (
+              <p className="text-red-500 text-xs font-bold mt-2">{selectError}</p>
+            )}
           </div>
+          
         </div>
       </div>
     </div>

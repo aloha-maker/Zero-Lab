@@ -1,7 +1,7 @@
 // frontend/app/battle/services/advice.ts (新規作成、または既存のapiファイルへ追加)
 
 import { BattleAdviceRequest, BattleAdviceResponse } from '../types';
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 export async function fetchBattleAdvice(requestData: BattleAdviceRequest): Promise<BattleAdviceResponse> {
 
