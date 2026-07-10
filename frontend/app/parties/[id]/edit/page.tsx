@@ -1,32 +1,23 @@
+// frontend/app/parties/[id]/edit/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import PartyForm from '@/features/parties/components/PartyForm';
-import type { PartyResponse } from '@/features/parties/types';
-import { API_URL } from '@/lib/api-client';
+import { usePartyDetail } from '@/features/parties/hooks/usePartyDetail';
 
 export default function EditPartyPage() {
     const { id } = useParams();
-    const [initialData, setInitialData] = useState<PartyResponse | null>(null);
+    const partyId = Array.isArray(id) ? id[0] : id;
 
-    useEffect(() => {
-        // 既存のパーティ情報を取得
-        fetch(`${API_URL}/api/v1/parties/${id}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    setInitialData(data.data);
-                }
-            });
-    }, [id]);
+    const { party, isLoading, errorMsg } = usePartyDetail(partyId);
 
-    if (!initialData) return <div className="text-white p-8">読み込み中...</div>;
+    if (errorMsg) return <div className="text-red-400 p-8">{errorMsg}</div>;
+    if (isLoading || !party) return <div className="text-white p-8">読み込み中...</div>;
 
     return (
         <main className="p-8">
             <h1 className="text-2xl font-bold mb-8 text-center text-white">パーティ編集</h1>
-            <PartyForm initialData={initialData} isEdit={true} />
+            <PartyForm initialData={party} isEdit={true} />
         </main>
     );
 }

@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParties } from '../hooks/useParties';
+import { usePartyDetail } from '../hooks/usePartyDetail';
 import type { PartyResponse } from '../types';
 
 interface LoadPartyModalProps {
@@ -13,8 +14,14 @@ interface LoadPartyModalProps {
 
 export const LoadPartyModal: React.FC<LoadPartyModalProps> = ({ isOpen, onClose, onLoadParty }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPartyId, setSelectedPartyId] = useState<string | undefined>(undefined);
 
   const { parties, isLoading, error } = useParties();
+  const {
+    party: selectedPartyDetail,
+    isLoading: isDetailLoading,
+    errorMsg: selectError,
+  } = usePartyDetail(selectedPartyId);
 
   // 検索文字列に基づいてパーティをフィルタリング[cite: 8]
   const filteredParties = parties.filter(party => 
@@ -25,8 +32,27 @@ export const LoadPartyModal: React.FC<LoadPartyModalProps> = ({ isOpen, onClose,
   useEffect(() => {
     if (!isOpen) {
       setSearchTerm('');
+      setSelectedPartyId(undefined);
     }
   }, [isOpen]);
+
+  // ★ usePartyDetailが選択中のIDに対する詳細取得を終えたら、親に渡してリセットする
+  useEffect(() => {
+    if (!selectedPartyId) return;
+
+    if (selectedPartyDetail) {
+      onLoadParty(selectedPartyDetail);
+      setSelectedPartyId(undefined);
+    } else if (selectError) {
+      setSelectedPartyId(undefined);
+    }
+  }, [selectedPartyId, selectedPartyDetail, selectError, onLoadParty]);
+
+  // ★ 一覧のパーティは概要のみのため、選択時に詳細（育成データ込み）を取得してから親に渡す
+  const handleSelect = (partyId: string) => {
+    if (selectedPartyId) return; // 取得中は二重クリック防止
+    setSelectedPartyId(partyId);
+  };
 
   if (!isOpen) return null; //[cite: 8]
 
@@ -79,27 +105,37 @@ export const LoadPartyModal: React.FC<LoadPartyModalProps> = ({ isOpen, onClose,
                 </div>
               ) : filteredParties.length > 0 ? (
                 <ul className="py-2">
-                  {filteredParties.map((party) => (
-                    <li 
-                      key={party.id}
-                      role="option"
-                      aria-selected="false"
-                      onClick={() => onLoadParty(party)}
-                      className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-0 group transition-colors flex justify-between items-center"
-                    >
-                      <div>
-                        <h4 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
-                          {party.name}
-                        </h4>
-                        {party.description && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-1">{party.description}</p>
+                  {filteredParties.map((party) => {
+                    const isRowLoading = selectedPartyId === party.id && isDetailLoading;
+                    return (
+                      <li 
+                        key={party.id}
+                        role="option"
+                        aria-selected="false"
+                        aria-disabled={isRowLoading}
+                        onClick={() => handleSelect(party.id)}
+                        className={`px-4 py-3 border-b border-gray-50 last:border-0 group transition-colors flex justify-between items-center ${
+                          isRowLoading ? 'opacity-60 cursor-wait' : 'hover:bg-blue-50 cursor-pointer'
+                        }`}
+                      >
+                        <div>
+                          <h4 className="font-bold text-gray-800 group-hover:text-blue-600 transition-colors">
+                            {party.name}
+                          </h4>
+                          {party.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{party.description}</p>
+                          )}
+                        </div>
+                        {isRowLoading ? (
+                          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+                        ) : (
+                          <div className="text-xs text-gray-400 font-medium bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-600 px-2 py-1 rounded-md transition-colors">
+                            {party.members?.length || 0} / 6 匹
+                          </div>
                         )}
-                      </div>
-                      <div className="text-xs text-gray-400 font-medium bg-gray-100 group-hover:bg-blue-100 group-hover:text-blue-600 px-2 py-1 rounded-md transition-colors">
-                        {party.members?.length || 0} / 6 匹
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <div className="text-center py-8 text-gray-500">
@@ -108,6 +144,10 @@ export const LoadPartyModal: React.FC<LoadPartyModalProps> = ({ isOpen, onClose,
                 </div>
               )}
             </div>
+
+            {selectError && (
+              <p className="text-red-500 text-xs font-bold mt-2">{selectError}</p>
+            )}
           </div>
           
         </div>

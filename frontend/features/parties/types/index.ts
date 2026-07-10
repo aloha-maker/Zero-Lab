@@ -1,5 +1,7 @@
+import type { BuildCreateRequest} from '@/features/bulids/types';
+
 // schemas/party.py と同期する型
-export interface PartyMember {
+export interface PartyMember extends Partial<BuildCreateRequest> {
     build_id: string;
     slot_index: number;
 }
