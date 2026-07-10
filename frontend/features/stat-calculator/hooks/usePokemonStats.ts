@@ -53,13 +53,25 @@ export const usePokemonStats = ({ initialPokemon, initialPokemonName, onStatusUp
     const handleSearchError = useCallback((message: string) => setSearchError(message), []);
 
     const handleStatChange = useCallback((stat: PokemonStatKey, field: "base" | "ev", value: number) => {
-        setStats((prev) => ({
-            ...prev,
-            [stat]: {
-                ...prev[stat],
-                [field]: field === "ev" ? clampEv(value) : value,
-            },
-        }));
+        setStats((prev) => {
+            // 入力された新しい値を決定（努力値の場合は上限/下限をクランプ）
+            const newValue = field === "ev" ? clampEv(value) : value;
+
+            // 既存の値と比較し、変更がなければ現在の状態(prev)をそのまま返す
+            // これにより不要な再レンダリングと無限ループを防ぐ
+            if (prev[stat][field] === newValue) {
+                return prev;
+            }
+
+            // 値に変更がある場合のみ、新しいオブジェクトを生成して状態を更新
+            return {
+                ...prev,
+                [stat]: {
+                    ...prev[stat],
+                    [field]: newValue,
+                },
+            };
+        });
     }, []);
 
     const currentEVTotal = STAT_KEYS.reduce((sum, key) => sum + stats[key].ev, 0);

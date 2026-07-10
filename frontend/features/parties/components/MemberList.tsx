@@ -1,7 +1,7 @@
 // frontend/features/parties/components/memberList.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BuildCreateRequest } from '@/features/bulids/types';
 import { PokemonInfo } from '../../pokedex/types';
 import { PartyResponse } from '@/features/parties/types';
@@ -12,6 +12,8 @@ import { LoadPartyModal } from './LoadPartyModal';
 import { StatFormModal } from './StatFormModal';
 import { searchPokemon } from '@/features/pokedex/api/searchPokemon'; 
 import type { PokemonBuildResponse } from '@/features/bulids/types';
+
+import { usePartyForm } from '../hooks/usePartyForm'; 
 
 interface PartyMemberEntry {
   entryId: string;
@@ -34,7 +36,9 @@ const initialParty: PartyMemberEntry[] = [
       moves: ['スケイルショット', 'しんそく', 'じしん', 'りゅうのまい'],
       evs: { H: 4, A: 252, B: 0, C: 0, D: 0, S: 252 },
       memo: '竜舞からの全抜きエース。',
-    } as BuildCreateRequest,
+      // モックデータにも仮想のIDを付けておきます（API連携時の build_id 相当）
+      id: 'mock-build-id-1', 
+    } as any, // idを含めるため一時的にanyキャスト
     pokemonInfo: {
       id: 1,
       name: 'カイリュー',
@@ -48,26 +52,61 @@ const initialParty: PartyMemberEntry[] = [
 
 export const TrainedList = () => {
   const [party, setParty] = useState<PartyMemberEntry[]>(initialParty);
+  const [partyId, setPartyId] = useState<string | undefined>(undefined);
+
+  const {
+    name: partyName,
+    setName: setPartyName,
+    isSaving,
+    handleSave,
+    handleBuildSelect
+  } = usePartyForm(
+    { id: partyId, name: '新規パーティ' } as any, 
+    !!partyId,
+    (res) => {
+      // 保存成功時に実行される処理（リダイレクトはされません）
+      alert(partyId ? 'パーティを更新しました！' : 'パーティを新規保存しました！');
+      
+      // 新規保存時は、バックエンドから返ってきた新しいIDをセットする（次回から更新扱いにするため）
+      if (!partyId && res && res.id) {
+        setPartyId(res.id);
+      }
+    }
+  );
+
+  useEffect(() => {
+    for (let i = 0; i < 6; i++) {
+      // APIから取得した育成論には id が含まれていることを想定し、それを usePartyForm 側に渡します
+      const buildId = (party[i]?.pokemon as any)?.id || (party[i]?.pokemon as any)?.build_id || null;
+      handleBuildSelect(i, buildId as string);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [party]);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
-
-  // ==========================================
-  // ★ 変更点: editingPokemon の状態管理をシンプルにする
-  // ==========================================
-  // モーダルを表示するかどうかのフラグ
   const [isStatModalOpen, setIsStatModalOpen] = useState(false);
-  // 新規追加用のマスタデータ
   const [activePokemonInfo, setActivePokemonInfo] = useState<PokemonInfo | undefined>(undefined);
-  // 編集用の育成論ID（もし既存のデータを編集する機能があるなら使う）
   const [activeBuildId, setActiveBuildId] = useState<string | undefined>(undefined);
-  // どの枠を編集しているかのID
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   const handleEdit = (entryId: string) => {
-    // 「ポケモンを追加する」と同様にAddPokemonModalを開くが、
-    // 検索結果を戻す先として編集中のentryIdを保持しておく
-    setEditingEntryId(entryId);
-    setIsAddModalOpen(true);
+    // 1. 対象のパーティメンバーを取得
+    const targetEntry = party.find(p => p.entryId === entryId);
+    
+    if (targetEntry) {
+      setEditingEntryId(entryId);
+      
+      // 2. マスタデータ (pokemonInfo) をセット
+      setActivePokemonInfo(targetEntry.pokemonInfo);
+      
+      // 3. ID (id または build_id) を取得してセット
+      const buildId = (targetEntry.pokemon as any).id || (targetEntry.pokemon as any).build_id;
+      setActiveBuildId(buildId || undefined);
+      
+      // 4. StatFormModal を開く
+      setIsStatModalOpen(true);
+    }
   };
 
   const handleDelete = (entryId: string) => {
@@ -85,12 +124,8 @@ export const TrainedList = () => {
     setIsAddModalOpen(true);
   };
 
-  // ==========================================
-  // AddPokemonModal 内のサジェストから選択された時の処理
-  // ==========================================
   const handleSavedBuildSelect = async (selectedBuild: PokemonBuildResponse) => {
     try {
-      // 画面（カード）に画像や種族値を表示するため、マスタデータを取得する
       const info = await searchPokemon(selectedBuild.pokemon_name);
 
       const safePokemonData = {
@@ -101,7 +136,6 @@ export const TrainedList = () => {
       };
 
       if (editingEntryId) {
-        // ★ 編集モード：該当するentryIdのカードだけを更新する（新規追加しない）
         setParty(prev =>
           prev.map(p =>
             p.entryId === editingEntryId
@@ -110,10 +144,9 @@ export const TrainedList = () => {
           )
         );
       } else {
-        // 新規追加モード
         const newEntry: PartyMemberEntry = {
           entryId: crypto.randomUUID(),
-          pokemon: safePokemonData as any, // 安全になったデータを渡す
+          pokemon: safePokemonData as any,
           pokemonInfo: info,
         };
         setParty(prev => [...prev, newEntry]);
@@ -136,10 +169,8 @@ export const TrainedList = () => {
 
     try {
       if (loadedParty.members && loadedParty.members.length > 0) {
-        // ★ ここで各メンバーに対して画像情報を取得し、Entry形式に変換します
         const newPartyEntries = await Promise.all(
           loadedParty.members.map(async (m: any) => {
-            // 画像等のマスタ情報を取得（なければ空）
             let info = undefined;
             try {
               info = await searchPokemon(m.pokemon_name);
@@ -151,7 +182,7 @@ export const TrainedList = () => {
               entryId: crypto.randomUUID(),
               pokemon: {
                 ...m,
-                evs: m.evs || { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 }, // エラー防止の初期化
+                evs: m.evs || { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
                 ivs: m.ivs || { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
                 moves: m.moves || ["", "", "", ""],
               },
@@ -165,7 +196,9 @@ export const TrainedList = () => {
         setParty([]);
       }
 
-      // モーダルを閉じる
+      setPartyName(loadedParty.name || '読み込んだパーティ');
+      setPartyId(loadedParty.id || undefined);
+
       setIsPartyModalOpen(false);
 
     } catch (error) {
@@ -175,27 +208,19 @@ export const TrainedList = () => {
   };
 
   const handleSearchSuccess = (data: PokemonInfo) => {
-    setActivePokemonInfo(data); // 検索結果のマスタデータをセット
-    setActiveBuildId(undefined); // 新規なのでIDはなし
-    setIsStatModalOpen(true);    // 育成フォームモーダルを開く
+    setActivePokemonInfo(data);
+    setActiveBuildId(undefined);
+    setIsStatModalOpen(true);
   };
 
-  // ==========================================
-  // ★ 変更点: 保存成功時の処理（PokemonCardの onSuccess から呼ばれる）
-  // ※ 今回のPokemonCardはAPIに直接保存してしまうため、PartyのStateをどう更新するかが課題になります。
-  // ※ 一旦は「保存成功＝モーダルを閉じる」のみとし、パーティへの追加ロジックは別途APIから再取得するなどの設計が必要です。
-  // ==========================================
   const handleStatModalSuccess = (savedData: any) => {
-
     if (editingEntryId) {
-      // ★ 編集モード：該当するentryIdのカードだけを更新する（新規追加しない）
       setParty(prev =>
         prev.map(p =>
           p.entryId === editingEntryId
             ? {
                 ...p,
                 pokemon: savedData as BuildCreateRequest,
-                // 検索し直していれば新しいマスタデータを、していなければ元のものを保持
                 pokemonInfo: activePokemonInfo ?? p.pokemonInfo,
               }
             : p
@@ -203,33 +228,61 @@ export const TrainedList = () => {
       );
     } else {
       const newEntry: PartyMemberEntry = {
-        entryId: crypto.randomUUID(), // フロントエンド用の適当なID
-        pokemon: savedData as BuildCreateRequest, // 入力した育成データ
-        pokemonInfo: activePokemonInfo, // 検索時にキープしておいたマスタデータ（画像や種族値）
+        entryId: crypto.randomUUID(),
+        pokemon: savedData as BuildCreateRequest,
+        pokemonInfo: activePokemonInfo,
       };
       setParty(prev => [...prev, newEntry]);
     }
 
-    // モーダルを閉じて状態をリセット
     setIsStatModalOpen(false);
     setActivePokemonInfo(undefined);
     setActiveBuildId(undefined);
     setEditingEntryId(null);
   };
 
+  // ★ 追加: 保存ボタンクリック時の簡易バリデーションと保存処理
+  const onSaveClick = () => {
+    if (party.length === 0) {
+      alert('パーティにポケモンがいません。');
+      return;
+    }
+    if (!partyName.trim()) {
+      alert('パーティ名を入力してください。');
+      return;
+    }
+    // 未保存の育成論（IDが無いデータ）が含まれている場合の警告（必要に応じて）
+    const hasUnsavedBuild = party.some(p => !((p.pokemon as any).id || (p.pokemon as any).build_id));
+    if (hasUnsavedBuild) {
+      alert('育成論としてまだ保存されていないポケモンが含まれています。\nこのまま保存すると除外される可能性があります。');
+    }
+
+    // usePartyForm の保存処理を実行
+    handleSave();
+  };
+
   return (
     <div className="flex flex-col gap-6 relative">
       <header className="flex flex-col sm:flex-row items-center justify-between mb-8 bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-        <div>
-          <h1 className="text-2xl font-black text-gray-800 tracking-tight flex items-center gap-2">
-            <span className="text-3xl">⚔️</span>
-            パーティ管理ツール
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
+        
+        {/* パーティ名入力欄 */}
+        <div className="w-full sm:w-1/2 flex flex-col">
+          <div className="flex items-center gap-2">
+            <span className="text-3xl flex-shrink-0">⚔️</span>
+            <input
+              type="text"
+              value={partyName}
+              onChange={(e) => setPartyName(e.target.value)}
+              placeholder="パーティ名を入力"
+              className="text-2xl font-black text-gray-800 tracking-tight bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-blue-500 outline-none w-full transition-colors py-1"
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-1 pl-11">
             現在 {party.length} / 6 匹
           </p>
         </div>
 
+        {/* ボタンエリア */}
         <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-0 w-full sm:w-auto">
           <button
             onClick={() => setIsPartyModalOpen(true)}
@@ -237,6 +290,15 @@ export const TrainedList = () => {
           >
             <span role="img" aria-label="folder">📁</span>
             パーティ読込
+          </button>
+
+          <button
+            onClick={onSaveClick}
+            disabled={isSaving}
+            className="flex flex-1 sm:flex-none items-center justify-center gap-2 px-6 py-2.5 rounded-full font-bold transition-all shadow-sm bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 disabled:opacity-50"
+          >
+            <span role="img" aria-label="save">💾</span>
+            {isSaving ? '処理中...' : (partyId ? 'パーティ更新' : 'パーティ保存')}
           </button>
         </div>
       </header>
@@ -267,9 +329,7 @@ export const TrainedList = () => {
 
       <AddPokemonModal
         isOpen={isAddModalOpen}
-        onClose={() => {
-          setIsAddModalOpen(false);
-        }}
+        onClose={() => setIsAddModalOpen(false)}
         onSearchSuccess={handleSearchSuccess}
         onSavedSelect={handleSavedBuildSelect}
       />
@@ -288,9 +348,9 @@ export const TrainedList = () => {
           setActiveBuildId(undefined);
           setEditingEntryId(null);
         }}
-        buildId={activeBuildId}          // 編集用ID
-        pokemonInfo={activePokemonInfo}  // 新規作成用マスタデータ
-        onSuccess={handleStatModalSuccess} // 保存成功時のコールバック
+        buildId={activeBuildId}
+        pokemonInfo={activePokemonInfo}
+        onSuccess={handleStatModalSuccess}
       />
     </div>
   );
