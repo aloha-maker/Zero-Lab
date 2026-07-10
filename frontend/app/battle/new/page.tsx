@@ -7,7 +7,7 @@ import { useBattleStore } from '../store/useBattleStore';
 import { PartySelector } from '../components/PartySelector';
 import { SeasonSelector } from '../components/SeasonSelector';
 import { SeasonPokemonInfo } from '../../types/api';
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 // ==========================================
 // ユーティリティ関数

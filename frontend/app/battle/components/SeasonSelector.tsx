@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useBattleStore } from '../store/useBattleStore';
 import { SeasonResponse } from '../../types/api';
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 export const SeasonSelector = () => {
   const [seasons, setSeasons] = useState<SeasonResponse[]>([]);

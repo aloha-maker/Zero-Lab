@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { StatusRequest, StatusResponse, ApiErrorResponse } from "@/app/types/api";
-import { API_URL } from "@/app/types/constants";
+import type { ApiErrorResponse } from "@/app/types/api";
+import type { StatusRequest, StatusResponse } from "@/features/stat-calculator/types";
+import { API_URL } from '@/lib/api-client';
 
 // --- 型定義 ---
 type PokemonSpeedInfo = {

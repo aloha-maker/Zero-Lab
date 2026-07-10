@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { TypeMatchupRequest, TypeMatchupResponse, ApiErrorResponse } from "@/app/types/api";
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 // PokeAPIに送信するための英語名と、表示用の日本語名のマッピング
 const POKEMON_TYPES = [

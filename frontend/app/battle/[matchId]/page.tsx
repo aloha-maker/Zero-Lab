@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { DetailDrawer } from '../components/DetailDrawer';
 import { useBattleStore } from '../store/useBattleStore';
 import { OpponentPokemon } from '../types';
-import { API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 // ==========================================
 // 型定義

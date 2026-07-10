@@ -57,7 +57,6 @@ export const useParties = (): UsePartiesResult => {
         
         try {
             await deletePartyApi(id);
-            // 削除後、一覧を再取得して画面を更新
             await fetchParties();
         } catch (err) {
             console.error("削除に失敗しました", err);

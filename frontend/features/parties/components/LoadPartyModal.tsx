@@ -2,8 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// ★ API連携が完了するまでコメントアウトしておきます
-// import { useParties } from '../hooks/useParties'; 
+import { useParties } from '../hooks/useParties';
 import type { PartyResponse } from '../types';
 
 interface LoadPartyModalProps {
@@ -12,119 +11,10 @@ interface LoadPartyModalProps {
   onLoadParty: (party: PartyResponse) => void;
 }
 
-// ==========================================
-// ★ フロントエンド確認用のモックデータ
-// ==========================================
-const MOCK_PARTIES: PartyResponse[] = [
-  {
-    id: 'mock-1',
-    name: 'シーズン15 スタンダード',
-    description: '対面構築。基本選出はカイリュー＋ハバタクカミ＋ウーラオス。',
-    members: [
-      {
-        pokemon_id: 149,
-        pokemon_name: 'カイリュー',
-        nickname: 'ハチマキ枠',
-        item: 'こだわりハチマキ',
-        ability: 'マルチスケイル',
-        tera_type: 'ノーマル',
-        nature: 'いじっぱり',
-        moves: ['しんそく', 'げきりん', 'じしん', 'けたぐり'],
-        evs: { H: 4, A: 252, B: 0, C: 0, D: 0, S: 252 },
-        ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
-        memo: '初手テラスしんそくで荒らすか、裏からスイーパーとして出す。'
-      },
-      {
-        pokemon_id: 987,
-        pokemon_name: 'ハバタクカミ',
-        nickname: 'エナジーカミ',
-        item: 'ブーストエナジー',
-        ability: 'こだいかっせい',
-        tera_type: 'フェアリー',
-        nature: 'おくびょう',
-        moves: ['ムーンフォース', 'シャドーボール', 'めいそう', 'いたみわけ'],
-        evs: { H: 228, A: 0, B: 252, C: 4, D: 4, S: 20 },
-        ivs: { H: 31, A: 0, B: 31, C: 31, D: 31, S: 31 },
-        memo: 'Sエナジー発動のHBベース。物理対面で強引にめいそうを積む。'
-      },
-      {
-        pokemon_id: 892,
-        pokemon_name: 'ウーラオス（れんげきのかた）',
-        nickname: 'スカーフラオス',
-        item: 'こだわりスカーフ',
-        ability: 'ふかしのこぶし',
-        tera_type: 'みず',
-        nature: 'いじっぱり',
-        moves: ['すいりゅうれんだ', 'インファイト', 'アクアジェット', 'とんぼがえり'],
-        evs: { H: 4, A: 252, B: 0, C: 0, D: 0, S: 252 },
-        ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
-        memo: '初手に出してとんぼがえりで有利対面を作るか、上から制圧する。'
-      },
-      {
-        pokemon_id: 1000,
-        pokemon_name: 'サーフゴー',
-        nickname: 'メガネサフゴ',
-        item: 'こだわりメガネ',
-        ability: 'おうごんのからだ',
-        tera_type: 'はがね',
-        nature: 'ひかえめ',
-        moves: ['ゴールドラッシュ', 'シャドーボール', 'トリック', 'じこさいせい'],
-        evs: { H: 244, A: 0, B: 12, C: 252, D: 0, S: 0 },
-        ivs: { H: 31, A: 0, B: 31, C: 31, D: 31, S: 31 },
-        memo: 'サイクル破壊枠。受けループや変化技主体の相手にトリックを刺す。'
-      },
-      {
-        pokemon_id: 1011,
-        pokemon_name: 'オーガポン',
-        nickname: '炎ポン',
-        item: 'かまどのおめん',
-        ability: 'かたやぶり',
-        tera_type: 'ほのお',
-        nature: 'ようき',
-        moves: ['ツタこんぼう', 'ウッドホーン', 'でんこうせっか', 'つるぎのまい'],
-        evs: { H: 4, A: 252, B: 0, C: 0, D: 0, S: 252 },
-        ivs: { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
-        memo: 'テラス時の超火力アタッカー兼、サーフゴーやハッサムへの牽制。'
-      },
-      {
-        pokemon_id: 901,
-        pokemon_name: 'ガチグマ（アカツキ）',
-        nickname: 'チョッキグマ',
-        item: 'とつげきチョッキ',
-        ability: 'しんがん',
-        tera_type: 'ノーマル',
-        nature: 'ひかえめ',
-        moves: ['ブラッドムーン', 'だいちのちから', 'しんくうは', 'ハイパーボイス'],
-        evs: { H: 244, A: 0, B: 4, C: 252, D: 4, S: 4 },
-        ivs: { H: 31, A: 0, B: 31, C: 31, D: 31, S: 31 },
-        memo: '特殊方面の撃ち合いに強い枠。対特殊アタッカーへのクッションにもなる。'
-      }
-    ] as any,
-  },
-  {
-    id: 'mock-2',
-    name: 'トリル展開（ガチグマ軸）',
-    description: 'クレセリアでトリックルームを展開し、ガチグマ（アカツキ）で全抜きを狙う構成。',
-    members: [] as any, 
-  },
-  {
-    id: 'mock-3',
-    name: '晴れ展開',
-    description: 'コータスからの展開を主軸にしたパーティ。',
-    members: [] as any,
-  }
-];
-
 export const LoadPartyModal: React.FC<LoadPartyModalProps> = ({ isOpen, onClose, onLoadParty }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // ==========================================
-  // ★ APIの代わりにモックデータと固定のステータスを使用
-  // ==========================================
-  // const { parties, isLoading, error } = useParties();
-  const parties = MOCK_PARTIES;
-  const isLoading = false;
-  const error = null;
+
+  const { parties, isLoading, error } = useParties();
 
   // 検索文字列に基づいてパーティをフィルタリング[cite: 8]
   const filteredParties = parties.filter(party => 

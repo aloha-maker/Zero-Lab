@@ -1,4 +1,3 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export const LEVEL = 50;
 export const INDIVIDUAL_VALUE = 31;
 export const NATURES = [

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import PartyForm from '@/features/parties/components/PartyForm';
-import type { PartyResponse } from '@/app/types/api';
-import { API_URL } from "@/app/types/constants";
+import type { PartyResponse } from '@/features/parties/types';
+import { API_URL } from '@/lib/api-client';
 
 export default function EditPartyPage() {
     const { id } = useParams();

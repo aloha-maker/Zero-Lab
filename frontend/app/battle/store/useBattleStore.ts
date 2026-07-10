@@ -1,9 +1,8 @@
 // frontend/app/battle/store/useBattleStore.ts
 import { create } from 'zustand';
 import { OpponentPokemon, BattleMatch } from '../types';
-import { PokemonBuildResponse } from '../../types/api';
-import { API_URL } from "@/app/types/constants";
-
+import type { PokemonBuildResponse } from '@/features/bulids/types';
+import { API_URL } from '@/lib/api-client';
 interface BattleState {
   // --- State ---
   matchId: string | null;
