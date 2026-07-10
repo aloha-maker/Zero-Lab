@@ -12,7 +12,7 @@ import type { PokemonInfo } from "@/features/pokedex/types";
 // ★ onSuccess を追加
 interface UseBuildFormProps {
     id?: string;
-    onSuccess?: () => void;
+    onSuccess?: (data: BuildCreateRequest | BuildUpdateRequest) => void;
 }
 
 // ★ 引数から onSuccess も受け取るようにする
@@ -125,7 +125,7 @@ export const useBuildForm = ({ id, onSuccess }: UseBuildFormProps = {}) => {
             // ★ ここを分岐させます
             if (onSuccess) {
                 // モーダルなどから呼ばれている場合は、画面遷移せずにコールバックを実行
-                onSuccess();
+                onSuccess(formData);
             } else {
                 // 通常の画面から呼ばれている場合は、一覧へ遷移
                 router.push("/builds");

@@ -12,7 +12,7 @@ interface StatFormModalProps {
   // 仮の initialData の代わりに、PokemonCard が必要とするデータを定義
   buildId?: string;              // 既存のデータを編集・流用する場合
   pokemonInfo?: PokemonInfo;     // 新規作成の場合のマスタデータ
-  onSuccess?: () => void;        // 保存成功時のコールバック
+  onSuccess?: (data: any) => void;        // 保存成功時のコールバック
 }
 
 export const StatFormModal: React.FC<StatFormModalProps> = ({ 
@@ -25,9 +25,9 @@ export const StatFormModal: React.FC<StatFormModalProps> = ({
   if (!isOpen) return null;
 
   // APIでの保存が完了した時の処理
-  const handleSuccess = () => {
-    if (onSuccess) onSuccess();
-    onClose(); // モーダルを閉じる
+  const handleSuccess = (savedData: any) => {
+    if (onSuccess) onSuccess(savedData);
+    onClose(); 
   };
 
   return (

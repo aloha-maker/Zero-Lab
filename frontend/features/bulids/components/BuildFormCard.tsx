@@ -14,7 +14,7 @@ interface PokemonCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   submitLabel?: string;
-  onSuccess?: () => void;
+  onSuccess?: (data: any) => void;
 }
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({ 
