@@ -9,7 +9,9 @@ import { PartyResponse } from '@/features/parties/types';
 import { PartyMemberCard } from './PartyMemberCard';
 import { AddPokemonModal } from '../../bulids/components/AddPokemonModal';
 import { LoadPartyModal } from './LoadPartyModal';
-import { StatFormModal } from './StatFormModal'; // ★ 先ほど修正したものを想定
+import { StatFormModal } from './StatFormModal';
+import { searchPokemon } from '@/features/pokedex/api/searchPokemon'; 
+import type { PokemonBuildResponse } from '@/features/bulids/types';
 
 interface PartyMemberEntry {
   entryId: string;
@@ -83,9 +85,33 @@ export const TrainedList = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleLoadSavedPokemon = () => {
-    alert('過去に登録した「育成済みポケモン」の一覧ダイアログを開きます。');
-    setIsAddModalOpen(false);
+  // ==========================================
+  // AddPokemonModal 内のサジェストから選択された時の処理
+  // ==========================================
+  const handleSavedBuildSelect = async (selectedBuild: PokemonBuildResponse) => {
+    try {
+      // 画面（カード）に画像や種族値を表示するため、マスタデータを取得する
+      const info = await searchPokemon(selectedBuild.pokemon_name);
+
+      const safePokemonData = {
+        ...selectedBuild,
+        evs: selectedBuild.evs || { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 },
+        ivs: selectedBuild.ivs || { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
+        moves: selectedBuild.moves || ["", "", "", ""],
+      };
+
+      const newEntry: PartyMemberEntry = {
+        entryId: crypto.randomUUID(),
+        pokemon: safePokemonData as any, // 安全になったデータを渡す
+        pokemonInfo: info,
+      };
+
+      setParty(prev => [...prev, newEntry]);
+
+    } catch (error) {
+      console.error('ポケモン情報の取得に失敗しました', error);
+      alert('ポケモンの追加に失敗しました。');
+    }
   };
 
   const handleLoadParty = (loadedParty: PartyResponse) => {
@@ -192,7 +218,7 @@ export const TrainedList = () => {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSearchSuccess={handleSearchSuccess}
-        onLoadSaved={handleLoadSavedPokemon}
+        onSavedSelect={handleSavedBuildSelect}
       />
 
       <LoadPartyModal
@@ -201,9 +227,6 @@ export const TrainedList = () => {
         onLoadParty={handleLoadParty}
       />
 
-      {/* ========================================== */}
-      {/* ★ 変更点: StatFormModal の呼び出し方を変更 */}
-      {/* ========================================== */}
       <StatFormModal
         isOpen={isStatModalOpen}
         onClose={() => {
