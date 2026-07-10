@@ -1,13 +1,16 @@
+// frontend/features/parties/hooks/usePartyForm.ts
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PartyResponse, PartyMember, PartyCreateRequest } from '../types';
 import type { PokemonBuildResponse } from '@/features/bulids/types';
 import { getBuilds } from '@/features/bulids/api/getBuilds';
-
-
 import { saveParty } from '../api/saveParty';
 
-export const usePartyForm = (initialData?: PartyResponse, isEdit?: boolean) => {
+export const usePartyForm = (
+    initialData?: PartyResponse, 
+    isEdit?: boolean,
+    onSuccess?: (savedData?: any) => void 
+) => {
     const router = useRouter();
     
     const [name, setName] = useState(initialData?.name || '');
@@ -25,7 +28,6 @@ export const usePartyForm = (initialData?: PartyResponse, isEdit?: boolean) => {
     const [isLoadingBuilds, setIsLoadingBuilds] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    // 育成済みポケモン一覧の取得
     useEffect(() => {
         let isMounted = true;
         const fetchBuilds = async () => {
@@ -58,9 +60,17 @@ export const usePartyForm = (initialData?: PartyResponse, isEdit?: boolean) => {
         const payload: PartyCreateRequest = { name, description, members };
 
         try {
-            await saveParty(payload, initialData?.id, isEdit);
-            router.push('/parties');
-            router.refresh();
+            // ★ 変更: APIのレスポンスを受け取る
+            const res = await saveParty(payload, initialData?.id, isEdit);
+            
+            if (onSuccess) {
+                // ★ onSuccessが渡されている場合はリダイレクトせずコールバックを実行
+                onSuccess(res);
+            } else {
+                // 渡されていない場合（他の画面で使っている場合など）は従来通りリダイレクト
+                router.push('/parties');
+                router.refresh();
+            }
         } catch (error) {
             console.error(error);
             alert('保存に失敗しました');
