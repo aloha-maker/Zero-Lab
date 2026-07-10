@@ -9,10 +9,6 @@ import { PokemonInfo } from '@/features/pokedex/types';
 export default function PokemonCardDevPage() {
   const [currentPokemonInfo, setCurrentPokemonInfo] = useState<PokemonInfo | undefined>(undefined);
 
-  const handleLoadSaved = () => {
-    alert('過去に登録した「育成済みポケモン」の一覧ダイアログを開き、選択したデータをロードします。');
-  };
-
   return (
     <main className="min-h-screen bg-slate-100 p-8 flex flex-col items-center">
       <div className="w-full max-w-4xl">
@@ -29,13 +25,6 @@ export default function PokemonCardDevPage() {
               onSearchError={(msg) => alert(`エラー: ${msg}`)}
             />
           </div>
-          
-          <button 
-            onClick={handleLoadSaved}
-            className="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg font-bold transition-colors border border-gray-300 shadow-sm whitespace-nowrap flex items-center gap-2"
-          >
-            <span role="img" aria-label="folder">📁</span> 登録済みから呼び出す
-          </button>
         </div>
 
         {currentPokemonInfo ? (

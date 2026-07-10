@@ -1,4 +1,4 @@
-import { TrainedList } from '@/features/parties/components/memberList'
+import { TrainedList } from '@/features/parties/components/MemberList'
 
 export default function TrainedPage() {
   return (

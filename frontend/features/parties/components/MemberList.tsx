@@ -57,9 +57,14 @@ export const TrainedList = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [editingPokemon, setEditingPokemon] = useState<Partial<PartyMemberEntry> | null>(null);
+  // 編集対象のentryIdを保持（新規追加時はnull）
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
 
   const handleEdit = (entryId: string) => {
-    alert('編集機能は開発中です。対象ID: ' + entryId);
+    // 「ポケモンを追加する」と同様にAddPokemonModalを開くが、
+    // 検索結果を戻す先として編集中のentryIdを保持しておく
+    setEditingEntryId(entryId);
+    setIsAddModalOpen(true);
   };
 
   const handleDelete = (entryId: string) => {
@@ -73,6 +78,8 @@ export const TrainedList = () => {
       alert('パーティは最大6匹までです。');
       return;
     }
+    // 新規追加なので編集対象はなし
+    setEditingEntryId(null);
     setIsAddModalOpen(true);
   };
 
@@ -121,10 +128,14 @@ export const TrainedList = () => {
     };
 
     setEditingPokemon({
-      entryId: crypto.randomUUID(),
+      // 編集中のカードがあればそのentryIdを使い、なければ新規のIDを発行する
+      entryId: editingEntryId ?? crypto.randomUUID(),
       pokemon: newPokemon as BuildCreateRequest,
       pokemonInfo: data,
     });
+
+    // 検索結果をStatFormModalへ渡したので、編集対象の記録はリセットしておく
+    setEditingEntryId(null);
   };
 
   const handleSavePokemon = (entry: PartyMemberEntry) => {
@@ -188,7 +199,10 @@ export const TrainedList = () => {
 
       <AddPokemonModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingEntryId(null);
+        }}
         onSearchSuccess={handleSearchSuccess}
         onLoadSaved={handleLoadSavedPokemon}
       />

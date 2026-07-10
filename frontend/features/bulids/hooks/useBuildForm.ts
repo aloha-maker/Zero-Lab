@@ -9,11 +9,14 @@ import { updateBuild } from "../api/updateBuild";
 import type { BuildCreateRequest, BuildUpdateRequest } from '@/features/bulids/types';
 import type { PokemonInfo } from "@/features/pokedex/types";
 
+// ★ onSuccess を追加
 interface UseBuildFormProps {
     id?: string;
+    onSuccess?: () => void;
 }
 
-export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
+// ★ 引数から onSuccess も受け取るようにする
+export const useBuildForm = ({ id, onSuccess }: UseBuildFormProps = {}) => {
     const router = useRouter();
     const isEditMode = Boolean(id);
 
@@ -35,10 +38,8 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
         memo: ""
     });
 
-    // StatFormの初期化に必要なポケモンの名前を管理
     const [initialPokemonName, setInitialPokemonName] = useState<string>("");
 
-    // 編集モードの場合のみ初期データを取得
     useEffect(() => {
         if (!id) return;
 
@@ -85,7 +86,6 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
         });
     };
 
-    // StatFormコンポーネントの型定義に完全に一致させた安全なハンドラー
     const handleStatusUpdate = useCallback((update: { 
         pokemon_id?: number; 
         pokemon_name?: string; 
@@ -115,16 +115,23 @@ export const useBuildForm = ({ id }: UseBuildFormProps = {}) => {
 
         try {
             if (isEditMode && id) {
-                // 編集時は PUT
                 await updateBuild(id, formData);
                 alert("変更を保存しました！");
             } else {
-                // 新規登録時は POST
                 await createBuild(formData);
                 alert("新規登録しました！");
             }
-            router.push("/builds");
-            router.refresh();
+            
+            // ★ ここを分岐させます
+            if (onSuccess) {
+                // モーダルなどから呼ばれている場合は、画面遷移せずにコールバックを実行
+                onSuccess();
+            } else {
+                // 通常の画面から呼ばれている場合は、一覧へ遷移
+                router.push("/builds");
+                router.refresh();
+            }
+
         } catch (error: unknown) {
             console.error("保存エラー:", error);
             if (error instanceof ApiError) {

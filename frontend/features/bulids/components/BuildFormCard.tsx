@@ -6,18 +6,26 @@ import StatForm from "@/features/stat-calculator/components/StatForm";
 import { PokemonInfo } from '@/features/pokedex/types';
 import { useBuildForm } from '@/features/bulids/hooks/useBuildForm';
 import { searchPokemon } from '@/features/pokedex/api/searchPokemon';
+import { SaveButton } from './SaveButton'; // ★作成したコンポーネントをインポート
 
 interface PokemonCardProps {
-  id?: string;               // 編集画面で渡されるID
-  pokemonInfo?: PokemonInfo; // 新規作成画面の検索機能などから渡されるマスタデータ
+  id?: string;
+  pokemonInfo?: PokemonInfo;
   onEdit?: () => void;
   onDelete?: () => void;
   submitLabel?: string;
+  onSuccess?: () => void;
 }
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({ 
-  id, pokemonInfo, onEdit, onDelete, submitLabel
+  id, 
+  pokemonInfo, 
+  onEdit, 
+  onDelete, 
+  submitLabel,
+  onSuccess // ⭕️ ここに追加して受け取る
 }) => {
+  // フックは親で呼び出し、フォーム全体とボタンの両方に必要な状態を供給します
   const {
     formData: pokemon,
     setFormData,
@@ -27,21 +35,18 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
     initialPokemonName,
     handlePokemonSelect,
     handleSubmit
-  } = useBuildForm(id ? { id } : undefined);
+  } = useBuildForm(id ? { id, onSuccess } : { onSuccess });
 
   const [currentPokemonInfo, setCurrentPokemonInfo] = useState<PokemonInfo | undefined>(pokemonInfo);
   const [loadingPokemonInfo, setLoadingPokemonInfo] = useState(false);
 
-  // 【新規作成】外部から新しいポケモン情報が渡されたらフォームとローカルマスタを更新
   useEffect(() => {
     if (pokemonInfo) {
       setCurrentPokemonInfo(pokemonInfo);
       handlePokemonSelect(pokemonInfo);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pokemonInfo]);
+  }, [pokemonInfo, handlePokemonSelect]);
 
-  // 【編集】initialPokemonName がAPIから取得できたら、マスタデータを検索して取得する
   useEffect(() => {
     if (!initialPokemonName) return;
 
@@ -92,7 +97,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
     }));
   }, [setFormData]);
 
-  // 編集時のデータロード中の表示
   if (loading || loadingPokemonInfo) {
     return (
       <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-12 flex flex-col items-center justify-center gap-4">
@@ -102,7 +106,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
     );
   }
 
-  // 編集時にデータが見つからなかった場合の表示
   if (id && !loading && pokemon.pokemon_id === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
@@ -160,7 +163,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
       {/* 2. 詳細スペック */}
       <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
         {/* 左カラム：基本構成 */}
         <div className="space-y-6">
           <div>
@@ -228,7 +230,6 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
 
       {/* 3. 技構成 ＆ メモ */}
       <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-200 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
         <div>
           <h3 className="text-sm font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
             <Swords size={16} className="text-red-400" /> 技構成 (Moves)
@@ -288,33 +289,14 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
             )}
           </div>
         </div>
-
       </div>
 
-      <div className="px-6 md:px-8 py-5 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
-        {errorMsg ? (
-          <p className="text-red-500 text-sm font-bold">{errorMsg}</p>
-        ) : (
-          <div />
-        )}
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full sm:w-auto px-8 py-2.5 text-sm bg-gradient-to-r from-indigo-500 to-pink-500 text-white font-bold rounded-xl hover:brightness-110 disabled:opacity-50 transition-all shadow-md flex items-center justify-center min-w-[180px]"
-        >
-          {saving ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              {submitLabel ? `${submitLabel.replace('する', '')}中...` : "登録中..."}
-            </>
-          ) : (
-            submitLabel || "ポケモンを登録する"
-          )}
-        </button>
-      </div>
+      {/* ★ 分割した SaveButton コンポーネントを配置 */}
+      <SaveButton 
+        saving={saving} 
+        errorMsg={errorMsg} 
+        submitLabel={submitLabel} 
+      />
     </form>
   );
 };
