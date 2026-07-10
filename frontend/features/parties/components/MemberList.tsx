@@ -114,7 +114,7 @@ export const TrainedList = () => {
     }
   };
 
-  const handleLoadParty = (loadedParty: PartyResponse) => {
+  const handleLoadParty = async (loadedParty: PartyResponse) => {
     if (party.length > 0) {
       if (!window.confirm('現在のパーティは上書きされます。よろしいですか？')) {
         return;
@@ -122,10 +122,32 @@ export const TrainedList = () => {
     }
 
     try {
-      if (loadedParty.members) {
-        // TODO: PartyResponse.members (BuildCreateRequest[] 相当) を
-        // PartyMemberEntry[] (entryId / pokemonInfo付き) に変換する処理を実装する
-        // setParty(loadedParty.members.map(m => ({ entryId: crypto.randomUUID(), pokemon: m })));
+      if (loadedParty.members && loadedParty.members.length > 0) {
+        // ★ ここで各メンバーに対して画像情報を取得し、Entry形式に変換します
+        const newPartyEntries = await Promise.all(
+          loadedParty.members.map(async (m: any) => {
+            // 画像等のマスタ情報を取得（なければ空）
+            let info = undefined;
+            try {
+              info = await searchPokemon(m.pokemon_name);
+            } catch (e) {
+              console.error("マスタ取得失敗", e);
+            }
+
+            return {
+              entryId: crypto.randomUUID(),
+              pokemon: {
+                ...m,
+                evs: m.evs || { H: 0, A: 0, B: 0, C: 0, D: 0, S: 0 }, // エラー防止の初期化
+                ivs: m.ivs || { H: 31, A: 31, B: 31, C: 31, D: 31, S: 31 },
+                moves: m.moves || ["", "", "", ""],
+              },
+              pokemonInfo: info
+            };
+          })
+        );
+
+        setParty(newPartyEntries);
       } else {
         setParty([]);
       }
