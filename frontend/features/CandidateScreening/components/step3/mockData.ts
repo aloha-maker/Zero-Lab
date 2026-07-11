@@ -1,4 +1,4 @@
-// app/strategy/screens/components/step2/mockData.ts
+// frontend/features/CandidateScreening/components/step3/mockData.ts
 import { PokemonCandidate } from './types';
 
 export const CANDIDATES_DATA: PokemonCandidate[] = [

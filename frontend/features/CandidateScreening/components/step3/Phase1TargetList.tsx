@@ -1,4 +1,4 @@
-// screens/components/step2/Phase1TargetList.tsx
+// frontend/features/CandidateScreening/components/step3/Phase1TargetList.tsx
 import React from 'react';
 import { MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 

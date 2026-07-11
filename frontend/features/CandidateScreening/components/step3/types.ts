@@ -1,4 +1,4 @@
-// types.ts
+// frontend/features/CandidateScreening/components/step3/types.ts
 export type Matchups = { [targetName: string]: '◎' | '◯' | '×' };
 
 export interface PokemonCandidate {

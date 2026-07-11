@@ -1,3 +1,4 @@
+// frontend/features/CandidateScreening/components/CandidateScreening.tsx
 import React, { useState } from 'react';
 import { MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 import Phase1TargetList from './step3/Phase1TargetList';

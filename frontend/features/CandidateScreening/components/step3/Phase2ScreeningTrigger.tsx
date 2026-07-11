@@ -1,3 +1,4 @@
+// frontend/features/CandidateScreening/components/step3/Phase2ScreeningTrigger.tsx
 "use client";
 
 import React, { useState } from 'react';
@@ -64,8 +65,7 @@ export default function Phase2ScreeningTrigger({
     setStatusText("環境TOP50データを取得中...");
 
     try {
-      const seasonRes = await fetch(`${API_URL}/api/v1/seasons/
-        `);
+      const seasonRes = await fetch(`${API_URL}/api/v1/seasons/`);
       if (!seasonRes.ok) throw new Error("環境ポケモンの取得に失敗しました");
       
       const seasonData: SeasonPokemonResponse = await seasonRes.json();
