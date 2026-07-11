@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { MatrixResultRow } from "@/app/types/api";
+import { MatrixResultRow } from "@/features/TopTierMatchups/types"; 
 
 interface ArchetypeDeterminationSectionProps {
   mainPokemonName: string;

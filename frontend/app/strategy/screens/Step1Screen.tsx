@@ -5,7 +5,7 @@ import PokemonConfigSection from "./components/PokemonConfigSection";
 import MatchupMatrixSection from "./components/MatchupMatrixSection";
 import ArchetypeDeterminationSection from "./components/ArchetypeDeterminationSection";
 import { ConfiguredMainPokemon } from "../types";
-import { MatrixResultRow } from "@/app/types/api";
+import { MatrixResultRow } from "@/features/TopTierMatchups/types"; 
 
 interface Step1ScreenProps {
   matrixData: MatrixResultRow[];

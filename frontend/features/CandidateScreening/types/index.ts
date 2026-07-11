@@ -1,0 +1,1 @@
+// frontend/features/CandidateScreening/types

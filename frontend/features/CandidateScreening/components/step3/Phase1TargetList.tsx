@@ -1,6 +1,6 @@
 // screens/components/step2/Phase1TargetList.tsx
 import React from 'react';
-import { MatrixResultRow } from '@/app/types/api';
+import { MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 
 interface Phase1TargetListProps {
   matrixData: MatrixResultRow[];

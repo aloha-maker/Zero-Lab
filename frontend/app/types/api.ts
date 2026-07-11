@@ -52,11 +52,3 @@ export interface ApiValidationError {
 export interface ApiErrorResponse {
     detail: string | ApiValidationError[];
 }
-
-// ============================================================================
-// strategy (有利不利マトリクス) 関連の型
-// ============================================================================
-
-
-
-

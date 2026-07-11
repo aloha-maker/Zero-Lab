@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MatrixResultRow, TypeMatchupRequest, TypeMatchupResponse } from "@/app/types/api";
+import { TypeMatchupRequest, TypeMatchupResponse } from "@/app/types/api";
+import { MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 import { SeasonPokemonInfo } from "@/features/season/types/index";
 import { API_URL } from '@/lib/api-client';
 import { PokemonCandidate } from './types';

@@ -13,7 +13,7 @@ interface Step3PageProps {
   onScreeningComplete: (filteredResults: PokemonCandidate[]) => void;
 }
 
-export const Step3Page: React.FC<Step3PageProps> = ({ 
+export const CandidateScreening: React.FC<Step3PageProps> = ({ 
   matrixData,
   isScreened,
   candidates,
