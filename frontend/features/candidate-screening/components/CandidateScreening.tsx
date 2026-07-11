@@ -1,30 +1,25 @@
-// frontend/features/CandidateScreening/components/CandidateScreening.tsx
-import React, { useState } from 'react';
+// frontend/features/candidate-screening/components/CandidateScreening.tsx
+import React from 'react';
 import { MatrixResultRow } from '@/features/TopTierMatchups/types/index';
-import Phase1TargetList from './step3/Phase1TargetList';
-import Phase2ScreeningTrigger from './step3/Phase2ScreeningTrigger';
-import Phase3MatchupMatrix from './step3/Phase3MatchupMatrix';
-import Phase4RoleChecker from './step3/Phase4RoleChecker';
+import Phase1TargetList from './Phase1TargetList';
+import Phase2ScreeningTrigger from './Phase2ScreeningTrigger';
+import Phase3MatchupMatrix from './Phase3MatchupMatrix';
+import Phase4RoleChecker from './Phase4RoleChecker';
 import { PokemonCandidate } from '../types';
 
-interface Step3PageProps {
+interface CandidateScreeningProps {
   matrixData: MatrixResultRow[];
   isScreened: boolean;
   candidates: PokemonCandidate[];
   onScreeningComplete: (filteredResults: PokemonCandidate[]) => void;
 }
 
-export const CandidateScreening: React.FC<Step3PageProps> = ({ 
+export const CandidateScreening: React.FC<CandidateScreeningProps> = ({ 
   matrixData,
   isScreened,
   candidates,
   onScreeningComplete
 }) => {
-  const handleScreeningComplete = (filteredResults: PokemonCandidate[]) => {
-    // ★親から降ってきたハンドラーを介して最上流を更新する
-    onScreeningComplete(filteredResults);
-  };
-
   return (
     <section className="space-y-6 max-w-4xl mx-auto p-4 animate-in fade-in duration-300">
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
@@ -43,7 +38,7 @@ export const CandidateScreening: React.FC<Step3PageProps> = ({
         {/* フェーズ2: API連携対応ロジック */}
         <Phase2ScreeningTrigger 
           matrixData={matrixData}
-          onScreeningComplete={handleScreeningComplete} 
+          onScreeningComplete={onScreeningComplete} 
           isExecuted={isScreened} 
         />
       </div>

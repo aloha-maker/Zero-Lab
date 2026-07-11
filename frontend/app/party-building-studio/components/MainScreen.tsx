@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { SeasonDataPage } from '@/features/season/components/SeasonDataPage'
 import { TopTierMatchups } from '@/features/TopTierMatchups/components/TopTierMatchups';
-import { CandidateScreening } from '@/features/CandidateScreening/components/CandidateScreening';
+import { CandidateScreening } from '@/features/candidate-screening/components/CandidateScreening';
 import { useSeasonData } from '@/features/season/hooks/useSeasonData';
 import { ConfiguredMainPokemon,MatrixResultRow } from '@/features/TopTierMatchups/types/index';
-import { PokemonCandidate } from '@/features/CandidateScreening/components/step3/types';
+import { PokemonCandidate } from '@/features/candidate-screening/types';
 
 // Propsの型定義に入力値関連を追加
 interface MainScreenProps {

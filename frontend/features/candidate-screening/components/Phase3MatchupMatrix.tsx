@@ -1,8 +1,8 @@
-// frontend/features/CandidateScreening/components/step3/Phase3MatchupMatrix.tsx
+// frontend/features/candidate-screening/components/Phase3MatchupMatrix.tsx
 "use client";
 
 import React from 'react';
-import { Matchups } from './types'; // types.ts で定義した型をインポート
+import { Matchups, JudgmentSymbol } from '../types';
 
 interface Phase3MatchupMatrixProps {
   matchups: Matchups; // { 'ハバタクカミ': '◎', 'カイリュー': '◯' } のようなデータ
@@ -10,7 +10,7 @@ interface Phase3MatchupMatrixProps {
 
 export default function Phase3MatchupMatrix({ matchups }: Phase3MatchupMatrixProps) {
   // 判定に応じたスタイルを返すヘルパー
-  const getBadgeStyle = (judgment: '◎' | '◯' | '×') => {
+  const getBadgeStyle = (judgment: JudgmentSymbol) => {
     switch (judgment) {
       case '◎': return "text-emerald-700 bg-emerald-50 border-emerald-200 font-black";
       case '◯': return "text-blue-700 bg-blue-50 border-blue-200 font-bold";

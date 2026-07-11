@@ -1,5 +1,5 @@
-// frontend/features/CandidateScreening/components/step3/mockData.ts
-import { PokemonCandidate } from './types';
+// frontend/features/candidate-screening/mocks/mockData.ts
+import { PokemonCandidate } from '../types';
 
 export const CANDIDATES_DATA: PokemonCandidate[] = [
   {
