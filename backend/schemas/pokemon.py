@@ -59,6 +59,12 @@ class SeasonPokemonInfo(PokemonInfo):
     season_evs: list[SeasonEvInfo] = Field(default_factory=list, description="努力値調整ランキング情報")
     max_power_times_atk_by_type: Dict[str, int]
     type_efficacies: Dict[str, float]
+    
+    top_nature: str = "まじめ"
+    top_evs: Dict[str, int] = {
+        "hp": 0, "attack": 0, "defense": 0, 
+        "sp_attack": 0, "sp_defense": 0, "speed": 0
+    }
 
 
 class PokemonListItem(BaseModel):

@@ -3,7 +3,7 @@ import math
 import asyncio
 from typing import List, Dict, Any, Tuple, Optional
 from core.supabase import SupabaseClient
-from services.status import calculate_real_status, NATURE_MODIFIERS, DEFAULT_NATURE
+from services.status import calculate_real_status
 from services.type_matchup import fetch_type_data, calculate_multiplier_and_message
 from services.pokemon_season import get_active_season_pokemon_details
 from schemas.strategy import (
@@ -34,11 +34,10 @@ class MatrixService:
             from services.pokemon_detail import fetch_pokemon_data
             try:
                 main_base_data = await fetch_pokemon_data(supabase, main_name)
-            except:
-                raise ValueError(f"ポケモンのデータソースが空です。")
+            except Exception as e:
+                raise ValueError(f"ポケモンのデータソースが空です。{e}")
         
         request_nature_name = getattr(request, 'nature', 'まじめ')
-        main_nature = NATURE_MODIFIERS.get(request_nature_name, DEFAULT_NATURE)
 
         main_real_stats = {}
         stat_key_map = {"H": "hp", "A": "attack", "B": "defense", "C": "sp_attack", "D": "sp_defense", "S": "speed"}
@@ -49,10 +48,16 @@ class MatrixService:
             base_stats_source = main_base_data.base_stats if hasattr(main_base_data, 'base_stats') else main_base_data.get('base_stats', {})
             base = base_stats_source.get(internal_key, 100)
             ev = int(evs_dict.get(api_key, 0))
-
-            modifier = main_nature[internal_key]
+            
+            # 主軸ポケモンの計算部分
             main_real_stats[internal_key] = calculate_real_status(
-                is_hp=is_hp, base_stat=base, iv=31, ev=ev, level=50, nature_modifier=modifier
+                is_hp=is_hp, 
+                base_stat=base, 
+                iv=31, 
+                ev=ev, 
+                level=50, 
+                nature_name=request_nature_name,
+                stat_key=internal_key
             )
 
         main_types = main_base_data.types if hasattr(main_base_data, 'types') else main_base_data.get('types', [])
@@ -85,18 +90,23 @@ class MatrixService:
         for opp in active_environment_pokemons:
             opp_real_stats = {}
             
-            opp_nature_name = getattr(opp, 'nature', 'まじめ')
-            opp_nature_map = NATURE_MODIFIERS.get(opp_nature_name, DEFAULT_NATURE)
+            opp_nature_name = getattr(opp, 'top_nature', 'まじめ')
+            opp_evs_dict = getattr(opp, 'top_evs', {})
             
             for api_key, internal_key in stat_key_map.items():
                 is_hp = (api_key == "H")
                 base = opp.base_stats.get(internal_key, 100)
+                calc_opp_ev = opp_evs_dict.get(internal_key, 0)
                 
-                opp_nature_modifier = opp_nature_map[internal_key]
-                calc_opp_ev = 0
-                
+                # 相手ポケモンの計算部分
                 opp_real_stats[internal_key] = calculate_real_status(
-                    is_hp=is_hp, base_stat=base, iv=31, ev=calc_opp_ev, level=50, nature_modifier=opp_nature_modifier
+                    is_hp=is_hp, 
+                    base_stat=base, 
+                    iv=31, 
+                    ev=calc_opp_ev, 
+                    level=50, 
+                    nature_name=opp_nature_name,
+                    stat_key=internal_key
                 )
             
             opp_moves = opp.season_moves if hasattr(opp, 'season_moves') else opp.get('season_moves', [])
