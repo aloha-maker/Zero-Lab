@@ -1,6 +1,6 @@
-import type { SeasonPokemonInfo } from "@/app/types/api";
-import { STAT_COLUMNS, SortKey, SortOrder } from "./types";
-import { SortIcon } from "./SortIcon";
+import type { SeasonPokemonInfo } from "@/features/season/types/index";
+import { STAT_COLUMNS, SortKey, SortOrder } from "../types";
+import { SortIcon } from "./step1/SortIcon";
 
 type PokemonTableProps = {
     pokemonList: SeasonPokemonInfo[];

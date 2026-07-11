@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import type { SeasonPokemonInfo, RealDamageRankingResult } from "@/app/types/api";
+import type { SeasonPokemonInfo, RealDamageRankingResult } from "@/features/season/types/index";
 import { API_URL } from '@/lib/api-client';
 import { SeasonPokemonResponse, SortKey, SortOrder } from "../types";
 

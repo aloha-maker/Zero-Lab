@@ -1,4 +1,4 @@
-import type { PokemonInfo } from "@/features/pokedex/types";
+
 
 export interface MoveDetail {
     name: string;          // 技の日本語名
@@ -8,9 +8,7 @@ export interface MoveDetail {
     accuracy: number | null; // 命中率 (null の可能性あり)
 }
 
-export interface SeasonPokemonInfo extends PokemonInfo {
-    rank: number;
-}
+
 
 /** GET /pokemon/?rule_id= のレスポンス型（サジェスト候補用） */
 export interface PokemonListItem {
@@ -54,38 +52,6 @@ export interface ApiValidationError {
 export interface ApiErrorResponse {
     detail: string | ApiValidationError[];
 }
-
-
-
-
-
-
-
-/** GET /seasons/ のレスポンス型 */
-export interface RuleResponse {
-    id: number;
-    name: string;
-}
-
-export interface SeasonResponse {
-    id: number;
-    name: string;
-    rule_id: number;
-    start_date?: string;
-    end_date?: string;
-    rule?: RuleResponse;
-}
-
-export interface RealDamageRankingResult{
-    rank: number;
-    pokemon_name: string;
-    move_name: string;
-    move_type: string;
-    category: string;
-    power_times_atk: number;
-    defense_index: number;
-    real_damage_percent: number;
-};
 
 // ============================================================================
 // strategy (有利不利マトリクス) 関連の型
