@@ -23,7 +23,7 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({
   onEdit, 
   onDelete, 
   submitLabel,
-  onSuccess // ⭕️ ここに追加して受け取る
+  onSuccess
 }) => {
   // フックは親で呼び出し、フォーム全体とボタンの両方に必要な状態を供給します
   const {
