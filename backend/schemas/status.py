@@ -6,7 +6,8 @@ class StatusRequest(BaseModel):
     iv: int = 31          # 個体値
     ev: int = 0           # 努力値
     level: int = 50       # レベル
-    nature_modifier: float = 1.0 # 性格補正
+    nature_name: str      # 性格名 (例: "いじっぱり", "まじめ")
+    stat_key: str         # 計算対象のステータスキー (例: "hp", "attack", "speed")
 
 class StatusResponse(BaseModel):
     real_stat: int

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { PokemonInfo } from "@/features/pokedex/types";
-import { NATURES } from "@/app/types/constants";
+import { NATURES } from "@/features/stat-calculator/types";
 import { API_URL } from '@/lib/api-client';
 import { StatType, ConfiguredMainPokemon } from "../../types";
 
@@ -149,8 +149,8 @@ export default function PokemonConfigSection({
       const promises = (Object.keys(stats) as StatType[]).map(async (key) => {
         let modifier = 1.0;
         if (key !== 'H') {
-          if (selectedNature.up === key) modifier = 1.1;
-          if (selectedNature.down === key) modifier = 0.9;
+          // if (selectedNature.up === key) modifier = 1.1;
+          // if (selectedNature.down === key) modifier = 0.9;
         }
 
         const requestData = {
@@ -311,8 +311,8 @@ export default function PokemonConfigSection({
                   <tbody className="divide-y divide-slate-100">
                     {(Object.keys(stats) as StatType[]).map(key => {
                       const selectedNature = NATURES[natureIndex];
-                      const isUp = key !== 'H' && selectedNature.up === key;
-                      const isDown = key !== 'H' && selectedNature.down === key;
+                      const isUp = key !== 'H' //&& selectedNature.up === key;
+                      const isDown = key !== 'H' //&& selectedNature.down === key;
 
                       return (
                         <tr key={key} className="hover:bg-slate-50/50 transition-colors">

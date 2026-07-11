@@ -28,31 +28,31 @@ export const EV_TOTAL_MAX = 66;
  * 変換テーブルを介さずに比較・補正計算ができる。
  */
 export const NATURES: { name: string; up: PokemonStatKey | null; down: PokemonStatKey | null }[] = [
-    { name: "さみしがり (攻撃↑ 防御↓)", up: "attack", down: "defense" },
-    { name: "いじっぱり (攻撃↑ 特攻↓)", up: "attack", down: "sp_attack" },
-    { name: "やんちゃ (攻撃↑ 特防↓)", up: "attack", down: "sp_defense" },
-    { name: "ゆうかん (攻撃↑ 素早↓)", up: "attack", down: "speed" },
-    { name: "ずぶとい (防御↑ 攻撃↓)", up: "defense", down: "attack" },
-    { name: "わんぱく (防御↑ 特攻↓)", up: "defense", down: "sp_attack" },
-    { name: "のうてんき (防御↑ 特防↓)", up: "defense", down: "sp_defense" },
-    { name: "のんき (防御↑ 素早↓)", up: "defense", down: "speed" },
-    { name: "ひかえめ (特攻↑ 攻撃↓)", up: "sp_attack", down: "attack" },
-    { name: "おっとり (特攻↑ 防御↓)", up: "sp_attack", down: "defense" },
-    { name: "うっかりや (特攻↑ 特防↓)", up: "sp_attack", down: "sp_defense" },
-    { name: "れいせい (特攻↑ 素早↓)", up: "sp_attack", down: "speed" },
-    { name: "おだやか (特防↑ 攻撃↓)", up: "sp_defense", down: "attack" },
-    { name: "おとなしい (特防↑ 防御↓)", up: "sp_defense", down: "defense" },
-    { name: "しんちょう (特防↑ 特攻↓)", up: "sp_defense", down: "sp_attack" },
-    { name: "なまいき (特防↑ 素早↓)", up: "sp_defense", down: "speed" },
-    { name: "おくびょう (素早↑ 攻撃↓)", up: "speed", down: "attack" },
-    { name: "せっかち (素早↑ 防御↓)", up: "speed", down: "defense" },
-    { name: "ようき (素早↑ 特攻↓)", up: "speed", down: "sp_attack" },
-    { name: "むじゃき (素早↑ 特防↓)", up: "speed", down: "sp_defense" },
-    { name: "てれや (補正なし)", up: null, down: null },
-    { name: "がんばりや (補正なし)", up: null, down: null },
-    { name: "すなお (補正なし)", up: null, down: null },
-    { name: "きまぐれ (補正なし)", up: null, down: null },
-    { name: "まじめ (補正なし)", up: null, down: null },
+    { name: "さみしがり (A↑ B↓)", up: "attack", down: "defense" },
+    { name: "いじっぱり (A↑ C)", up: "attack", down: "sp_attack" },
+    { name: "やんちゃ (A↑ D↓)", up: "attack", down: "sp_defense" },
+    { name: "ゆうかん (A↑ S↓)", up: "attack", down: "speed" },
+    { name: "ずぶとい (B↑ A↓)", up: "defense", down: "attack" },
+    { name: "わんぱく (B↑ C↓)", up: "defense", down: "sp_attack" },
+    { name: "のうてんき (B↑ D↓)", up: "defense", down: "sp_defense" },
+    { name: "のんき (B↑ S↓)", up: "defense", down: "speed" },
+    { name: "ひかえめ (C↑ A↓)", up: "sp_attack", down: "attack" },
+    { name: "おっとり (C↑ B↓)", up: "sp_attack", down: "defense" },
+    { name: "うっかりや (C↑ D↓)", up: "sp_attack", down: "sp_defense" },
+    { name: "れいせい (C↑ S↓)", up: "sp_attack", down: "speed" },
+    { name: "おだやか (D↑ A↓)", up: "sp_defense", down: "attack" },
+    { name: "おとなしい (D↑ B↓)", up: "sp_defense", down: "defense" },
+    { name: "しんちょう (D↑ C↓)", up: "sp_defense", down: "sp_attack" },
+    { name: "なまいき (D↑ S↓)", up: "sp_defense", down: "speed" },
+    { name: "おくびょう (S↑ A↓)", up: "speed", down: "attack" },
+    { name: "せっかち (S↑ B↓)", up: "speed", down: "defense" },
+    { name: "ようき (S↑ C↓)", up: "speed", down: "sp_attack" },
+    { name: "むじゃき (S↑ D↓)", up: "speed", down: "sp_defense" },
+    { name: "てれや", up: null, down: null },
+    { name: "がんばりや", up: null, down: null },
+    { name: "すなお", up: null, down: null },
+    { name: "きまぐれ", up: null, down: null },
+    { name: "まじめ", up: null, down: null },
 ];
 
 export type StatRecord = Record<PokemonStatKey, { base: number; ev: number }>;
@@ -71,7 +71,8 @@ export interface StatusRequest {
     iv: number;
     ev: number;
     level: number;
-    nature_modifier: number;
+    nature_name: string;
+    stat_key: string;
 }
 
 export interface StatusResponse {

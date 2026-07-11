@@ -80,20 +80,18 @@ export const usePokemonStats = ({ initialPokemon, initialPokemonName, onStatusUp
         setIsLoading(true);
         setGlobalError(null);
         const selectedNature = NATURES[natureIndex];
+        const pureNatureName = selectedNature.name.split(" ")[0];
 
         const settled = await Promise.allSettled(
             STAT_KEYS.map(async (key) => {
-                let modifier = 1.0;
-                if (selectedNature.up === key) modifier = 1.1;
-                if (selectedNature.down === key) modifier = 0.9;
-
                 const requestData: StatusRequest = {
                     base_stat: stats[key].base,
                     iv: INDIVIDUAL_VALUE,
                     ev: stats[key].ev,
                     level: LEVEL,
                     is_hp: key === "hp",
-                    nature_modifier: modifier,
+                    nature_name: pureNatureName,
+                    stat_key: key,
                 };
 
                 try {

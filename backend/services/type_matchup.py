@@ -1,3 +1,4 @@
+# backend/services/type_matchup.py
 from __future__ import annotations
 
 from typing import List, Tuple
@@ -6,7 +7,7 @@ from fastapi import HTTPException
 
 from core.supabase import SupabaseClient
 
-@alru_cache(maxsize=36) # タイプの数は限られているため、適度なサイズでキャッシュ
+@alru_cache(maxsize=36)
 async def fetch_type_data(supabase: SupabaseClient, type_name: str) -> dict:
     """DBからタイプ情報と相性情報を取得する"""
     

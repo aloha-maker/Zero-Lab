@@ -108,7 +108,8 @@ export default function SpeedComparePage() {
                     iv: p.iv,
                     ev: p.ev,
                     level: 50, // レベル50固定
-                    nature_modifier: p.nature,
+                    nature_name: "まじめ",
+                    stat_key: "speed",
                 };
 
                 const response = await fetch(`${API_URL}/api/v1/status`, {
