@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Step1Page } from './pages/step1';
+import { SeasonDataPage } from '@/features/season/components/SeasonDataPage'
 import { Step2Page } from './pages/step2';
 import { Step3Page } from './pages/step3';
-import { useSeasonData } from './pages/step1/hooks/useSeasonData';
+import { useSeasonData } from '@/features/season/hooks/useSeasonData';
 import { MatrixResultRow } from "@/app/types/api"; 
 import { ConfiguredMainPokemon } from './pages/step2/types';
 import { PokemonCandidate } from './pages/step3/types';
@@ -39,7 +39,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const renderContent = () => {
     switch (currentPage) {
       case 1:
-        return <Step1Page seasonData={seasonData} />;
+        return <SeasonDataPage seasonData={seasonData} />;
       case 2:
         return (
           <Step2Page 

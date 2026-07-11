@@ -4,72 +4,24 @@ import asyncio
 import logging
 from typing import Any
 
-import httpx
-
 from core.supabase import SupabaseClient
 from schemas.pokemon import SeasonMoveInfo, SeasonPokemonInfo, SeasonNatureInfo, SeasonEvInfo
 
 from .pokemon_common import (
     ALL_POKEAPI_TYPES,
-    DEFAULT_LIMITS,
-    DEFAULT_TIMEOUT,
-    JAPANESE_LANGUAGE_ID,
-    POKEAPI_GRAPHQL_URL,
-    STAT_NAME_MAP,
     TYPE_ENG_TO_JA,
 )
-from .pokemon_mega import fetch_all_mega_forms_from_csv, fetch_mega_pokemon_data_from_pokeapi
 from .type_matchup import calculate_multiplier_and_message, fetch_type_data
 
 logger = logging.getLogger(__name__)
 
-GRAPHQL_CHUNK_SIZE = 20
 DEFAULT_RANK_FOR_UNKNOWN = 999
-
-_CHUNK_QUERY = f"""
-query($ids: [Int!]!) {{
-  pokemon_v2_pokemon(where: {{id: {{_in: $ids}}}}, order_by: {{id: asc}}) {{
-    id
-    name
-    pokemon_v2_pokemonspecy {{
-      pokemon_v2_pokemonspeciesnames(where: {{language_id: {{_eq: {JAPANESE_LANGUAGE_ID}}}}}) {{
-        name
-      }}
-    }}
-    pokemon_v2_pokemontypes {{
-      pokemon_v2_type {{
-        pokemon_v2_typenames(where: {{language_id: {{_eq: {JAPANESE_LANGUAGE_ID}}}}}) {{
-          name
-        }}
-      }}
-    }}
-    pokemon_v2_pokemonstats {{
-      base_stat
-      pokemon_v2_stat {{
-        name
-      }}
-    }}
-  }}
-}}
-"""
-
-
-def _sprite_url(pokemon_id: int) -> str:
-    return (
-        "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"
-        f"{pokemon_id}.png"
-    )
-
 
 # ---------------------------------------------------------------------------
 # 1. Supabaseからランキング・技・努力値データを取得
 # ---------------------------------------------------------------------------
 
 def _fetch_ranking_rows(supabase: SupabaseClient) -> list[dict]:
-    """
-    pokemon_rankings テーブルから、ランキング・PokeAPI ID対応・各種ランキングを
-    まとめて取得する(Supabaseのネスト select 機能を利用)。
-    """
     res = (
         supabase.table("pokemon_rankings")
         .select(
@@ -91,19 +43,9 @@ def _fetch_ranking_rows(supabase: SupabaseClient) -> list[dict]:
     )
     return res.data or []
 
-
 def _extract_rank_and_moves(
     rows: list[dict],
 ) -> tuple[dict[int, int], dict[int, list[dict]], list[int], dict[int, list[dict]], dict[int, list[dict]]]:
-    """
-    Supabaseの行データから、
-    - pokemon_id -> rank の対応
-    - pokemon_id -> 技リスト の対応
-    - pokemon_id -> 性格リスト の対応
-    - pokemon_id -> 努力値リスト の対応
-    - 対象となる pokemon_id のリスト
-    を組み立てる。
-    """
     pokemon_rank_map: dict[int, int] = {}
     pokemon_moves_map: dict[int, list[dict]] = {}
     pokemon_natures_map: dict[int, list[dict]] = {}
@@ -169,125 +111,147 @@ def _extract_rank_and_moves(
 
 
 # ---------------------------------------------------------------------------
-# 2. GraphQLからの並列チャンク取得
+# 2. Supabaseからのポケモン詳細一括取得
 # ---------------------------------------------------------------------------
 
-async def _fetch_chunk_from_graphql(client: httpx.AsyncClient, ids: list[int]) -> list[dict]:
-    try:
-        response = await client.post(
-            POKEAPI_GRAPHQL_URL,
-            json={"query": _CHUNK_QUERY, "variables": {"ids": ids}},
-            headers={"Content-Type": "application/json"},
-        )
-        response.raise_for_status()
-        return response.json().get("data", {}).get("pokemon_v2_pokemon", [])
-    except Exception:
-        logger.exception("GraphQLチャンク取得に失敗しました (ids=%s)", ids)
-        return []
-
-
-async def _fetch_all_pokemon_chunks(pokemon_ids: list[int]) -> list[dict]:
-    chunks = [
-        pokemon_ids[i : i + GRAPHQL_CHUNK_SIZE]
-        for i in range(0, len(pokemon_ids), GRAPHQL_CHUNK_SIZE)
-    ]
-
-    raw_pokemons: list[dict] = []
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT, limits=DEFAULT_LIMITS) as client:
-        tasks = [_fetch_chunk_from_graphql(client, chunk) for chunk in chunks]
-        results = await asyncio.gather(*tasks)
-        for result_list in results:
-            raw_pokemons.extend(result_list)
-    return raw_pokemons
+def _fetch_pokemon_and_megas_from_supabase(
+    supabase: SupabaseClient, pokemon_ids: list[int]
+) -> tuple[list[dict], list[dict]]:
+    """
+    ランキングに登録されている基本ポケモンのデータと、
+    同種族（species_id）に紐づくメガシンカのデータをまとめて取得する。
+    """
+    chunk_size = 100
+    base_chunks = [pokemon_ids[i : i + chunk_size] for i in range(0, len(pokemon_ids), chunk_size)]
+    
+    select_query = (
+        "id, species_id, form_category, form_name_ja, form_name_en, "
+        "hp, attack, defense, sp_attack, sp_defense, speed, height_dm, weight_hg, image_url, "
+        "species:pokemon_species!inner(national_dex_no, name_ja, name_en), "
+        "pokemon_types(types(name_ja, name_en))"
+    )
+    
+    base_pokemons = []
+    for chunk in base_chunks:
+        try:
+            resp = supabase.table("pokemon").select(select_query).in_("id", chunk).execute()
+            if resp.data:
+                base_pokemons.extend(resp.data)
+        except Exception:
+            logger.exception("Supabase基本データチャンク取得に失敗しました (ids=%s)", chunk)
+            
+    # 基本ポケモンに紐づく種族IDを抽出し、メガシンカ情報を取得
+    species_ids = list({p["species_id"] for p in base_pokemons if p.get("species_id") is not None})
+    mega_pokemons = []
+    
+    if species_ids:
+        s_chunks = [species_ids[i : i + chunk_size] for i in range(0, len(species_ids), chunk_size)]
+        for s_chunk in s_chunks:
+            try:
+                resp = (
+                    supabase.table("pokemon")
+                    .select(select_query)
+                    .in_("species_id", s_chunk)
+                    .eq("form_category", "mega")
+                    .execute()
+                )
+                if resp.data:
+                    mega_pokemons.extend(resp.data)
+            except Exception:
+                logger.exception("Supabaseメガシンカチャンク取得に失敗しました (species_ids=%s)", s_chunk)
+                
+    return base_pokemons, mega_pokemons
 
 
 # ---------------------------------------------------------------------------
-# 3. メガシンカ分の合成
+# 3. メガシンカ分の合成 (Supabase版)
 # ---------------------------------------------------------------------------
 
-async def _append_mega_forms(
-    raw_pokemons: list[dict],
+def _process_mega_forms(
+    base_pokemons: list[dict],
+    mega_pokemons: list[dict],
     pokemon_rank_map: dict[int, int],
     pokemon_moves_map: dict[int, list[dict]],
     pokemon_natures_map: dict[int, list[dict]],
     pokemon_evs_map: dict[int, list[dict]],
 ) -> list[dict]:
-    mega_forms = await fetch_all_mega_forms_from_csv()
-    all_raw_pokemon_dicts: list[dict] = []
-
-    for p_dict in raw_pokemons:
-        all_raw_pokemon_dicts.append(p_dict)
-
-        base_eng_name = p_dict.get("name", "").lower()
-        if not base_eng_name:
-            continue
-
-        matched_megas = [m for m in mega_forms if base_eng_name in m["identifier"]]
-
-        for mega_info in matched_megas:
-            try:
-                mega_pokemon_dict = await fetch_mega_pokemon_data_from_pokeapi(
-                    base_pokemon_dict=p_dict,
-                    form_poke_id=mega_info["form_poke_id"],
-                    form_suffix=mega_info["form_suffix"],
-                )
-
-                mega_id = mega_pokemon_dict["id"]
-                base_id = p_dict["id"]
-                pokemon_rank_map[mega_id] = pokemon_rank_map.get(base_id, DEFAULT_RANK_FOR_UNKNOWN)
-                pokemon_moves_map[mega_id] = pokemon_moves_map.get(base_id, [])
-                pokemon_natures_map[mega_id] = pokemon_natures_map.get(base_id, [])
-                pokemon_evs_map[mega_id] = pokemon_evs_map.get(base_id, [])
-
-                all_raw_pokemon_dicts.append(mega_pokemon_dict)
-
-            except Exception:
-                logger.exception(
-                    "メガシンカ生辞書の構築に失敗しました (%s)", mega_info["identifier"]
-                )
-                continue
-
-    return all_raw_pokemon_dicts
+    """基本ポケモンとメガシンカポケモンを結合し、メガシンカ側にランキング情報をコピーする"""
+    all_raw_pokemons = []
+    all_raw_pokemons.extend(base_pokemons)
+    
+    # species_id -> 基本ポケモンのid の対応表
+    species_to_base_id = {p["species_id"]: p["id"] for p in base_pokemons if p.get("species_id")}
+    
+    for mega in mega_pokemons:
+        base_id = species_to_base_id.get(mega.get("species_id"))
+        if base_id:
+            mega_id = mega["id"]
+            # ベースのランキング情報をメガシンカのIDにもコピー
+            pokemon_rank_map[mega_id] = pokemon_rank_map.get(base_id, DEFAULT_RANK_FOR_UNKNOWN)
+            pokemon_moves_map[mega_id] = pokemon_moves_map.get(base_id, [])
+            pokemon_natures_map[mega_id] = pokemon_natures_map.get(base_id, [])
+            pokemon_evs_map[mega_id] = pokemon_evs_map.get(base_id, [])
+            
+            all_raw_pokemons.append(mega)
+            
+    return all_raw_pokemons
 
 
 # ---------------------------------------------------------------------------
-# 4. 種族値・タイプの整形
+# 4. 種族値・タイプ・名前の整形
 # ---------------------------------------------------------------------------
+
+def _get_display_names(p: dict) -> tuple[str, str]:
+    """pokemon_detail.py と共通の命名ロジック"""
+    species = p.get("species", {})
+    base_name_ja = species.get("name_ja", "")
+    base_name_en = species.get("name_en", "")
+    
+    form_category = p.get("form_category", "")
+    form_name_ja = p.get("form_name_ja", "")
+    form_name_en = p.get("form_name_en", "")
+
+    if form_category == "normal":
+        return base_name_ja, base_name_en
+    elif form_category == "mega":
+        return (
+            form_name_ja if form_name_ja else base_name_ja,
+            form_name_en if form_name_en else base_name_en
+        )
+    else:
+        ja_name = f"{base_name_ja}({form_name_ja})" if form_name_ja else base_name_ja
+        en_name = f"{base_name_en} ({form_name_en})" if form_name_en else base_name_en
+        return ja_name, en_name
+
 
 def _parse_types(p: dict) -> tuple[list[str], list[str]]:
     localized_types: list[str] = []
     english_types: list[str] = []
 
-    for t in p.get("pokemon_v2_pokemontypes", []):
-        type_names = t.get("pokemon_v2_type", {}).get("pokemon_v2_typenames", [])
-        ja_t_name = type_names[0]["name"] if type_names else None
-        if ja_t_name:
-            localized_types.append(ja_t_name)
-
-        type_obj = t.get("pokemon_v2_type") or {}
-        eng_t_name = type_obj.get("name")
-
-        if eng_t_name:
-            english_types.append(str(eng_t_name).lower())
-        elif ja_t_name:
-            backup_eng = [eng for eng, ja in TYPE_ENG_TO_JA.items() if ja == ja_t_name]
-            if backup_eng:
-                english_types.append(backup_eng[0].lower())
+    for pt in p.get("pokemon_types", []):
+        t_data = pt.get("types")
+        if t_data:
+            if t_data.get("name_ja"):
+                localized_types.append(t_data["name_ja"])
+            if t_data.get("name_en"):
+                english_types.append(t_data["name_en"].lower())
 
     return localized_types, english_types
 
 
 def _parse_base_stats(p: dict) -> dict[str, int]:
-    base_stats: dict[str, int] = {}
-
-    for s in p.get("pokemon_v2_pokemonstats", []):
-        raw_stat_name = s.get("pokemon_v2_stat", {}).get("name")
-        mapped_name = STAT_NAME_MAP.get(raw_stat_name, raw_stat_name)
-        base_stats[mapped_name] = s["base_stat"]
-
-    hp_val = base_stats.get("hp", 0)
-    base_stats["hp_times_defense"] = hp_val * base_stats.get("defense", 0)
-    base_stats["hp_times_sp_defense"] = hp_val * base_stats.get("sp_defense", 0)
+    base_stats = {
+        "hp": p.get("hp", 0),
+        "attack": p.get("attack", 0),
+        "defense": p.get("defense", 0),
+        "sp_attack": p.get("sp_attack", 0),
+        "sp_defense": p.get("sp_defense", 0),
+        "speed": p.get("speed", 0),
+    }
+    
+    hp_val = base_stats["hp"]
+    base_stats["hp_times_defense"] = hp_val * base_stats["defense"]
+    base_stats["hp_times_sp_defense"] = hp_val * base_stats["sp_defense"]
 
     return base_stats
 
@@ -342,7 +306,6 @@ def _build_season_natures(raw_natures: list[dict]) -> list[SeasonNatureInfo]:
 
 
 def _build_season_evs(raw_evs: list[dict]) -> list[SeasonEvInfo]:
-    """努力値リストから SeasonEvInfo のリストを組み立てる。"""
     season_evs: list[SeasonEvInfo] = []
     for ev in raw_evs:
         if ev.get("rank") is None:
@@ -399,12 +362,9 @@ def _build_season_pokemon_info(
     pokemon_evs_map: dict[int, list[dict]],
 ) -> SeasonPokemonInfo:
     poke_id = p["id"]
-    english_name = p.get("name", "")
     actual_rank = pokemon_rank_map.get(poke_id, DEFAULT_RANK_FOR_UNKNOWN)
 
-    ja_names = p.get("pokemon_v2_pokemonspecy", {}).get("pokemon_v2_pokemonspeciesnames", [])
-    localized_name = ja_names[0]["name"] if ja_names else english_name
-
+    localized_name, english_name = _get_display_names(p)
     localized_types, english_types = _parse_types(p)
     base_stats = _parse_base_stats(p)
 
@@ -414,7 +374,6 @@ def _build_season_pokemon_info(
     raw_natures = pokemon_natures_map.get(poke_id, [])
     season_natures = _build_season_natures(raw_natures)
     
-    # 👇 努力値モデルのビルド処理を追加
     raw_evs = pokemon_evs_map.get(poke_id, [])
     season_evs = _build_season_evs(raw_evs)
     
@@ -427,18 +386,17 @@ def _build_season_pokemon_info(
         name=localized_name,
         english_name=english_name,
         types=localized_types,
-        abilities=[],
+        abilities=[],  
         base_stats=base_stats,
-        weight_kg=0.0,
-        height_m=0.0,
+        weight_kg=p.get("weight_hg", 0) / 10.0,
+        height_m=p.get("height_dm", 0) / 10.0,
         moves=[],
         season_moves=season_moves,
         season_natures=season_natures,
-        # 👇 Pydanticモデル側のプロパティ名（例: season_evs）に合わせてアサインしてください
         season_evs=season_evs,
         max_power_times_atk_by_type=max_atk_by_type,
         type_efficacies=type_efficacies,
-        image_url=_sprite_url(poke_id),
+        image_url=p.get("image_url") or "",
     )
 
 
@@ -453,17 +411,19 @@ async def get_active_season_pokemon_details(
     if not rows:
         return []
 
-    # 👇 戻り値と代入に pokemon_evs_map を追加
     pokemon_rank_map, pokemon_moves_map, pokemon_ids, pokemon_natures_map, pokemon_evs_map = _extract_rank_and_moves(rows)
     if not pokemon_ids:
         return []
 
-    raw_pokemons = await _fetch_all_pokemon_chunks(pokemon_ids)
-    all_raw_pokemon_dicts = await _append_mega_forms(
-        raw_pokemons, pokemon_rank_map, pokemon_moves_map, pokemon_natures_map, pokemon_evs_map
+    # Supabaseからベースポケモンとメガシンカデータを取得
+    base_pokemons, mega_pokemons = _fetch_pokemon_and_megas_from_supabase(supabase, pokemon_ids)
+    
+    # データを結合し、メガシンカにベースのランキング情報を付与
+    all_raw_pokemon_dicts = _process_mega_forms(
+        base_pokemons, mega_pokemons, pokemon_rank_map, pokemon_moves_map, pokemon_natures_map, pokemon_evs_map
     )
 
-    type_data_tasks = [fetch_type_data(t_name) for t_name in ALL_POKEAPI_TYPES]
+    type_data_tasks = [fetch_type_data(supabase,t_name) for t_name in ALL_POKEAPI_TYPES]
     type_data_results = await asyncio.gather(*type_data_tasks)
     type_data_map = dict(zip(ALL_POKEAPI_TYPES, type_data_results))
 

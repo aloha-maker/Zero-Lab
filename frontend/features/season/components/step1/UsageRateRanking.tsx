@@ -1,27 +1,14 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import type { SeasonPokemonInfo,RealDamageRankingResult } from "@/app/types/api";
+import type { SeasonPokemonInfo, RealDamageRankingResult } from "@/features/season/types/index";
 import { API_URL } from '@/lib/api-client';
+import { STAT_COLUMNS,SortKey, SortOrder } from "../../types";
 
 type SeasonPokemonResponse = {
     pokemons: SeasonPokemonInfo[];
     real_damage_ranking: RealDamageRankingResult[];
 };
-
-// 2. ループ処理（.map）で効率的に回すためのステータス列定義
-const STAT_COLUMNS = [
-    { key: "hp", label: "HP" },
-    { key: "attack", label: "攻撃" },
-    { key: "defense", label: "防御" },
-    { key: "sp_attack", label: "特攻" },
-    { key: "sp_defense", label: "特防" },
-    { key: "speed", label: "素早" },
-] as const;
-
-// ソート対象にできるキーの型を定義（型安全性を担保）
-type SortKey = "rank" | "id" | "name" | "hp" | "attack" | "defense" | "sp_attack" | "sp_defense" | "speed";
-type SortOrder = "asc" | "desc";
 
 export default function SeasonsPage() {
     // 状態管理（取得したポケモンリスト、ローディング、エラー）

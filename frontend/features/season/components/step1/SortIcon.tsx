@@ -1,4 +1,4 @@
-import { SortKey, SortOrder } from "./types";
+import { SortKey, SortOrder } from "../../types";
 
 type SortIconProps = {
     targetKey: SortKey;

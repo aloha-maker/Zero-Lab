@@ -1,12 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Depends
 import httpx
 from schemas.type_matchup import TypeMatchupRequest, TypeMatchupResponse
 from services.type_matchup import fetch_type_data, calculate_multiplier_and_message
+from core.supabase import get_supabase, SupabaseClient
 
 router = APIRouter()
 
 @router.post("/", response_model=TypeMatchupResponse)
-async def calculate_matchup(req: TypeMatchupRequest):
+async def calculate_matchup(req: TypeMatchupRequest,supabase: SupabaseClient = Depends(get_supabase)):
     attacker = req.attacker_type.lower()
     defenders = [t.lower() for t in req.defender_types if t]
 
@@ -15,7 +16,7 @@ async def calculate_matchup(req: TypeMatchupRequest):
 
     try:
         # サービス層でAPIからデータ取得
-        type_data = await fetch_type_data(attacker)
+        type_data = await fetch_type_data(supabase,attacker)
     except httpx.HTTPStatusError:
         raise HTTPException(status_code=404, detail=f"タイプ '{attacker}' が見つかりません。")
     except Exception:

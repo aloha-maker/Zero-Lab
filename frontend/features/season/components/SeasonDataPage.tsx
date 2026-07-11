@@ -1,28 +1,30 @@
 "use client";
 
-import { useSeasonData } from "./step1/hooks/useSeasonData";
-import { PokemonTable } from "./step1/PokemonTable";
-import { DamageRankingTable } from "./step1/DamageRankingTable";
+import { useSeasonData } from "../hooks/useSeasonData";
+import { PokemonTable } from "./PokemonTable";
+import { DamageRankingTable } from "./DamageRankingTable";
 
 // Propsの型定義を追加
 type Step1PageProps = {
-  seasonData: ReturnType<typeof useSeasonData>;
+    seasonData?: ReturnType<typeof useSeasonData>;
 };
 
-export function Step1Page({ seasonData }: Step1PageProps) {
+export function SeasonDataPage({ seasonData: externalSeasonData }: Step1PageProps) {
+    const internalSeasonData = useSeasonData();
+    const activeSeasonData = externalSeasonData ?? internalSeasonData;
     // Propsからすべて展開する
     const {
-      pokemonList,
-      sortedPokemonList,
-      realDamageRanking,
-      isLoading,
-      error,
-      hasSearched,
-      sortKey,
-      sortOrder,
-      handleSort,
-      fetchSeasonPokemons
-  } = seasonData;
+        pokemonList,
+        sortedPokemonList,
+        realDamageRanking,
+        isLoading,
+        error,
+        hasSearched,
+        sortKey,
+        sortOrder,
+        handleSort,
+        fetchSeasonPokemons
+    } = activeSeasonData;
 
     return (
         <div className="p-6 w-full mx-auto bg-slate-50 min-h-screen">

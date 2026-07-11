@@ -1,4 +1,4 @@
-import type { RealDamageRankingResult } from "@/app/types/api";
+import type { RealDamageRankingResult } from "@/features/season/types/index";
 
 type DamageRankingTableProps = {
     realDamageRanking: RealDamageRankingResult[];
