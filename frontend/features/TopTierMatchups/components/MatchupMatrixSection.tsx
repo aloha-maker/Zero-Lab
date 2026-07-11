@@ -1,14 +1,7 @@
-// frontend/app/party-building-studio/components/pages/step2/MatchupMatrixSection.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { 
-  MatchupInput, 
-  MatrixResultRow, 
-  MatrixResponse 
-} from "@/app/types/api"; 
-
-import { API_URL } from '@/lib/api-client';
+import { MatchupInput, MatrixResultRow } from "../types"; 
+import { useMatchupMatrix } from "../hooks/useMatchupMatrix";
 
 interface MatchupMatrixSectionProps {
   mainPokemonName?: string;
@@ -26,61 +19,15 @@ export default function MatchupMatrixSection({
   onMatrixCalculated,
   initialMatrixData = [],
 }: MatchupMatrixSectionProps) {
-  // APIから取得した結果（MatrixResultRowの配列）を管理するステート
-  const [matrixData, setMatrixData] = useState<MatrixResultRow[]>(initialMatrixData);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  const { matrixData, isLoading, handleCalculate } = useMatchupMatrix({
+    mainPokemonName,
+    selectedNatureName,
+    evs,
+    initialMatrixData,
+    onMatrixCalculated
+  });
 
-  useEffect(() => {
-    if (initialMatrixData && initialMatrixData.length > 0) {
-      setMatrixData(initialMatrixData);
-    }
-  }, [initialMatrixData]);
-
-  // バックエンドのAPIを呼び出す関数
-  const handleCalculate = async () => {
-    setIsLoading(true);
-    try {
-      
-      // 型定義に則ったリクエストボディの作成
-      const requestBody = {
-        main_pokemon_name: mainPokemonName,
-        nature: selectedNatureName.split(" ")[0],
-        evs: evs,
-      };
-
-      const response = await fetch(`${API_URL}/api/v1/strategy/matrix`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error("マトリクスの計算に失敗しました");
-      }
-
-      // レスポンスを型安全にパース
-      const data: MatrixResponse = await response.json();
-      setMatrixData(data.matrix);
-      if (onMatrixCalculated) {
-        onMatrixCalculated(data.matrix);
-      }
-    } catch (error: any) {
-        console.error(error);
-        
-        // バックエンドが返してきた詳細なエラーメッセージがあればそれを表示
-        if (error.message) {
-          alert(`エラー詳細: ${error.message}`);
-        } else {
-          alert("エラーが発生しました。バックエンドの起動状態を確認してください。");
-        }
-    } finally {
-    setIsLoading(false);
-    }
-  };
-
-  // 判定（◎/◯/△/×）に応じたバッジのTailwindスタイルを返す関数
   const getJudgmentBadgeStyle = (judgment: MatrixResultRow["judgment"]) => {
     switch (judgment) {
       case "◎": return "bg-blue-100 text-blue-700";
@@ -95,9 +42,7 @@ export default function MatchupMatrixSection({
     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="font-bold text-lg text-slate-700">
-            環境トップとの有利不利マトリクス
-          </h3>
+          <h3 className="font-bold text-lg text-slate-700">環境トップとの有利不利マトリクス</h3>
           <p className="text-xs text-slate-400 mt-0.5">検証主軸: {mainPokemonName}</p>
         </div>
         <button 
@@ -120,7 +65,6 @@ export default function MatchupMatrixSection({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {matrixData.length > 0 ? (
-              // APIよりデータ取得済みの場合はループ展開
               matrixData.map((row, index) => (
                 <tr key={`${row.opponent_rank}-${row.opponent_name}-${index}`} className="hover:bg-slate-50/50 transition-colors">
                   <td className="p-3 font-medium text-slate-700">
@@ -137,7 +81,6 @@ export default function MatchupMatrixSection({
                 </tr>
               ))
             ) : (
-              // 初期状態（未リクエスト時）のプレースホルダー表示
               <tr>
                 <td colSpan={3} className="p-10 text-center text-slate-400 italic bg-slate-50/30 rounded-b-lg">
                   「ダメージ計算を自動実行」ボタンを押して、シミュレーション結果を同期してください

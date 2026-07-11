@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { LeftSidebar } from './components/LeftSidebar';
 import { MainScreen } from './components/MainScreen';
-import { MatrixResultRow } from "@/app/types/api";
-import { ConfiguredMainPokemon } from "./components/pages/step2/types";
+import { MatrixResultRow,ConfiguredMainPokemon } from '@/features/TopTierMatchups/types/index';
 import { PokemonCandidate } from './components/pages/step3/types';
 import { TrainedList } from '@/features/parties/components/MemberList'
 

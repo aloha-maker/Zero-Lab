@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { SeasonDataPage } from '@/features/season/components/SeasonDataPage'
-import { TopTierMatchups } from './pages/TopTierMatchups';
+import { TopTierMatchups } from '@/features/TopTierMatchups/components/TopTierMatchups';
 import { Step3Page } from './pages/step3';
 import { useSeasonData } from '@/features/season/hooks/useSeasonData';
-import { MatrixResultRow } from "@/app/types/api"; 
-import { ConfiguredMainPokemon } from './pages/step2/types';
+import { ConfiguredMainPokemon,MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 import { PokemonCandidate } from './pages/step3/types';
 
 // Propsの型定義に入力値関連を追加
