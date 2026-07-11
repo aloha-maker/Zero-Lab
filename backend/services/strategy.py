@@ -78,7 +78,7 @@ class MatrixService:
         if not main_base_data:
             from services.pokemon_detail import fetch_pokemon_data
             try:
-                main_base_data = await fetch_pokemon_data(main_name)
+                main_base_data = await fetch_pokemon_data(supabase, main_name)
             except:
                 raise ValueError(f"ポケモンのデータソースが空です。")
         
@@ -119,7 +119,7 @@ class MatrixService:
                 m_dict = m.model_dump() if hasattr(m, 'model_dump') else m
                 if m_dict.get("move_type"): all_types_in_env.add(m_dict["move_type"])
 
-        tasks = [fetch_type_data(t) for t in all_types_in_env if t]
+        tasks = [fetch_type_data(supabase, t) for t in all_types_in_env if t]
         fetched_data_list = await asyncio.gather(*tasks)
         
         type_data_map = {}

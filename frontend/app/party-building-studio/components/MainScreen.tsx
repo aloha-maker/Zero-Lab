@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SeasonDataPage } from '@/features/season/components/SeasonDataPage'
-import { Step2Page } from './pages/step2';
+import { TopTierMatchups } from './pages/TopTierMatchups';
 import { Step3Page } from './pages/step3';
 import { useSeasonData } from '@/features/season/hooks/useSeasonData';
 import { MatrixResultRow } from "@/app/types/api"; 
@@ -42,7 +42,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         return <SeasonDataPage seasonData={seasonData} />;
       case 2:
         return (
-          <Step2Page 
+          <TopTierMatchups 
             matrixData={matrixData}
             onMatrixCalculated={onMatrixCalculated}
             mainPokemon={mainPokemon}
