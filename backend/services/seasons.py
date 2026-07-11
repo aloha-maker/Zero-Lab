@@ -32,6 +32,16 @@ def get_all_seasons(supabase: SupabaseClient) -> list[dict]:
         raise e
 
 
+# 💡 修正6: 「無効（0倍）」時に加算する防御指数は、対象ポケモン自身の耐久値
+# （individual_def_index）に依存しない固定値とする。
+# 個体の耐久値に比例させてしまうと、たまたま上位50位に高耐久な「無効持ち」が
+# いた場合にその1匹だけの影響が突出し、他の49匹に対する通りの良さの差が
+# 埋もれてしまい、ランキング順位が意図せず入れ替わる恐れがあるため。
+# ここでは「無効＝一切ダメージが通らない」という事実だけを、耐久値の大小に
+# 関わらず一律・十分に大きい値として反映する。
+IMMUNE_DEFENSE_PENALTY = 10_000_000
+
+
 async def calculate_real_damage_ranking(
     supabase: SupabaseClient,
     all_pokemons: List[SeasonPokemonInfo]
@@ -41,6 +51,7 @@ async def calculate_real_damage_ranking(
     攻撃側：全ポケモンの全攻撃技
     防御側：上位50位のポケモンごとに「耐久指数 ÷ 相性倍率」を個別に計算し、それを50匹分足し合わせる。
           （相性倍率が大きければ大きいほど、そのポケモンの防御壁は薄くなり、総防御指数が小さくなります）
+          （無効の場合は対象ポケモン自身の耐久値に関わらず、固定の巨大な防御指数を加算する）
     """
     top_50_defenders = all_pokemons[:50]
 
@@ -99,8 +110,13 @@ async def calculate_real_damage_ranking(
                 if multiplier > 0:
                     total_weighted_defense += (individual_def_index / multiplier)
                 else:
-                    # 無効（0倍）の場合は、巨大な数値を足す
-                    total_weighted_defense += (individual_def_index * 100)
+                    # 無効（0倍）の場合：「この技はこの1匹には全くダメージが通らない」
+                    # という事実を、対象の耐久値の大小に関わらず一律の固定値
+                    # (IMMUNE_DEFENSE_PENALTY) で反映する。
+                    # ※ individual_def_index を掛けてしまうと、たまたま高耐久な
+                    #   無効持ちが混ざった場合にランキングが不自然に歪むため、
+                    #   意図的に対象の耐久値を計算に含めない。
+                    total_weighted_defense += IMMUNE_DEFENSE_PENALTY
 
             # 整数にキャストして最終的な「総防御指数」とする
             defense_index = int(total_weighted_defense)
