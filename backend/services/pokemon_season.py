@@ -380,6 +380,25 @@ def _build_season_pokemon_info(
     max_atk_by_type = _build_max_power_by_type(season_moves)
     type_efficacies = _build_type_efficacies(english_types, type_data_map)    
 
+    # ▼ 追加: 1位の性格を抽出
+    top_nature = "まじめ"
+    if season_natures:
+        best_nature_obj = min(season_natures, key=lambda x: x.rank if x.rank is not None else 999)
+        top_nature = best_nature_obj.nature_name
+
+    # ▼ 追加: 1位の努力値を抽出
+    top_evs = {"hp": 0, "attack": 0, "defense": 0, "sp_attack": 0, "sp_defense": 0, "speed": 0}
+    if season_evs:
+        best_ev_obj = min(season_evs, key=lambda x: x.rank if x.rank is not None else 999)
+        top_evs = {
+            "hp": best_ev_obj.hp or 0,
+            "attack": best_ev_obj.attack or 0,
+            "defense": best_ev_obj.defense or 0,
+            "sp_attack": best_ev_obj.sp_attack or 0,
+            "sp_defense": best_ev_obj.sp_defense or 0,
+            "speed": best_ev_obj.speed or 0,
+        }
+
     return SeasonPokemonInfo(
         id=poke_id,
         rank=actual_rank,
@@ -397,6 +416,8 @@ def _build_season_pokemon_info(
         max_power_times_atk_by_type=max_atk_by_type,
         type_efficacies=type_efficacies,
         image_url=p.get("image_url") or "",
+        top_nature=top_nature, # ← 追加
+        top_evs=top_evs        # ← 追加
     )
 
 

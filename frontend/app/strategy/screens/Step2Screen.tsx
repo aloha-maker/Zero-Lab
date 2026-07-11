@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MatrixResultRow } from '@/app/types/api';
+import { MatrixResultRow } from "@/features/TopTierMatchups/types"; 
 import Phase1TargetList from './components/step2/Phase1TargetList';
 import Phase2ScreeningTrigger from './components/step2/Phase2ScreeningTrigger';
 import Phase3MatchupMatrix from './components/step2/Phase3MatchupMatrix';

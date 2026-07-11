@@ -4,11 +4,10 @@ import { useState } from "react";
 import { 
   MatchupInput, 
   MatrixResultRow, 
-  MatrixCalculationRequest, 
   MatrixResponse 
-} from "@/app/types/api"; 
+} from "@/features/TopTierMatchups/types"; 
 
-import { NATURES,API_URL } from "@/app/types/constants";
+import { API_URL } from '@/lib/api-client';
 
 interface MatchupMatrixSectionProps {
   mainPokemonName?: string;

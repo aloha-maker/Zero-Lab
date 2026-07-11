@@ -1,3 +1,4 @@
+# ルーター定義ファイル
 from fastapi import APIRouter
 from schemas.status import StatusRequest, StatusResponse
 from services.status import calculate_real_status
@@ -15,7 +16,8 @@ def calculate_status(req: StatusRequest):
         iv=req.iv,
         ev=req.ev,
         level=req.level,
-        nature_modifier=req.nature_modifier
+        nature_name=req.nature_name,
+        stat_key=req.stat_key
     )
         
     return {"real_stat": real_stat}

@@ -1,10 +1,11 @@
+// frontend/features/CandidateScreening/components/CandidateScreening.tsx
 import React, { useState } from 'react';
-import { MatrixResultRow } from '@/app/types/api';
+import { MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 import Phase1TargetList from './step3/Phase1TargetList';
 import Phase2ScreeningTrigger from './step3/Phase2ScreeningTrigger';
 import Phase3MatchupMatrix from './step3/Phase3MatchupMatrix';
 import Phase4RoleChecker from './step3/Phase4RoleChecker';
-import { PokemonCandidate } from './step3/types';
+import { PokemonCandidate } from '../types';
 
 interface Step3PageProps {
   matrixData: MatrixResultRow[];
@@ -13,7 +14,7 @@ interface Step3PageProps {
   onScreeningComplete: (filteredResults: PokemonCandidate[]) => void;
 }
 
-export const Step3Page: React.FC<Step3PageProps> = ({ 
+export const CandidateScreening: React.FC<Step3PageProps> = ({ 
   matrixData,
   isScreened,
   candidates,

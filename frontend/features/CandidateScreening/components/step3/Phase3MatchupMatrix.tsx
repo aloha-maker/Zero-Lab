@@ -1,4 +1,4 @@
-// app/strategy/screens/components/step2/Phase3MatchupMatrix.tsx
+// frontend/features/CandidateScreening/components/step3/Phase3MatchupMatrix.tsx
 "use client";
 
 import React from 'react';

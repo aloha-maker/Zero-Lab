@@ -1,4 +1,4 @@
-// app/strategy/screens/components/step2/Phase4RoleChecker.tsx
+// frontend/features/CandidateScreening/components/step3/Phase4RoleChecker.tsx
 "use client";
 
 import React, { useState } from 'react';

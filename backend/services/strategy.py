@@ -1,3 +1,4 @@
+# backend/services/strategy.py
 import math
 import asyncio
 from typing import List, Dict, Any, Tuple, Optional
@@ -10,57 +11,11 @@ from schemas.strategy import (
     AdvantageJudgment, DisadvantageCategory, ActionOrder
 )
 
-JE_TYPE_MAP = {
-    "ノーマル": "normal", "ほのお": "fire", "みず": "water", "くさ": "grass",
-    "でんき": "electric", "こおり": "ice", "かくとう": "fighting", "どく": "poison",
-    "じめん": "ground", "ひこう": "flying", "エスパー": "psychic", "むし": "bug",
-    "いわ": "rock", "ゴースト": "ghost", "ドラゴン": "dragon", "あく": "dark",
-    "はがね": "steel", "フェアリー": "fairy"
-}
-
-# 1. 全25種類の性格補正値マッピングを定義（固定値の代わりにこれを使用）
-NATURE_MODIFIERS: Dict[str, Dict[str, float]] = {
-    # 無補正
-    "てれや":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
-    "がんばりや":{"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
-    "すなお":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
-    "きまぐれ": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
-    "まじめ":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
-    # 攻撃（A）上昇
-    "さみしがり":{"hp": 1.0, "attack": 1.1, "defense": 0.9, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
-    "いじっぱり":{"hp": 1.0, "attack": 1.1, "defense": 1.0, "sp_attack": 0.9, "sp_defense": 1.0, "speed": 1.0},
-    "やんちゃ": {"hp": 1.0, "attack": 1.1, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 0.9, "speed": 1.0},
-    "ゆうかん": {"hp": 1.0, "attack": 1.1, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 0.9},
-    # 防御（B）上昇
-    "ずぶとい": {"hp": 1.0, "attack": 0.9, "defense": 1.1, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0},
-    "わんぱく": {"hp": 1.0, "attack": 1.0, "defense": 1.1, "sp_attack": 0.9, "sp_defense": 1.0, "speed": 1.0},
-    "のうてんき":{"hp": 1.0, "attack": 1.0, "defense": 1.1, "sp_attack": 1.0, "sp_defense": 0.9, "speed": 1.0},
-    "のんき":   {"hp": 1.0, "attack": 1.0, "defense": 1.1, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 0.9},
-    # 特攻（C）上昇
-    "ひかえめ": {"hp": 1.0, "attack": 0.9, "defense": 1.0, "sp_attack": 1.1, "sp_defense": 1.0, "speed": 1.0},
-    "おっとり": {"hp": 1.0, "attack": 1.0, "defense": 0.9, "sp_attack": 1.1, "sp_defense": 1.0, "speed": 1.0},
-    "うっかりや":{"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.1, "sp_defense": 0.9, "speed": 1.0},
-    "れいせい": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.1, "sp_defense": 1.0, "speed": 0.9},
-    # 特防（D）上昇
-    "おだやか": {"hp": 1.0, "attack": 0.9, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.1, "speed": 1.0},
-    "おとなしい":{"hp": 1.0, "attack": 1.0, "defense": 0.9, "sp_attack": 1.0, "sp_defense": 1.1, "speed": 1.0},
-    "しんちょう":{"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 0.9, "sp_defense": 1.1, "speed": 1.0},
-    "なまいき": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.1, "speed": 0.9},
-    # 素早さ（S）上昇
-    "おくびょう":{"hp": 1.0, "attack": 0.9, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.1},
-    "せっかち": {"hp": 1.0, "attack": 1.0, "defense": 0.9, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.1},
-    "ようき":   {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 0.9, "sp_defense": 1.0, "speed": 1.1},
-    "むじゃき": {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 0.9, "speed": 1.1},
-}
-
-# デフォルトの補正（リクエストが不正な場合などのフォールバック用）
-DEFAULT_NATURE = {"hp": 1.0, "attack": 1.0, "defense": 1.0, "sp_attack": 1.0, "sp_defense": 1.0, "speed": 1.0}
-
 class MatrixService:
     @staticmethod
     async def generate_auto_matrix(request: AutoMatrixRequest, supabase: SupabaseClient) -> MatrixResponse:
         """
-        Supabase + PokeAPI のリアルデータを用いて
+        Supabaseのデータを用いて
         有利不利マトリクスを完全自動実行・機械的判定します。
         """
         results = []
@@ -71,7 +26,7 @@ class MatrixService:
             opp for opp in all_environment_pokemons if opp.rank <= 50
         ]
         
-        # ① 主軸ポケモンのデータ補完と実数値計算
+        # 1. 主軸ポケモンのデータ補完と実数値計算
         main_name = request.main_pokemon_name
         main_base_data = next((p for p in active_environment_pokemons if p.name == main_name), None)
         
@@ -79,11 +34,10 @@ class MatrixService:
             from services.pokemon_detail import fetch_pokemon_data
             try:
                 main_base_data = await fetch_pokemon_data(supabase, main_name)
-            except:
-                raise ValueError(f"ポケモンのデータソースが空です。")
+            except Exception as e:
+                raise ValueError(f"ポケモンのデータソースが空です。{e}")
         
         request_nature_name = getattr(request, 'nature', 'まじめ')
-        main_nature = NATURE_MODIFIERS.get(request_nature_name, DEFAULT_NATURE)
 
         main_real_stats = {}
         stat_key_map = {"H": "hp", "A": "attack", "B": "defense", "C": "sp_attack", "D": "sp_defense", "S": "speed"}
@@ -94,10 +48,16 @@ class MatrixService:
             base_stats_source = main_base_data.base_stats if hasattr(main_base_data, 'base_stats') else main_base_data.get('base_stats', {})
             base = base_stats_source.get(internal_key, 100)
             ev = int(evs_dict.get(api_key, 0))
-
-            modifier = main_nature[internal_key]
+            
+            # 主軸ポケモンの計算部分
             main_real_stats[internal_key] = calculate_real_status(
-                is_hp=is_hp, base_stat=base, iv=31, ev=ev, level=50, nature_modifier=modifier
+                is_hp=is_hp, 
+                base_stat=base, 
+                iv=31, 
+                ev=ev, 
+                level=50, 
+                nature_name=request_nature_name,
+                stat_key=internal_key
             )
 
         main_types = main_base_data.types if hasattr(main_base_data, 'types') else main_base_data.get('types', [])
@@ -105,6 +65,8 @@ class MatrixService:
         main_moves_parsed = [
             m.model_dump() if hasattr(m, 'model_dump') else m for m in main_moves
         ]
+        
+        # print(f"【デバッグ】主軸ポケモン ({main_name}) の実数値: {main_real_stats}：タイプ{main_types}：技{main_moves}")
         
         # すべての技タイプデータを事前に一括キャッシュ
         all_types_in_env = set()
@@ -125,23 +87,40 @@ class MatrixService:
         type_data_map = {}
         for t_name, d in zip([t for t in all_types_in_env if t], fetched_data_list):
             type_data_map[t_name] = d
+            
+        # 修正：set を list に変換して順序を確定させる
+        all_types_list = [t for t in all_types_in_env if t]
+        
+        # 確定したリストの順序でタスクを作成
+        tasks = [fetch_type_data(supabase, t) for t in all_types_list]
+        fetched_data_list = await asyncio.gather(*tasks)
+
+        type_data_map = {}
+        # 確定したリストの順序で zip を行うため、マッピングが絶対にズレない
+        for t_name, d in zip(all_types_list, fetched_data_list):
+            type_data_map[t_name] = d
 
         # ②＆③ 環境トップのループ処理とマッチアップシミュレーション
         for opp in active_environment_pokemons:
             opp_real_stats = {}
             
-            opp_nature_name = getattr(opp, 'nature', 'まじめ')
-            opp_nature_map = NATURE_MODIFIERS.get(opp_nature_name, DEFAULT_NATURE)
+            opp_nature_name = getattr(opp, 'top_nature', 'まじめ')
+            opp_evs_dict = getattr(opp, 'top_evs', {})
             
             for api_key, internal_key in stat_key_map.items():
                 is_hp = (api_key == "H")
                 base = opp.base_stats.get(internal_key, 100)
+                calc_opp_ev = opp_evs_dict.get(internal_key, 0)
                 
-                opp_nature_modifier = opp_nature_map[internal_key]
-                calc_opp_ev = 0
-                
+                # 相手ポケモンの計算部分
                 opp_real_stats[internal_key] = calculate_real_status(
-                    is_hp=is_hp, base_stat=base, iv=31, ev=calc_opp_ev, level=50, nature_modifier=opp_nature_modifier
+                    is_hp=is_hp, 
+                    base_stat=base, 
+                    iv=31, 
+                    ev=calc_opp_ev, 
+                    level=50, 
+                    nature_name=opp_nature_name,
+                    stat_key=internal_key
                 )
             
             opp_moves = opp.season_moves if hasattr(opp, 'season_moves') else opp.get('season_moves', [])
@@ -154,30 +133,35 @@ class MatrixService:
             # ------------------------------------------------------------
             # ① 自分から相手への最適技を探す
             best_my_turns = 3
-            # ★【修正】ループの外でログ出力用の変数を安全に初期化
             best_my_move = {"move_name": "攻撃技", "move_type": main_types[0] if main_types else "ノーマル", "power": 90, "category": "物理"}
             my_multiplier = 1.0
-            
-            opp_type_efficacies = opp.type_efficacies if opp.type_efficacies else {}
             
             if main_moves_parsed:
                 for move in main_moves_parsed:
                     if move.get("category") == "変化" or not move.get("power"):
                         continue
-                        
-                    multiplier = opp_type_efficacies.get(move["move_type"], 1.0)
+                    
+                    # 修正点：opp.type_efficacies ではなく type_matchup.py のロジックを使用
+                    my_move_name = move.get("move_name")
+                    my_move_type = move.get("move_type")
+                    type_data = type_data_map.get(my_move_type)
+                    if type_data:
+                        multiplier, _ = calculate_multiplier_and_message(type_data, opp.types)
+                        # print(f"DEBUG: {opp.name}({opp.types}) vs {my_move_name}_{my_move_type}技 | 算出された倍率: {multiplier} | 参照データ: {type_data}")
+                    else:
+                        multiplier = 1.0
+
                     turns = MatrixService._calc_dynamic_turns_to_kill(
                         atk_stats=main_real_stats, def_stats=opp_real_stats,
                         move=move, atk_types=main_types, multiplier=multiplier
                     )
                     if turns < best_my_turns:
                         best_my_turns = turns
-                        best_my_move = move        # ★ 最適技を退避
-                        my_multiplier = multiplier # ★ 倍率を退避
+                        best_my_move = move        
+                        my_multiplier = multiplier 
 
             # ② 相手から自分への最適技を探す
             best_opp_turns = 3
-            # ★【修正】ループの外でログ出力用の変数を安全に初期化
             best_opp_move = {"move_name": "攻撃技", "move_type": opp.types[0] if opp.types else "ノーマル", "power": 80, "category": "物理"}
             opp_multiplier = 1.0
 
@@ -190,8 +174,8 @@ class MatrixService:
                     type_data = type_data_map.get(opp_move_type)
                     
                     if type_data:
-                        main_types_eng = [JE_TYPE_MAP.get(t, t) for t in main_types]
-                        multiplier, _ = calculate_multiplier_and_message(type_data, main_types_eng)
+                        # 修正点：英語への変換を排除し、日本語の主軸タイプ(main_types)を直接渡す
+                        multiplier, _ = calculate_multiplier_and_message(type_data, main_types)
                     else:
                         multiplier = 1.0
 
@@ -201,8 +185,8 @@ class MatrixService:
                     )
                     if turns < best_opp_turns:
                         best_opp_turns = turns
-                        best_opp_move = move          # ★ 最適技を退避
-                        opp_multiplier = multiplier   # ★ 倍率を退避
+                        best_opp_move = move          
+                        opp_multiplier = multiplier   
 
             my_turns = best_my_turns
             opp_turns = best_opp_turns
@@ -222,7 +206,7 @@ class MatrixService:
             )
             
             # ------------------------------------------------------------
-            # ログ出力（スコープエラーを完全に解消）
+            # ログ出力
             # ------------------------------------------------------------
             print(f"==================================================")
             print(f"【対面シミュレーション】主軸: {main_name} vs 相手: {opp.name} (Rank: {opp.opponent_rank if hasattr(opp, 'opponent_rank') else opp.rank})")

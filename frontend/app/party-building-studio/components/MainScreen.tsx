@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { SeasonDataPage } from '@/features/season/components/SeasonDataPage'
-import { TopTierMatchups } from './pages/TopTierMatchups';
-import { Step3Page } from './pages/step3';
+import { TopTierMatchups } from '@/features/TopTierMatchups/components/TopTierMatchups';
+import { CandidateScreening } from '@/features/CandidateScreening/components/CandidateScreening';
 import { useSeasonData } from '@/features/season/hooks/useSeasonData';
-import { MatrixResultRow } from "@/app/types/api"; 
-import { ConfiguredMainPokemon } from './pages/step2/types';
-import { PokemonCandidate } from './pages/step3/types';
+import { ConfiguredMainPokemon,MatrixResultRow } from '@/features/TopTierMatchups/types/index';
+import { PokemonCandidate } from '@/features/CandidateScreening/components/step3/types';
 
 // Propsの型定義に入力値関連を追加
 interface MainScreenProps {
@@ -49,9 +48,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             onMainPokemonChange={onMainPokemonChange}
           />
         );
-        case 3: // ★ case 3 を適切に定義
+        case 3:
           return (
-            <Step3Page 
+            <CandidateScreening 
               matrixData={matrixData}
               isScreened={isScreened}
               candidates={candidates}
