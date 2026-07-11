@@ -28,9 +28,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onMatrixCalculated,
   mainPokemon,
   onMainPokemonChange,
-  isScreened,       // ★受け取る
-  candidates,       // ★受け取る
-  onScreeningComplete // ★受け取る
+  isScreened,
+  candidates,
+  onScreeningComplete
 }) => {
   // step1の状態を維持する
   const seasonData = useSeasonData();
@@ -55,6 +55,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               isScreened={isScreened}
               candidates={candidates}
               onScreeningComplete={onScreeningComplete}
+              mainPokemon={mainPokemon}
             />
           );
       default:

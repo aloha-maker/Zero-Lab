@@ -1,6 +1,6 @@
 // frontend/features/candidate-screening/components/CandidateScreening.tsx
 import React from 'react';
-import { MatrixResultRow } from '@/features/TopTierMatchups/types/index';
+import { ConfiguredMainPokemon,MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 import Phase1TargetList from './Phase1TargetList';
 import Phase2ScreeningTrigger from './Phase2ScreeningTrigger';
 import Phase3MatchupMatrix from './Phase3MatchupMatrix';
@@ -12,13 +12,15 @@ interface CandidateScreeningProps {
   isScreened: boolean;
   candidates: PokemonCandidate[];
   onScreeningComplete: (filteredResults: PokemonCandidate[]) => void;
+  mainPokemon: ConfiguredMainPokemon | null;
 }
 
 export const CandidateScreening: React.FC<CandidateScreeningProps> = ({ 
   matrixData,
   isScreened,
   candidates,
-  onScreeningComplete
+  onScreeningComplete,
+  mainPokemon
 }) => {
   return (
     <section className="space-y-6 max-w-4xl mx-auto p-4 animate-in fade-in duration-300">

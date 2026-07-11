@@ -5,7 +5,7 @@ import { Header } from './components/Header';
 import { LeftSidebar } from './components/LeftSidebar';
 import { MainScreen } from './components/MainScreen';
 import { MatrixResultRow,ConfiguredMainPokemon } from '@/features/TopTierMatchups/types/index';
-import { PokemonCandidate } from '@/features/CandidateScreening/components/step3/types';
+import { PokemonCandidate } from '@/features/candidate-screening/types';
 import { TrainedList } from '@/features/parties/components/MemberList'
 
 export const Layout: React.FC = () => {
