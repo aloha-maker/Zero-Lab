@@ -4,7 +4,7 @@ import Phase1TargetList from './step3/Phase1TargetList';
 import Phase2ScreeningTrigger from './step3/Phase2ScreeningTrigger';
 import Phase3MatchupMatrix from './step3/Phase3MatchupMatrix';
 import Phase4RoleChecker from './step3/Phase4RoleChecker';
-import { PokemonCandidate } from './step3/types';
+import { PokemonCandidate } from '../types';
 
 interface Step3PageProps {
   matrixData: MatrixResultRow[];

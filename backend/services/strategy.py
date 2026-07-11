@@ -26,7 +26,7 @@ class MatrixService:
             opp for opp in all_environment_pokemons if opp.rank <= 50
         ]
         
-        # ① 主軸ポケモンのデータ補完と実数値計算
+        # 1. 主軸ポケモンのデータ補完と実数値計算
         main_name = request.main_pokemon_name
         main_base_data = next((p for p in active_environment_pokemons if p.name == main_name), None)
         
@@ -66,6 +66,8 @@ class MatrixService:
             m.model_dump() if hasattr(m, 'model_dump') else m for m in main_moves
         ]
         
+        # print(f"【デバッグ】主軸ポケモン ({main_name}) の実数値: {main_real_stats}：タイプ{main_types}：技{main_moves}")
+        
         # すべての技タイプデータを事前に一括キャッシュ
         all_types_in_env = set()
     
@@ -84,6 +86,18 @@ class MatrixService:
         
         type_data_map = {}
         for t_name, d in zip([t for t in all_types_in_env if t], fetched_data_list):
+            type_data_map[t_name] = d
+            
+        # 修正：set を list に変換して順序を確定させる
+        all_types_list = [t for t in all_types_in_env if t]
+        
+        # 確定したリストの順序でタスクを作成
+        tasks = [fetch_type_data(supabase, t) for t in all_types_list]
+        fetched_data_list = await asyncio.gather(*tasks)
+
+        type_data_map = {}
+        # 確定したリストの順序で zip を行うため、マッピングが絶対にズレない
+        for t_name, d in zip(all_types_list, fetched_data_list):
             type_data_map[t_name] = d
 
         # ②＆③ 環境トップのループ処理とマッチアップシミュレーション
@@ -128,10 +142,12 @@ class MatrixService:
                         continue
                     
                     # 修正点：opp.type_efficacies ではなく type_matchup.py のロジックを使用
+                    my_move_name = move.get("move_name")
                     my_move_type = move.get("move_type")
                     type_data = type_data_map.get(my_move_type)
                     if type_data:
                         multiplier, _ = calculate_multiplier_and_message(type_data, opp.types)
+                        # print(f"DEBUG: {opp.name}({opp.types}) vs {my_move_name}_{my_move_type}技 | 算出された倍率: {multiplier} | 参照データ: {type_data}")
                     else:
                         multiplier = 1.0
 

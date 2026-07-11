@@ -64,7 +64,8 @@ export default function Phase2ScreeningTrigger({
     setStatusText("環境TOP50データを取得中...");
 
     try {
-      const seasonRes = await fetch(`${API_URL}/api/v1/seasons/latest_pokemons`);
+      const seasonRes = await fetch(`${API_URL}/api/v1/seasons/
+        `);
       if (!seasonRes.ok) throw new Error("環境ポケモンの取得に失敗しました");
       
       const seasonData: SeasonPokemonResponse = await seasonRes.json();
@@ -191,17 +192,17 @@ export default function Phase2ScreeningTrigger({
         }
       }
 
-// 最終的にフェーズ3をパスした結果（単体、またはペアリスト）を親に返す
-onScreeningComplete(phase3FinalCandidates.slice(0, 5));
+  // 最終的にフェーズ3をパスした結果（単体、またはペアリスト）を親に返す
+  onScreeningComplete(phase3FinalCandidates.slice(0, 5));
 
-    } catch (err) {
-      console.error(err);
-      alert("エラーが発生しました。");
-    } finally {
-      setLoading(false);
-      setStatusText("");
-    }
-  };
+      } catch (err) {
+        console.error(err);
+        alert("エラーが発生しました。");
+      } finally {
+        setLoading(false);
+        setStatusText("");
+      }
+    };
 
   
 
