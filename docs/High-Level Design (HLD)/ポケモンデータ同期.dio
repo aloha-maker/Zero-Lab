@@ -103,7 +103,7 @@
         </mxGraphModel>
     </diagram>
     <diagram id="HaI2ftzzI1uvMsohAG0K" name="環境分析">
-        <mxGraphModel dx="949" dy="930" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="2482" dy="1642" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -119,17 +119,119 @@
                 <mxCell id="8WVNbuyjOyLRzLEx-8eM-4" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="8WVNbuyjOyLRzLEx-8eM-3">
                     <mxGeometry x="45" y="90" width="10" height="350" as="geometry"/>
                 </mxCell>
-                <mxCell id="8WVNbuyjOyLRzLEx-8eM-6" value="frontend/app/seasons/page.tsx" style="text;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-                    <mxGeometry x="5" y="228" width="190" height="30" as="geometry"/>
+                <mxCell id="8WVNbuyjOyLRzLEx-8eM-6" value="app/seasons/page.tsx" style="text;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="30" y="228" width="140" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="8WVNbuyjOyLRzLEx-8eM-7" value="frontend/app/party-building-studio/components/pages/step1.tsx" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-                    <mxGeometry x="170" y="180" width="360" height="30" as="geometry"/>
+                <mxCell id="8WVNbuyjOyLRzLEx-8eM-7" value="features/season/components/SeasonDataPage.tsx" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="205" y="228" width="290" height="30" as="geometry"/>
                 </mxCell>
                 <mxCell id="_hQbHCOXFag9v_eiwEX_-1" value="呼び出し" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" target="8WVNbuyjOyLRzLEx-8eM-1">
                     <mxGeometry width="160" relative="1" as="geometry">
                         <mxPoint x="100" y="390" as="sourcePoint"/>
                         <mxPoint x="255" y="390" as="targetPoint"/>
                     </mxGeometry>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-14" value="&lt;span style=&quot;color: rgb(0, 0, 0); text-wrap-mode: nowrap;&quot;&gt;app/seasons/page.tsx&lt;/span&gt;" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="1">
+                    <mxGeometry x="-90" y="-600" width="1190" height="700" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-15" value="&lt;span style=&quot;color: rgb(0, 0, 0); text-wrap-mode: nowrap;&quot;&gt;SeasonDataPage.tsx&lt;/span&gt;" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-14">
+                    <mxGeometry x="30" y="50" width="1160" height="630" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-16" value="&lt;span style=&quot;color: rgb(0, 0, 0); text-wrap-mode: nowrap;&quot;&gt;DamageRankingTable.tsx&lt;/span&gt;" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-15">
+                    <mxGeometry x="20" y="90" width="1080" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-17" value="&lt;span style=&quot;color: rgb(0, 0, 0); text-wrap-mode: nowrap;&quot;&gt;PokemonTable.tsx&lt;/span&gt;" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-15">
+                    <mxGeometry x="20" y="350" width="1080" height="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-18" value="データを検索する" style="whiteSpace=wrap;html=1;dashed=0;align=center;fontSize=12;shape=rect;fillColor=#e0e0e0;strokeColor=none;fontStyle=1;shadow=1" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-15">
+                    <mxGeometry x="900" y="40" width="100" height="36" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-22" value="python" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                    <mxGeometry x="1010" y="280" width="100" height="910" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-23" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-22">
+                    <mxGeometry x="45" y="90" width="10" height="650" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-24" value="データを検索する&lt;div&gt;/api/v1/seasons/latest_pokemons&lt;/div&gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" target="_hQbHCOXFag9v_eiwEX_-22">
+                    <mxGeometry width="160" relative="1" as="geometry">
+                        <mxPoint x="340" y="390" as="sourcePoint"/>
+                        <mxPoint x="570" y="390" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-25" value="frontend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                    <mxGeometry x="440" y="950" width="100" height="300" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-26" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-25">
+                    <mxGeometry x="45" y="90" width="10" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-27" value="frontend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                    <mxGeometry x="440" y="1335" width="100" height="300" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-28" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-27">
+                    <mxGeometry x="45" y="90" width="10" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-29" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space-collapse: preserve;&quot;&gt;&lt;div style=&quot;color: rgb(212, 212, 212); line-height: 19px;&quot;&gt;&lt;div style=&quot;color: rgb(212, 212, 212); line-height: 19px;&quot;&gt;&lt;span style=&quot;color: #d4d4d4;&quot;&gt;setRealDamageRanking(data.real_damage_ranking || []);&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1">
+                    <mxGeometry width="160" relative="1" as="geometry">
+                        <mxPoint x="1039.5" y="1445" as="sourcePoint"/>
+                        <mxPoint x="500" y="1445" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-30" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;DamageRankingTable.tsx&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="410" y="920" width="160" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-31" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space-collapse: preserve;&quot;&gt;&lt;div style=&quot;color: rgb(212, 212, 212); line-height: 19px;&quot;&gt;&lt;span style=&quot;color: #d4d4d4;&quot;&gt;setPokemonList(data.pokemons || []);&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" target="_hQbHCOXFag9v_eiwEX_-25">
+                    <mxGeometry width="160" relative="1" as="geometry">
+                        <mxPoint x="1050" y="1065" as="sourcePoint"/>
+                        <mxPoint x="530" y="1065" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-32" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;PokemonTable.tsx&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="430" y="1295" width="120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-33" value="backend/routers/seasons.py" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="970" y="240" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-34" value="python" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                    <mxGeometry x="1406" y="280" width="100" height="380" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-35" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-34">
+                    <mxGeometry x="45" y="90" width="10" height="180" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-36" value="pokemon_season.py" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="1400" y="240" width="130" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-37" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space-collapse: preserve;&quot;&gt;&lt;div style=&quot;color: rgb(212, 212, 212); line-height: 19px;&quot;&gt;&lt;span style=&quot;color: rgb(212, 212, 212);&quot;&gt;calculate_real_damage_ranking&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;color: rgb(212, 212, 212); line-height: 19px;&quot;&gt;&lt;span style=&quot;color: rgb(212, 212, 212);&quot;&gt;(detailed_pokemons)&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" target="_hQbHCOXFag9v_eiwEX_-38">
+                    <mxGeometry width="160" relative="1" as="geometry">
+                        <mxPoint x="1074" y="810" as="sourcePoint"/>
+                        <mxPoint x="1429.5" y="810" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-38" value="python" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                    <mxGeometry x="1406" y="710" width="100" height="300" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-39" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="_hQbHCOXFag9v_eiwEX_-38">
+                    <mxGeometry x="45" y="90" width="10" height="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-40" value="seasons.py" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                    <mxGeometry x="1409" y="670" width="80" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-41" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space-collapse: preserve;&quot;&gt;&lt;span style=&quot;color: #d4d4d4;&quot;&gt;get_active_season_pokemon_details&lt;/span&gt;&lt;/div&gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" target="_hQbHCOXFag9v_eiwEX_-34">
+                    <mxGeometry width="160" relative="1" as="geometry">
+                        <mxPoint x="1059" y="390" as="sourcePoint"/>
+                        <mxPoint x="1415" y="390" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-42" value="&lt;div style=&quot;color: rgb(212, 212, 212); background-color: rgb(30, 30, 30); font-family: Consolas, &amp;quot;Courier New&amp;quot;, monospace; font-size: 14px; line-height: 19px; white-space-collapse: preserve;&quot;&gt;&lt;div style=&quot;color: rgb(212, 212, 212); line-height: 19px;&quot;&gt;&lt;span style=&quot;color: rgb(212, 212, 212);&quot;&gt;detailed_pokemons&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" source="_hQbHCOXFag9v_eiwEX_-34" target="_hQbHCOXFag9v_eiwEX_-23">
+                    <mxGeometry width="160" relative="1" as="geometry">
+                        <mxPoint x="1310" y="460" as="sourcePoint"/>
+                        <mxPoint x="750" y="460" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-44" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp;`pokemon_season.py` のメイン処理（`get_active_season_pokemon_details` 関数）では、おおまかに以下の順序でデータの取得と構築を行っています。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;1. **ランキングデータの取得 (`_fetch_ranking_rows`)**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* Supabaseの `pokemon_rankings` テーブルから、対象となるポケモンの順位、採用されている技・性格・努力値のデータを一括で取得します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;2. **データのマッピング (`_extract_rank_and_moves`)**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 取得したランキング情報をプログラム上で扱いやすいように、ポケモンIDをキーとした辞書（順位、技リスト、性格リスト、努力値リスト）に整理し、対象ポケモンのIDリストを抽出します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;3. **ポケモン詳細データの取得 (`_fetch_pokemon_and_megas_from_supabase`)**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 対象となる基本ポケモンと、同種族に紐づくメガシンカポケモンの詳細データ（種族値、タイプ、名前、身長・体重、画像URLなど）を、Supabaseからチャンク（分割）単位で一括取得します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;4. **メガシンカのデータ合成 (`_process_mega_forms`)**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 取得した基本ポケモンとメガシンカポケモンのデータを1つのリストに結合し、メガシンカ側のポケモンに対して、元の基本ポケモンのランキング情報（順位や技リストなど）をコピーして引き継がせます。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;5. **タイプ相性データの準備 (`fetch_type_data`)**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 全18タイプの相性データ（攻撃時の倍率など）を非同期処理で並列に取得し、マップ（辞書）化します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;6. **最終データの組み立て・計算 (`_build_season_pokemon_info`)**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 取得したすべてのデータを統合し、各ポケモンに対して以下の計算・整形を行い、専用のデータモデル（`SeasonPokemonInfo`）を構築します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 表示名（通常・メガ・リージョン等）の決定とタイプの抽出&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 種族値に基づく「耐久指数」の算出&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 採用技の実質火力（タイプ一致ボーナス × 攻撃 or 特攻種族値 × 技の威力）の計算&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* タイプごとの最大火力の算出&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 防御時のタイプ相性倍率（弱点や耐性）の適用&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;7. **ソートと返却**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 完成したすべてのポケモンのデータリストを、ランキング順位（`rank`）の昇順に並び替えて呼び出し元（ルーターなど）へ返却します。&lt;/font&gt;&lt;/div&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;align=left;size=14;spacingRight=10;spacingLeft=6;" vertex="1" parent="1">
+                    <mxGeometry x="1570" y="30" width="1240" height="530" as="geometry"/>
+                </mxCell>
+                <mxCell id="_hQbHCOXFag9v_eiwEX_-45" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&amp;nbsp;`seasons.py` では、大きく分けて **1. シーズン一覧の取得** と **2. 技の通りやすさ（実質ダメージ指数）ランキングの計算** の2つの処理を行っています。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;それぞれの処理の順番を箇条書きで解説します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;### 1. シーズン一覧の取得 (`get_all_seasons`)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **シーズンデータの取得:** Supabaseの `seasons` テーブルからシーズン情報を取得します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **ルールの結合:** 同時に `rules` テーブルを結合（JOIN）し、そのシーズンに適用されるルール情報をデータ内にネストして含めます。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **ソートと返却:** 開始日（`start_date`）が新しい順（降順）に並べ替えて呼び出し元に返却します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;### 2. 技の通りやすさランキング計算 (`calculate_real_damage_ranking`)&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;引数として受け取ったシーズンで活躍しているポケモンのリストをもとに、「環境上位に対してどのポケモンのどの技が一番刺さるか」を計算します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **仮想敵（防衛側）の抽出:** 受け取ったポケモンデータのうち、ランキング上位50匹を「攻撃を受ける防衛側」の基準としてピックアップします。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **タイプマスターと相性データの準備:** Supabaseの `types` テーブルからタイプ名の英日マッピングを取得し、各タイプの相性データ（攻撃時の倍率情報など）を非同期で一括取得・マップ（辞書）化します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **全攻撃パターンのループ計算:** 「すべてのポケモンの、すべての攻撃技」について、以下の計算を1つずつ実行します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **仮想敵50匹に対する「総防御壁」の集計:**&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 防衛側（上位50匹）それぞれの基礎耐久指数（物理技ならHP×防御、特殊技ならHP×特防）を算出します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* その攻撃技に対する防衛側ポケモンの「タイプ相性倍率（弱点、いまひとつ、無効など）」を計算します。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* 基礎耐久指数を相性倍率で割ることで、「実質的な防御壁」を計算します。（弱点なら壁が薄くなり、無効なら突破不可の巨大な壁として扱われます）&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* これらを50匹分足し合わせ、その技に対する環境上位の「総防御指数」を定めます。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **実質ダメージ指数（環境突破力）の算出:** 攻撃側の火力指数（攻撃/特攻 × 技威力 × 一致ボーナス）を、先ほど計算した「総防御指数」で割り算します（※見やすい数値になるよう最後に10万倍しています）。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **ソートと上位抽出:** 計算されたすべての攻撃パターンのうち、実質ダメージ指数が最も高い（＝環境上位50匹に対して総合的に最もダメージの通りが良い）順に並べ替えます。&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;* **結果の返却:** 上位50件を抽出し、専用のデータモデル（`RealDamageRankingResult`）のリストに成形して返却します。&lt;/font&gt;&lt;/div&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;align=left;size=14;spacingRight=10;spacingLeft=6;" vertex="1" parent="1">
+                    <mxGeometry x="1540" y="700" width="1340" height="450" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

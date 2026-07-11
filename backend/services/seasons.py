@@ -1,30 +1,18 @@
-import os
-from supabase import create_client, Client
 import asyncio
 from typing import List
+
+from core.supabase import SupabaseClient
 from schemas.seasons import RealDamageRankingResult, SeasonPokemonInfo
 from .type_matchup import fetch_type_data, calculate_multiplier_and_message
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# 英語 ⇄ 日本語のマッピング辞書
-TYPE_ENG_TO_JA = {
-    "normal": "ノーマル", "fire": "ほのお", "water": "みず", 
-    "electric": "でんき", "grass": "くさ", "ice": "こおり", 
-    "fighting": "かくとう", "poison": "どく", "ground": "じめん", 
-    "flying": "ひこう", "psychic": "エスパー", "bug": "むし", 
-    "rock": "いわ", "ghost": "ゴースト", "dragon": "ドラゴン", 
-    "dark": "あく", "steel": "はがね", "fairy": "フェアリー"
-}
-ALL_TYPES_JA = list(TYPE_ENG_TO_JA.values())
-
-def get_all_seasons() -> list[dict]:
+def get_all_seasons(supabase: SupabaseClient) -> list[dict]:
     """
     データベースからシーズンの一覧を取得する。
     紐づく rules テーブルの情報も合わせて返却する。
+
+    Args:
+        supabase (SupabaseClient): 注入されたSupabaseクライアント
 
     Returns:
         list[dict]: シーズン情報のリスト（rule オブジェクト含む）
@@ -43,21 +31,27 @@ def get_all_seasons() -> list[dict]:
         print(f"Error fetching seasons: {e}")
         raise e
 
+
 async def calculate_real_damage_ranking(
+    supabase: SupabaseClient,
     all_pokemons: List[SeasonPokemonInfo]
 ) -> List[RealDamageRankingResult]:
     """
-    【数式バグ修正版：真の環境通りが良い技ランキング】
+    【真の環境通りが良い技ランキング】
     攻撃側：全ポケモンの全攻撃技
     防御側：上位50位のポケモンごとに「耐久指数 ÷ 相性倍率」を個別に計算し、それを50匹分足し合わせる。
           （相性倍率が大きければ大きいほど、そのポケモンの防御壁は薄くなり、総防御指数が小さくなります）
     """
     top_50_defenders = all_pokemons[:50]
     
+    # DBの types テーブルから タイプ名（英語・日本語）の一覧を取得
+    types_res = supabase.table("types").select("name_en, name_ja").execute()
+    type_eng_to_ja = {t["name_en"]: t["name_ja"] for t in (types_res.data or [])}
+    
     # 事前にPokeAPIの相性データを準備（キャッシュ利用で高速）
-    type_data_tasks = [fetch_type_data(eng) for eng in TYPE_ENG_TO_JA.keys()]
+    type_data_tasks = [fetch_type_data(eng) for eng in type_eng_to_ja.keys()]
     type_data_results = await asyncio.gather(*type_data_tasks)
-    type_data_map = dict(zip(TYPE_ENG_TO_JA.keys(), type_data_results))
+    type_data_map = dict(zip(type_eng_to_ja.keys(), type_data_results))
     
     all_damage_scenarios = []
 
@@ -67,7 +61,7 @@ async def calculate_real_damage_ranking(
             if not move.power_times_atk or move.power_times_atk == 0:
                 continue
                 
-            move_type_eng = [eng for eng, ja in TYPE_ENG_TO_JA.items() if ja == move.move_type]
+            move_type_eng = [eng for eng, ja in type_eng_to_ja.items() if ja == move.move_type]
             if not move_type_eng:
                 continue
             t_data = type_data_map[move_type_eng[0]]
@@ -79,7 +73,7 @@ async def calculate_real_damage_ranking(
                 # 日本語タイプ名から英語名リストを即席で作成
                 def_types_eng = []
                 for t_ja in defender.types:
-                    eng_list = [e for e, j in TYPE_ENG_TO_JA.items() if j == t_ja]
+                    eng_list = [e for e, j in type_eng_to_ja.items() if j == t_ja]
                     if eng_list:
                         def_types_eng.append(eng_list[0])
                 
@@ -92,7 +86,6 @@ async def calculate_real_damage_ranking(
                 else:
                     individual_def_index = defender.base_stats.get("hp_times_sp_defense", 1)
                 
-                # 💡【バグ修正箇所】
                 # 倍率が高い（弱点）ほど、分母の防御壁を小さく（薄く）する
                 # 倍率が0（無効）の場合は、実質防御壁が無限大（ダメージが通らない）になるため、巨大な数値を足すかスキップ
                 if multiplier > 0:

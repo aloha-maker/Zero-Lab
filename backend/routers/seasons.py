@@ -13,7 +13,7 @@ async def get_season_pokemon_details(supabase: SupabaseClient = Depends(get_supa
     try:
         detailed_pokemons = await get_active_season_pokemon_details(supabase)
         # 新しい実質ダメージランキングを算出
-        real_damage_ranking = await calculate_real_damage_ranking(detailed_pokemons)
+        real_damage_ranking = await calculate_real_damage_ranking(supabase,detailed_pokemons)
         
         return SeasonPokemonResponse(
             pokemons=detailed_pokemons,

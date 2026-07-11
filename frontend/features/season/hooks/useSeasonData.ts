@@ -1,16 +1,17 @@
+// frontend/features/season/hooks/useSeasonData.ts
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
 import type { SeasonPokemonInfo, RealDamageRankingResult } from "@/features/season/types/index";
-import { API_URL } from '@/lib/api-client';
-import { SeasonPokemonResponse, SortKey, SortOrder } from "../types";
+import { SortKey, SortOrder } from "../types";
+import { getLatestPokemons } from "../api/getLatestPokemons";
 
 export function useSeasonData() {
     const [pokemonList, setPokemonList] = useState<SeasonPokemonInfo[]>([]);
     const [realDamageRanking, setRealDamageRanking] = useState<RealDamageRankingResult[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false); // 初期値はfalseに
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [hasSearched, setHasSearched] = useState<boolean>(false); // 検索ボタンが押されたかのフラグ
+    const [hasSearched, setHasSearched] = useState<boolean>(false);
 
     const [sortKey, setSortKey] = useState<SortKey>("rank");
     const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
@@ -22,15 +23,20 @@ export function useSeasonData() {
         setHasSearched(true);
 
         try {
-            const res = await fetch(`${API_URL}/api/v1/seasons/latest_pokemons`);
-            if (!res.ok) {
-                throw new Error("データの取得に失敗しました");
-            }
-            const data: SeasonPokemonResponse = await res.json();
+            // 切り出したAPI関数を実行
+            const data = await getLatestPokemons();
+            
             setPokemonList(data.pokemons || []);
             setRealDamageRanking(data.real_damage_ranking || []);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "予期せぬエラーが発生しました");
+        } catch (err: unknown) {
+            console.error("🔥 シーズンポケモンの取得に失敗しました:", err);
+            
+            // API層で成形されたメッセージをそのまま利用する
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError("不明なエラーが発生しました");
+            }
         } finally {
             setIsLoading(false);
         }
