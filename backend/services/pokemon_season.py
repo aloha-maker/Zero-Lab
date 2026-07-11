@@ -423,7 +423,7 @@ async def get_active_season_pokemon_details(
         base_pokemons, mega_pokemons, pokemon_rank_map, pokemon_moves_map, pokemon_natures_map, pokemon_evs_map
     )
 
-    type_data_tasks = [fetch_type_data(t_name) for t_name in ALL_POKEAPI_TYPES]
+    type_data_tasks = [fetch_type_data(supabase,t_name) for t_name in ALL_POKEAPI_TYPES]
     type_data_results = await asyncio.gather(*type_data_tasks)
     type_data_map = dict(zip(ALL_POKEAPI_TYPES, type_data_results))
 

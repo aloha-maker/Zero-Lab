@@ -1,50 +1,57 @@
-import httpx
+from __future__ import annotations
+
 from typing import List, Tuple
+from async_lru import alru_cache
+from fastapi import HTTPException
 
-POKEAPI_TYPE_URL = "https://pokeapi.co/api/v2/type/"
-TYPE_CACHE = {}
+from core.supabase import SupabaseClient
 
-# ★【追加】日本語タイプ名から PokeAPI用の英語タイプ名への変換マップ
-JE_TYPE_MAP = {
-    "ノーマル": "normal", "ほのお": "fire", "みず": "water", "くさ": "grass",
-    "でんき": "electric", "こおり": "ice", "かくとう": "fighting", "どく": "poison",
-    "じめん": "ground", "ひこう": "flying", "エスパー": "psychic", "むし": "bug",
-    "いわ": "rock", "ゴースト": "ghost", "ドラゴン": "dragon", "あく": "dark",
-    "はがね": "steel", "フェアリー": "fairy"
-}
-
-async def fetch_type_data(type_name: str) -> dict:
-    """PokeAPIからタイプ情報を取得する（キャッシュ優先）"""
-    # ★【追加】もし日本語で届いたら英語に変換。マップになければそのまま小文字で利用
-    eng_type_name = JE_TYPE_MAP.get(type_name, type_name).lower()
+@alru_cache(maxsize=36) # タイプの数は限られているため、適度なサイズでキャッシュ
+async def fetch_type_data(supabase: SupabaseClient, type_name: str) -> dict:
+    """DBからタイプ情報と相性情報を取得する"""
     
-    if eng_type_name in TYPE_CACHE:
-        return TYPE_CACHE[eng_type_name]
-    
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        # ★ eng_type_name をURLに使うように修正
-        res = await client.get(f"{POKEAPI_TYPE_URL}{eng_type_name}")
-        res.raise_for_status()
-        data = res.json()
-        TYPE_CACHE[eng_type_name] = data
-        return data
+    # 1. typesテーブルから日本語または英語名でタイプを検索
+    response = supabase.table("types").select("id, name_ja, name_en") \
+        .or_(f"name_ja.eq.{type_name},name_en.ilike.{type_name}") \
+        .limit(1).execute()
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail=f"Type not found: {type_name}")
+
+    type_info = response.data[0]
+    type_id = type_info["id"]
+
+    # 2. type_efficacies テーブルから、このタイプが「攻撃側」のときの相性倍率を取得
+    # ※ Supabaseでリレーションを組んでいる前提
+    eff_response = supabase.table("type_efficacies").select(
+        "damage_factor, target_type:types!target_type_id(name_ja)"
+    ).eq("damage_type_id", type_id).execute()
+
+    # 防御側タイプ名(日本語)をキーに、倍率を保持する辞書を作成
+    # 例: {"ほのお": 0.5, "みず": 0.5, "くさ": 2.0, ...}
+    damage_relations = {}
+    if eff_response.data:
+        for eff in eff_response.data:
+            target_name = eff.get("target_type", {}).get("name_ja")
+            factor = eff.get("damage_factor", 100)
+            if target_name:
+                damage_relations[target_name] = factor / 100.0 # 200 -> 2.0
+
+    return {
+        "id": type_id,
+        "name_ja": type_info["name_ja"],
+        "name_en": type_info["name_en"],
+        "damage_relations": damage_relations
+    }
 
 def calculate_multiplier_and_message(type_data: dict, defenders: List[str]) -> Tuple[float, str]:
-    """タイプ相性の倍率とメッセージを計算する純粋な関数"""
+    """タイプ相性の倍率とメッセージを計算する"""
     damage_relations = type_data.get("damage_relations", {})
     
-    double_damage_to = [t["name"] for t in damage_relations.get("double_damage_to", [])]
-    half_damage_to = [t["name"] for t in damage_relations.get("half_damage_to", [])]
-    no_damage_to = [t["name"] for t in damage_relations.get("no_damage_to", [])]
-
     multiplier = 1.0
     for defender in defenders:
-        if defender in double_damage_to:
-            multiplier *= 2.0
-        elif defender in half_damage_to:
-            multiplier *= 0.5
-        elif defender in no_damage_to:
-            multiplier *= 0.0
+        # DBから取得した相性辞書に存在すればその倍率を、なければ等倍(1.0)を乗算
+        multiplier *= damage_relations.get(defender, 1.0)
 
     if multiplier > 1.0:
         msg = "効果は ばつぐんだ！"
