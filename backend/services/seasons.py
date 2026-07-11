@@ -43,7 +43,20 @@ async def calculate_real_damage_ranking(
           （相性倍率が大きければ大きいほど、そのポケモンの防御壁は薄くなり、総防御指数が小さくなります）
     """
     top_50_defenders = all_pokemons[:50]
-    
+
+    # 💡 修正5: 防衛側50匹の「タイプリスト・物理耐久指数・特殊耐久指数」を
+    # 攻撃技ループに入る前に一度だけ計算し、軽量なリストとして保持する。
+    # こうすることで、攻撃技×防衛側のネストループ内で
+    # defender.base_stats.get(...) を毎回呼び出すオーバーヘッドを避けられる。
+    precomputed_defenders = [
+        (
+            defender.types,
+            defender.base_stats.get("hp_times_defense", 1),
+            defender.base_stats.get("hp_times_sp_defense", 1),
+        )
+        for defender in top_50_defenders
+    ]
+
     # 💡 修正1: 英語への変換辞書処理をすべて削除し、使用されている技のタイプ(日本語)だけを抽出
     unique_move_types = set()
     for attacker in all_pokemons:
@@ -71,17 +84,17 @@ async def calculate_real_damage_ranking(
                 continue
 
             total_weighted_defense = 0.0
-            
-            for defender in top_50_defenders:
-                # 💡 修正4: 防御側のタイプ(日本語のリスト)をそのまま渡すだけでOK！
-                multiplier, _ = calculate_multiplier_and_message(t_data, defenders=defender.types)
 
-                # カテゴリ（物理/特殊）に応じた、このポケモン固有の耐久指数を取得
-                if move.category == "物理":
-                    individual_def_index = defender.base_stats.get("hp_times_defense", 1)
-                else:
-                    individual_def_index = defender.base_stats.get("hp_times_sp_defense", 1)
-                
+            # カテゴリ（物理/特殊）に応じて使用する耐久指数を技ループの外側で確定
+            is_physical = move.category == "物理"
+
+            for defender_types, hp_def, hp_spdef in precomputed_defenders:
+                # 💡 修正4: 防御側のタイプ(日本語のリスト)をそのまま渡すだけでOK！
+                multiplier, _ = calculate_multiplier_and_message(t_data, defenders=defender_types)
+
+                # 事前計算済みの耐久指数を利用（defender.base_stats.get(...) の毎回呼び出しを回避）
+                individual_def_index = hp_def if is_physical else hp_spdef
+
                 # 倍率が高い（弱点）ほど、分母の防御壁を小さく（薄く）する
                 if multiplier > 0:
                     total_weighted_defense += (individual_def_index / multiplier)
