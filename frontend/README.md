@@ -19,8 +19,11 @@ src/
 │ │ ├── components/ # 見た目（TSX）に集中するファイル
 │ │ │ ├── PokedexList.tsx
 │ │ │ └── PokemonCard.tsx
-│ │ ├── hooks/ # 状態管理・API通信（useState, useEffect）
+│ │ ├── hooks/ # 状態管理・ロジックはここに集中させる（useState, useEffect）
 │ │ │ └── usePokemonSearch.ts
+│ │ ├── api/ # API通信
+│ │ │ ├── searchPokemon.ts
+│ │ │ └── getPokemonMaster.ts
 │ │ ├── utils/ # Reactに依存しない純粋な関数（検索フィルタなど）
 │ │ │ └── filterPokemon.ts
 │ │ └── types/ # この機能で使うTypeScriptの型定義

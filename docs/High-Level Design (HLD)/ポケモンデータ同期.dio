@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="sndELbm_vBVjKBrxRH4U" name="PokeAPIデータ同期">
-        <mxGraphModel dx="949" dy="930" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="2385" dy="620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -237,87 +237,98 @@
         </mxGraphModel>
     </diagram>
     <diagram id="oA8aqqtwNS0zo27YfxSA" name="TOPメタ相性分析">
-        <mxGraphModel dx="1572" dy="922" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="2385" dy="620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-1" value="TopTierMatchups.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-1" value="TopTierMatchups.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" parent="1" vertex="1">
                     <mxGeometry x="10" y="40" width="820" height="730" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-2" value="PokemonSearchForm.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-2" value="PokemonSearchForm.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" parent="mvtaqRwGueVQ5SMC4cEj-1" vertex="1">
                     <mxGeometry x="50" y="60" width="730" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-3" value="BuildFormCard.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-3" value="BuildFormCard.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" parent="mvtaqRwGueVQ5SMC4cEj-1" vertex="1">
                     <mxGeometry x="50" y="160" width="730" height="140" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-4" value="MatchupMatrixSection.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-4" value="MatchupMatrixSection.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=160;" parent="mvtaqRwGueVQ5SMC4cEj-1" vertex="1">
                     <mxGeometry x="50" y="320" width="730" height="180" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-6" value="ダメージ計算を自動実行" style="whiteSpace=wrap;html=1;dashed=0;align=center;fontSize=12;shape=rect;fillColor=#e0e0e0;strokeColor=none;fontStyle=1;shadow=1" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-4">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-6" value="ダメージ計算を自動実行" style="whiteSpace=wrap;html=1;dashed=0;align=center;fontSize=12;shape=rect;fillColor=#e0e0e0;strokeColor=none;fontStyle=1;shadow=1" parent="mvtaqRwGueVQ5SMC4cEj-4" vertex="1">
                     <mxGeometry x="580" y="20" width="100" height="36" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-5" value="ArchetypeDeterminationSection.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=210;height=30;" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-5" value="ArchetypeDeterminationSection.tsx" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;recursiveResize=0;container=1;collapsible=0;width=210;height=30;" parent="mvtaqRwGueVQ5SMC4cEj-1" vertex="1">
                     <mxGeometry x="50" y="520" width="730" height="180" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-7" value="frontend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-7" value="frontend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
                     <mxGeometry x="80" y="920" width="100" height="660" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-8" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-7">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-8" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="mvtaqRwGueVQ5SMC4cEj-7" vertex="1">
                     <mxGeometry x="45" y="90" width="10" height="370" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-10" value="MatchupMatrixSection.tsx" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-10" value="MatchupMatrixSection.tsx" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="50" y="870" width="160" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-11" value="&lt;div&gt;&lt;ul&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;mainPokemonName,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;selectedNatureName,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;evs,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;initialMatrixData,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;onMatrixCalculated&lt;/font&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;size=14;spacingRight=10;spacingLeft=6;" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-11" value="&lt;div&gt;&lt;ul&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;mainPokemonName,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;selectedNatureName,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;evs,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;initialMatrixData,&lt;/font&gt;&lt;/li&gt;&lt;li&gt;&lt;font color=&quot;#000000&quot;&gt;onMatrixCalculated&lt;/font&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;size=14;spacingRight=10;spacingLeft=6;" parent="1" vertex="1">
                     <mxGeometry x="170" y="1070" width="210" height="130" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-12" value="frontend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-12" value="frontend" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
                     <mxGeometry x="460" y="920" width="100" height="660" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-13" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-12">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-13" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="mvtaqRwGueVQ5SMC4cEj-12" vertex="1">
                     <mxGeometry x="45" y="90" width="10" height="370" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-14" value="useMatchupMatrix.ts" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-14" value="useMatchupMatrix.ts" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="445" y="870" width="130" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-15" value="/strategy/matrix" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" target="mvtaqRwGueVQ5SMC4cEj-19">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-15" value="/strategy/matrix" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" parent="1" target="mvtaqRwGueVQ5SMC4cEj-19" edge="1">
                     <mxGeometry width="160" relative="1" as="geometry">
                         <mxPoint x="520" y="1050" as="sourcePoint"/>
                         <mxPoint x="680" y="1050" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-16" value="&amp;lt;&amp;lt;keyword&amp;gt;&amp;gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1" target="mvtaqRwGueVQ5SMC4cEj-12">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-16" value="&amp;lt;&amp;lt;keyword&amp;gt;&amp;gt;" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" parent="1" target="mvtaqRwGueVQ5SMC4cEj-12" edge="1">
                     <mxGeometry width="160" relative="1" as="geometry">
                         <mxPoint x="140" y="1050" as="sourcePoint"/>
                         <mxPoint x="300" y="1050" as="targetPoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-17" value="&lt;font color=&quot;#000000&quot;&gt;&lt;div&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;main_pokemon_name: mainPokemonName,&lt;/span&gt;&lt;/li&gt;&lt;li&gt;nature: selectedNatureName.split(&quot; &quot;)[0],&lt;/li&gt;&lt;li&gt;evs: evs,&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;size=14;spacingRight=10;spacingLeft=6;" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-17" value="&lt;font color=&quot;#000000&quot;&gt;&lt;div&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;main_pokemon_name: mainPokemonName,&lt;/span&gt;&lt;/li&gt;&lt;li&gt;nature: selectedNatureName.split(&quot; &quot;)[0],&lt;/li&gt;&lt;li&gt;evs: evs,&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/font&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;size=14;spacingRight=10;spacingLeft=6;" parent="1" vertex="1">
                     <mxGeometry x="527" y="1070" width="303" height="100" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-19" value="python" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-19" value="python" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
                     <mxGeometry x="840" y="920" width="100" height="670" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-20" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-19">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-20" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="mvtaqRwGueVQ5SMC4cEj-19" vertex="1">
                     <mxGeometry x="45" y="90" width="10" height="400" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-21" value="backend/routers/strategy.py" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-21" value="backend/routers/strategy.py" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="800" y="870" width="170" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-22" value="python" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-22" value="python" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;edgeStyle&quot;:&quot;elbowEdgeStyle&quot;,&quot;elbow&quot;:&quot;vertical&quot;,&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="1" vertex="1">
                     <mxGeometry x="1040" y="920" width="100" height="300" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-23" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" vertex="1" parent="mvtaqRwGueVQ5SMC4cEj-22">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-23" value="" style="html=1;points=[[0,0,0,0,5],[0,1,0,0,-5],[1,0,0,0,5],[1,1,0,0,-5]];perimeter=orthogonalPerimeter;outlineConnect=0;targetShapes=umlLifeline;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};" parent="mvtaqRwGueVQ5SMC4cEj-22" vertex="1">
                     <mxGeometry x="45" y="90" width="10" height="120" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-24" value="backend/services/strategy.py" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-24" value="backend/services/strategy.py" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
                     <mxGeometry x="1010" y="870" width="180" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="mvtaqRwGueVQ5SMC4cEj-25" value="generate_auto_matrix" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" edge="1" parent="1">
+                <mxCell id="mvtaqRwGueVQ5SMC4cEj-25" value="generate_auto_matrix" style="endArrow=open;startArrow=none;endFill=0;startFill=0;endSize=8;html=1;verticalAlign=bottom;dashed=1;labelBackgroundColor=none;" parent="1" edge="1">
                     <mxGeometry width="160" relative="1" as="geometry">
                         <mxPoint x="890" y="1050" as="sourcePoint"/>
                         <mxPoint x="1080" y="1050" as="targetPoint"/>
                     </mxGeometry>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="rHai1FHMXTMhS-Ia2nI-" name="ページ4">
+        <mxGraphModel dx="3212" dy="620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="UPIGet4N6n5pQD5HOfSI-1" value="&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;①「使用可能なポケモン」のうち、弱点タイプが「主軸ポケモン」と被らないポケモンのピックアップ（例：2匹目の候補200匹→50匹）&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;②「主軸のポケモンとの相性が△×のポケモン」　×　「①のポケモン」で相性チェックを行い、「△×のポケモン」に対して相性がよいポケモンのリストアップ※すべてに対して△と×のみのポケモンは除外（例：2匹目の候補50匹→10匹）&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;③「②のポケモン」×「環境トップ50位」の相性が△×のポケモンをリストアップする　（例：200匹×10匹分の相性を確認）&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;④「③のポケモン」×「主軸ポケモン」の相性を確認し、相性補完のスコアが良い順に並び替える&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;/div&gt;&lt;div&gt;&lt;font color=&quot;#000000&quot;&gt;⑤「④」で確認した結果、良さそうなポケモンを2匹目にする&amp;nbsp;&lt;/font&gt;&lt;/div&gt;" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;align=left;size=14;spacingRight=10;spacingLeft=6;" vertex="1" parent="1">
+                    <mxGeometry x="-50" y="190" width="1160" height="190" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>

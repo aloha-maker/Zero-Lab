@@ -1,4 +1,4 @@
-import type { PokemonInfo } from "@/app/types/api";
+import type { PokemonInfo } from "@/features/pokedex/types";
 
 export type StatType = 'H' | 'A' | 'B' | 'C' | 'D' | 'S';
 

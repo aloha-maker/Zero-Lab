@@ -1,14 +1,13 @@
-// frontend/features/CandidateScreening/components/step3/Phase4RoleChecker.tsx
+// frontend/features/candidate-screening/components/Phase4RoleChecker.tsx
 "use client";
 
-import React, { useState } from 'react';
-
-type Archetype = '対面' | 'サイクル' | '展開';
+import React from 'react';
+import { Archetype, RoleCheckItem } from '../types';
 
 interface Phase4RoleCheckerProps {
   archetype: Archetype;
   // 候補ポケモンの保有技やアイテムデータなどを親から受け取る想定
-  checkedItems: { id: string; label: string; isChecked: boolean }[];
+  checkedItems: RoleCheckItem[];
   onToggleCheck: (id: string) => void;
 }
 
@@ -44,7 +43,7 @@ export default function Phase4RoleChecker({ archetype, checkedItems = [], onTogg
       </div>
 
       {/* すべてチェック済みなら完了を表示 */}
-      {checkedItems.every(i => i.isChecked) && (
+      {checkedItems.length > 0 && checkedItems.every(i => i.isChecked) && (
         <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg flex items-center gap-2 animate-bounce">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           構築の必須条件を全て満たしました！
