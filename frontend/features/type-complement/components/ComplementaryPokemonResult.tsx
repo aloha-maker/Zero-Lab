@@ -2,24 +2,35 @@
 
 import React, { useEffect } from "react";
 import type { PokemonInfo } from "@/features/pokedex/types";
+import type { ComplementaryResponse } from "../types"; // 型を追加
 import { useComplementaryPokemon } from "../hooks/useComplementaryPokemon";
 
 interface ComplementaryPokemonResultProps {
     basePokemon: PokemonInfo;
+    // 取得したデータを親ページに渡すためのコールバック関数を追加
+    onResultFetched?: (result: ComplementaryResponse) => void;
 }
 
-export default function ComplementaryPokemonResult({ basePokemon }: ComplementaryPokemonResultProps) {
-    // API通信フックをここで呼び出す
+export default function ComplementaryPokemonResult({ 
+    basePokemon, 
+    onResultFetched 
+}: ComplementaryPokemonResultProps) {
     const { data, isLoading, error, fetchComplements } = useComplementaryPokemon();
 
-    // propsとして受け取った主軸ポケモンが変更されたら、自動でAPIを叩く
+    // 主軸ポケモンが変更されたらAPIを叩く
     useEffect(() => {
         if (basePokemon?.id) {
             fetchComplements(basePokemon.id);
         }
     }, [basePokemon, fetchComplements]);
 
-    // ローディング中の表示
+    // 【追加】データが取得できたら親コンポーネント（page.tsx）に渡す
+    useEffect(() => {
+        if (data && onResultFetched) {
+            onResultFetched(data);
+        }
+    }, [data, onResultFetched]);
+
     if (isLoading) {
         return (
             <div className="mt-12 text-center">
@@ -29,7 +40,6 @@ export default function ComplementaryPokemonResult({ basePokemon }: Complementar
         );
     }
 
-    // エラー発生時の表示
     if (error) {
         return (
             <div className="mt-12 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg shadow-sm">
@@ -38,7 +48,6 @@ export default function ComplementaryPokemonResult({ basePokemon }: Complementar
         );
     }
 
-    // 防衛的プログラミング：データが無い場合は空配列にする
     const complements = data?.complements || [];
 
     return (
