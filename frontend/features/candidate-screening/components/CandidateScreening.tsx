@@ -1,11 +1,13 @@
 // frontend/features/candidate-screening/components/CandidateScreening.tsx
-import React from 'react';
-import { ConfiguredMainPokemon,MatrixResultRow } from '@/features/TopTierMatchups/types/index';
-import Phase1TargetList from './Phase1TargetList';
-import Phase2ScreeningTrigger from './Phase2ScreeningTrigger';
-import Phase3MatchupMatrix from './Phase3MatchupMatrix';
-import Phase4RoleChecker from './Phase4RoleChecker';
+import React, { useState, useCallback } from 'react';
+import { ConfiguredMainPokemon, MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 import { PokemonCandidate } from '../types';
+import Phase1TargetList from './Phase1TargetList';
+
+// 【追加】新規フロー用のコンポーネントをインポート
+import ComplementaryPokemonResult from '@/features/type-complement/components/ComplementaryPokemonResult';
+import MatchupFilterSection from '@/features/matchup-filter/components/MatchupFilterSection';
+import MutualComplementSection from '@/features/mutual-complement/components/MutualComplementSection';
 
 interface CandidateScreeningProps {
   matrixData: MatrixResultRow[];
@@ -17,11 +19,51 @@ interface CandidateScreeningProps {
 
 export const CandidateScreening: React.FC<CandidateScreeningProps> = ({ 
   matrixData,
-  isScreened,
+  isScreened, // 今回は candidates.length > 0 で表示判定するため使用しませんがPropsとして維持
   candidates,
   onScreeningComplete,
   mainPokemon
 }) => {
+  // ①のAPI（相性補完候補）の結果を保持するローカルステート
+  const [complementResult, setComplementResult] = useState<any>(null);
+  
+  // Phase2のボタンが押され、①のAPIを走らせているかどうかのフラグ
+  const [isFetchingComplements, setIsFetchingComplements] = useState(false);
+
+  // 主軸の実際のマトリクスデータから、苦手な相手（△・×）だけを抽出
+  const weakTargets = matrixData.filter(
+    (row) => row.judgment === "△" || row.judgment === "×"
+  );
+
+  // フェーズ2：スクリーニング開始ボタンの処理
+  const handleStartScreening = () => {
+    setIsFetchingComplements(true);
+  };
+
+  // ②の絞り込み完了時、データをMainScreenへ引き上げる
+  const handleFilterComplete = useCallback((result: any) => {
+    let targetArray = [];
+    if (Array.isArray(result)) {
+      targetArray = result;
+    } else if (result && Array.isArray(result.filtered_candidates)) {
+      targetArray = result.filtered_candidates;
+    }
+
+    // MainScreenの候補リスト(PokemonCandidate[])の型に合わせて不足プロパティを補完
+    const mappedCandidates: PokemonCandidate[] = targetArray.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      rate: 100,
+      badgeColor: "bg-blue-100 text-blue-700", // 必須プロパティの初期値
+      archetypeTags: [],
+      matchups: {} as any, // 既存のMatchups型に合わせて適宜調整
+      passChecks: []
+    }));
+
+    // 親コンポーネント(MainScreen)のStateを更新
+    onScreeningComplete(mappedCandidates);
+  }, [onScreeningComplete]);
+
   return (
     <section className="space-y-6 max-w-4xl mx-auto p-4 animate-in fade-in duration-300">
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
@@ -34,95 +76,59 @@ export const CandidateScreening: React.FC<CandidateScreeningProps> = ({
           </p>
         </div>
 
-        {/* フェーズ1 */}
+        {/* フェーズ1: ターゲットリストの表示（既存そのまま） */}
         <Phase1TargetList matrixData={matrixData} />
 
-        {/* フェーズ2: API連携対応ロジック */}
-        <Phase2ScreeningTrigger 
-          matrixData={matrixData}
-          onScreeningComplete={onScreeningComplete} 
-          isExecuted={isScreened} 
-        />
+        {/* フェーズ2: スクリーニング開始トリガー（ボタンをインライン化） */}
+        <div className="border-t border-slate-100 pt-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div>
+              <h4 className="font-bold text-slate-800">相性補完候補の抽出</h4>
+              <p className="text-xs text-slate-500 mt-1">
+                主軸ポケモンのタイプ耐性を補完できる候補をデータベースから取得し、絞り込みを行います。
+              </p>
+            </div>
+            <button
+              onClick={handleStartScreening}
+              disabled={isFetchingComplements || !mainPokemon}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            >
+              {isFetchingComplements ? "候補取得中..." : "補完候補を取得する"}
+            </button>
+          </div>
+        </div>
+
+        {/* ① 相性補完候補の取得（ボタン押下後に実行） */}
+        {isFetchingComplements && mainPokemon && (
+          <ComplementaryPokemonResult
+            basePokemon={mainPokemon.pokemonInfo}
+            onResultFetched={setComplementResult}
+          />
+        )}
+
+        {/* ② 苦手な相手で絞り込む（マトリクスフィルタ） */}
+        {complementResult && complementResult.complements?.length > 0 && (
+          <MatchupFilterSection
+            complements={complementResult.complements}
+            targets={weakTargets} // 実データ(△×のみ)を渡す
+            onFilterComplete={handleFilterComplete}
+          />
+        )}
       </div>
 
-      {/* 下部：スクリーニング結果表示（フェーズ3 & 4） */}
-      {isScreened && (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-            <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-              📋 フェーズ3・4 検証通過ルート（採用候補：{candidates.length}匹）
-            </h3>
-            <span className="text-[11px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">環境データベースより抽出</span>
-          </div>
-
-          {candidates.length > 0 ? (
-            <div className="space-y-4">
-              {candidates.map((pokemon, idx) => (
-                <div key={idx} className="border border-slate-200 rounded-xl p-5 hover:border-blue-400 hover:shadow-md transition-all duration-300 bg-white">
-                  
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-extrabold text-lg text-slate-800 tracking-tight">{pokemon.name}</h4>
-                        <span className={`${pokemon.badgeColor} px-2.5 py-0.5 rounded-full text-xs font-black`}>
-                          適合率 {pokemon.rate}%
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {pokemon.archetypeTags.map((tag, tIdx) => (
-                          <span key={tIdx} className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-medium">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="text-left sm:text-right">
-                      <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
-                        ✓ タイプ相性補完検証パス
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Phase3MatchupMatrix matchups={pokemon.matchups} />
-                    <Phase4RoleChecker 
-                      // アーキタイプを動的に渡す（必要に応じてStateで管理）
-                      archetype="対面" 
-                      
-                      // checkedItems の形に合わせるために map を使用して変換
-                      checkedItems={pokemon.passChecks.map((text, index) => ({
-                        id: `${pokemon.name}-${index}`,
-                        label: text,
-                        isChecked: false // 初期状態
-                      }))}
-                      
-                      // トグル処理の定義
-                      onToggleCheck={(id) => {
-                        console.log("チェック切り替え:", id);
-                        // ここで必要に応じて State を更新するロジックを入れます
-                      }}
-                    />
-                  </div>
-
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-400 italic text-center py-6">
-              すべての条件（弱点・耐性・攻撃補完）を満たす組み合わせが現在の候補に見つかりませんでした。
-            </p>
-          )}
-
-          {/* 結論セクション */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-4 rounded-xl mt-6">
-            <h5 className="font-bold text-blue-900 text-sm flex items-center gap-1.5">
-              💡 結論の導出
-            </h5>
-            <p className="text-xs text-blue-800/90 mt-1 leading-relaxed">
-              上記のフェーズ1〜4をすべてクリアした2匹（あるいは3匹）は、主軸の弱点を数値と耐性で完璧に補い、かつ戦術テンプレに沿ったロジックの破綻がない<strong>「最強の相棒（基本選出の軸）」</strong>となります。
-            </p>
-          </div>
-
+      {/* 下部：ランキングテーブルUI */}
+      {candidates.length > 0 && mainPokemon && (
+        <div className="animate-in slide-in-from-bottom-4 duration-500">
+          <MutualComplementSection
+            basePokemonName={mainPokemon.name}
+            baseMatrix={matrixData}
+            // 型定義に id が追加されたので、素直に c.id を参照できます
+            // 万が一 undefined の場合は 0 をフォールバックとして渡す
+            filteredCandidates={candidates.map(c => ({ 
+              id: c.id || 0, 
+              name: c.name 
+            }))}
+          />
         </div>
       )}
     </section>

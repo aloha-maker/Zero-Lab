@@ -52,20 +52,6 @@ export default function TypeComplementPage() {
         });
     }, []);
 
-    const dummyMatrix: MatrixResultRow[] = [
-        { opponent_rank: 1, opponent_name: "カイリュー", judgment: "△", reason_category: "A：速度負け" },
-        { opponent_rank: 2, opponent_name: "ハバタクカミ", judgment: "×", reason_category: "D：機能停止" },
-        { opponent_rank: 3, opponent_name: "ドラパルト", judgment: "△", reason_category: "C：数値受け" },
-        { opponent_rank: 4, opponent_name: "サーフゴー", judgment: "×", reason_category: "B：行動保障潰し" },
-        { opponent_rank: 5, opponent_name: "ガブリアス", judgment: "△", reason_category: "A：速度負け" },
-        { opponent_rank: 6, opponent_name: "オーガポン", judgment: "◯", reason_category: null },
-        { opponent_rank: 7, opponent_name: "水ウーラオス", judgment: "×", reason_category: "B：行動保障潰し" },
-        { opponent_rank: 8, opponent_name: "カイナ", judgment: "△", reason_category: "C：数値受け" },
-        { opponent_rank: 9, opponent_name: "トドロクツキ", judgment: "◯", reason_category: null },
-        { opponent_rank: 10, opponent_name: "パオジアン", judgment: "×", reason_category: "A：速度負け" },
-        // 11位以降は省略していますが、必要に応じて追加してください
-      ];
-
     return (
         <main className="min-h-screen p-4 md:p-8 bg-slate-50">
             <div className="max-w-4xl mx-auto">

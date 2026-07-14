@@ -1,11 +1,12 @@
 export const PHASES = [
     { id: 1, name: "1. 環境分析", description: "ターゲット選定とコンセプト決定" },
     { id: 2, name: "2. 1匹目の分析と採用", description: "構築の絶対的なエース・軸の選定" },
-    { id: 3, name: "3. 2,3匹目の採用", description: "軸を支えるサイクル・相性補完" },
-    { id: 4, name: "4,5匹目の採用", description: "裏の選出パターン・対応力の拡張" },
-    { id: 5, name: "5. 6匹目の採用", description: "ラストピース・特定のメタ枠" },
-    { id: 6, name: "6. 戦績分析", description: "バトルログ記録と勝率・選出率の可視化" },
-    { id: 7, name: "7. 変更ログ", description: "試行錯誤の歴史を辿る" }
+    { id: 3, name: "3. 2匹目の採用", description: "軸を支えるサイクル・相性補完" },
+    { id: 4, name: "4. 3匹目の採用", description: "1-2匹目の補完" },
+    { id: 5, name: "5,5匹目の採用", description: "裏の選出パターン・対応力の拡張" },
+    { id: 6, name: "6. 6匹目の採用", description: "ラストピース・特定のメタ枠" },
+    { id: 7, name: "7. 戦績分析", description: "バトルログ記録と勝率・選出率の可視化" },
+    { id: 8, name: "8. 変更ログ", description: "試行錯誤の歴史を辿る" }
   ];
 
 export const CHECKLIST_ITEMS: { [key: number]: { id: string; label: string }[] } = {

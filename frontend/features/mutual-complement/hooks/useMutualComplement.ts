@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { fetchBulkMatrix } from "../api/fetchBulkMatrix";
 import { calculateComplementScores } from "../utils/scoring";
-import { MatrixRow, ComplementScore } from "../types";
+import { ComplementScore } from "../types";
+import type { MatrixResultRow } from "@/features/TopTierMatchups/types";
 import { ApiError } from "@/lib/api-client";
 
 interface CandidateInput {
@@ -15,7 +16,7 @@ export const useMutualComplement = () => {
   const [resultScores, setResultScores] = useState<ComplementScore[] | null>(null);
 
   const calculateScores = useCallback(async (
-    baseMatrix: MatrixRow[],
+    baseMatrix: MatrixResultRow[],
     candidates: CandidateInput[]
   ) => {
     if (!candidates.length) return;

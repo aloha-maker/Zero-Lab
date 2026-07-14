@@ -1,17 +1,10 @@
-export type Judgment = "◎" | "◯" | "△" | "×";
-
-export interface MatrixRow {
-  opponent_rank: number;
-  opponent_name: string;
-  judgment: Judgment;
-  reason_category: string | null;
-}
+import type { MatrixResultRow } from "@/features/TopTierMatchups/types";
 
 // 修正：pokemon_id -> id に変更し、name を追加
 export interface PokemonMatrix {
   id: number;
   name: string;
-  matrix: MatrixRow[];
+  matrix: MatrixResultRow[];
 }
 
 export interface BulkMatrixRequest {
@@ -32,5 +25,5 @@ export interface ComplementScore {
   base_cover_count: number;
   candidate_cover_count: number;
   common_weakness_count: number;
-  matrix: MatrixRow[];
+  matrix: MatrixResultRow[];
 }

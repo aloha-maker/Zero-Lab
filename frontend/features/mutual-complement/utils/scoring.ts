@@ -1,19 +1,20 @@
-import { Judgment, MatrixRow, PokemonMatrix, ComplementScore } from "../types";
+import { PokemonMatrix, ComplementScore } from "../types";
+import type { AdvantageJudgment, MatrixResultRow } from "@/features/TopTierMatchups/types";
 
-const JUDGMENT_SCORE: Record<Judgment, number> = {
+const JUDGMENT_SCORE: Record<AdvantageJudgment, number> = {
   "◎": 2,
   "◯": 1,
   "△": -1,
   "×": -2,
 };
 
-const getScore = (judgment: Judgment) => JUDGMENT_SCORE[judgment] ?? 0;
+const getScore = (judgment: AdvantageJudgment) => JUDGMENT_SCORE[judgment] ?? 0;
 
 export const calculateComplementScores = (
-  baseMatrix: MatrixRow[],
+  baseMatrix: MatrixResultRow[],
   candidateMatrices: PokemonMatrix[]
 ): ComplementScore[] => {
-  const baseJudgmentMap = new Map<number, Judgment>();
+  const baseJudgmentMap = new Map<number, AdvantageJudgment>();
   baseMatrix.forEach((row) => {
     baseJudgmentMap.set(row.opponent_rank, row.judgment);
   });

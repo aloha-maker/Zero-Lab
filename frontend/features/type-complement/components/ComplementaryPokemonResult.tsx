@@ -59,6 +59,9 @@ export default function ComplementaryPokemonResult({
                 <span className="bg-indigo-100 text-indigo-800 text-sm font-semibold px-3 py-1 rounded-full">
                     {complements.length} 匹
                 </span>
+                <p className="text-sm text-slate-500 mt-1">
+                    タイプ相性で苦手なものが主軸ポケモンと被らない一覧
+                </p>
             </div>
 
             {complements.length > 0 ? (
