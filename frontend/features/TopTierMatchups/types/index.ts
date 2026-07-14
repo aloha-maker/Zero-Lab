@@ -45,11 +45,11 @@ export interface MatchupInput {
     is_completely_stopped?: boolean;  // 回復・起点化により完全に機能停止させられるか
   }
   
-  /** POST /strategy/matrix のリクエスト型 */
-  export interface MatrixCalculationRequest {
-    main_pokemon_name: string;   // 検証する主軸のポケモン名
-    matchups: MatchupInput[];    // 各環境ポケモンとの対面データリスト
-  }
+/** POST /strategy/matrix のリクエスト型 */
+export interface MatrixCalculationRequest {
+  main_pokemon_name: string;   // 検証する主軸のポケモン名
+  matchups: MatchupInput[];    // 各環境ポケモンとの対面データリスト
+}
 /** POST /strategy/matrix のレスポンス内の1行分のデータ型 */
 export interface MatrixResultRow {
     opponent_rank: number;
@@ -58,11 +58,11 @@ export interface MatrixResultRow {
     reason_category: DisadvantageCategory | null; // 有利な場合は null
   }
   
-  /** POST /strategy/matrix のレスポンス型 */
-  export interface MatrixResponse {
-    main_pokemon_name: string;   // 対象の主軸ポケモン名
-    matrix: MatrixResultRow[];   // 計算済みのマトリクス結果リスト
-  }
+/** POST /strategy/matrix のレスポンス型 */
+export interface MatrixResponse {
+  main_pokemon_name: string;   // 対象の主軸ポケモン名
+  matrix: MatrixResultRow[];   // 計算済みのマトリクス結果リスト
+}
 
 
 export const statLabels: Record<StatType, string> = { H: "HP", A: "攻撃", B: "防御", C: "特攻", D: "特防", S: "素早さ" };

@@ -1,16 +1,21 @@
 // frontend/app/type-complement/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { PokemonInfo } from "@/features/pokedex/types";
 import type { ComplementaryResponse } from "@/features/type-complement/types";
+import type { MatrixResultRow } from "@/features/TopTierMatchups/types";
 import PokemonSearchForm from "@/features/pokedex/components/PokemonSearchForm";
 import ComplementaryPokemonResult from "@/features/type-complement/components/ComplementaryPokemonResult";
 import MatchupFilterSection from "@/features/matchup-filter/components/MatchupFilterSection";
+import MutualComplementSection from "@/features/mutual-complement/components/MutualComplementSection";
+
+import { dummyTargets } from "@/features/matchup-filter/utils/dummyTargets";
 
 export default function TypeComplementPage() {
     const [basePokemon, setBasePokemon] = useState<PokemonInfo | null>(null);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [filteredCandidates, setFilteredCandidates] = useState<{id: number; name: string}[]>([]);
 
     // APIから返ってきた相性補完結果を保持するステート
     const [complementResult, setComplementResult] =
@@ -22,6 +27,44 @@ export default function TypeComplementPage() {
         setBasePokemon(null);
         setComplementResult(null);
     };
+
+    // 【変更】useCallback を使って関数を固定し、無限ループを防止
+    const handleFilterComplete = useCallback((result: any) => {
+        let targetArray = [];
+        
+        if (Array.isArray(result)) {
+            targetArray = result;
+        } else if (result && Array.isArray(result.filtered_candidates)) {
+            targetArray = result.filtered_candidates;
+        }
+
+        const candidates = targetArray.map((c: any) => ({
+            id: c.id,
+            name: c.name
+        }));
+        
+        setFilteredCandidates((prev) => {
+            // 前回の状態と全く同じ内容であれば、更新をスキップ（ここで再描画ループを遮断）
+            if (JSON.stringify(prev) === JSON.stringify(candidates)) {
+                return prev;
+            }
+            return candidates;
+        });
+    }, []);
+
+    const dummyMatrix: MatrixResultRow[] = [
+        { opponent_rank: 1, opponent_name: "カイリュー", judgment: "△", reason_category: "A：速度負け" },
+        { opponent_rank: 2, opponent_name: "ハバタクカミ", judgment: "×", reason_category: "D：機能停止" },
+        { opponent_rank: 3, opponent_name: "ドラパルト", judgment: "△", reason_category: "C：数値受け" },
+        { opponent_rank: 4, opponent_name: "サーフゴー", judgment: "×", reason_category: "B：行動保障潰し" },
+        { opponent_rank: 5, opponent_name: "ガブリアス", judgment: "△", reason_category: "A：速度負け" },
+        { opponent_rank: 6, opponent_name: "オーガポン", judgment: "◯", reason_category: null },
+        { opponent_rank: 7, opponent_name: "水ウーラオス", judgment: "×", reason_category: "B：行動保障潰し" },
+        { opponent_rank: 8, opponent_name: "カイナ", judgment: "△", reason_category: "C：数値受け" },
+        { opponent_rank: 9, opponent_name: "トドロクツキ", judgment: "◯", reason_category: null },
+        { opponent_rank: 10, opponent_name: "パオジアン", judgment: "×", reason_category: "A：速度負け" },
+        // 11位以降は省略していますが、必要に応じて追加してください
+      ];
 
     return (
         <main className="min-h-screen p-4 md:p-8 bg-slate-50">
@@ -57,10 +100,18 @@ export default function TypeComplementPage() {
                 {complementResult && complementResult.complements.length > 0 && (
                     <MatchupFilterSection
                         complements={complementResult.complements}
-                        onFilterComplete={(result) => {
-                            // 必要になったら絞り込み結果をここで受け取る
-                            console.log("filtered:", result);
-                        }}
+                        // 【変更】バックエンド実装が完了するまではダミーデータを渡す
+                        targets={dummyTargets} 
+                        onFilterComplete={handleFilterComplete}
+                    />
+                )}
+
+                {/* ③〜⑤ 相互補完スコアリングとランキング表示 */}
+                {filteredCandidates.length > 0 && basePokemon && (
+                    <MutualComplementSection
+                        basePokemonName={basePokemon.name}
+                        baseMatrix={dummyTargets}
+                        filteredCandidates={filteredCandidates}
                     />
                 )}
             </div>

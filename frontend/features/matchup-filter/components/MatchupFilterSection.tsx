@@ -1,35 +1,44 @@
 // frontend/features/matchup-filter/components/MatchupFilterSection.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import type { MatrixResultRow } from "@/features/TopTierMatchups/types";
 import type { ComplementaryPokemon } from "@/features/type-complement/types";
 import { useMatchupFilter } from "../hooks/useMatchupFilter";
-import { dummyTargets } from "../utils/dummyTargets";
+// 【変更】MatrixResultRow をインポートに追加し、FilterCandidate と一緒に読み込む
 import type { FilteredCandidate } from "../types";
 
 interface MatchupFilterSectionProps {
     /** 相性補完候補（① ステップの結果） */
     complements: ComplementaryPokemon[];
+    /** 【変更】既存の MatrixResultRow 型を使用する */
+    targets: MatrixResultRow[];
     /** 絞り込み結果を親に渡すコールバック */
     onFilterComplete?: (result: FilteredCandidate[]) => void;
 }
 
 export default function MatchupFilterSection({
     complements,
+    targets,
     onFilterComplete,
 }: MatchupFilterSectionProps) {
     const { filteredCandidates, isLoading, error, runFilter } = useMatchupFilter();
 
-    // 結果が更新されたら親に通知
+    const onFilterCompleteRef = useRef(onFilterComplete);
+
+    useEffect(() => {
+        onFilterCompleteRef.current = onFilterComplete;
+    }, [onFilterComplete]);
+
     useEffect(() => {
         if (filteredCandidates) {
-            onFilterComplete?.(filteredCandidates);
+            onFilterCompleteRef.current?.(filteredCandidates);
         }
-    }, [filteredCandidates, onFilterComplete]);
+    }, [filteredCandidates]);
 
     const handleClick = () => {
-        // TODO: dummyTargets は将来マトリクス診断機能から渡される実データに差し替える
-        runFilter(complements, dummyTargets);
+        // これで型の不一致エラーが解消されます
+        runFilter(complements, targets);
     };
 
     return (
@@ -46,7 +55,7 @@ export default function MatchupFilterSection({
                 <button
                     type="button"
                     onClick={handleClick}
-                    disabled={isLoading || complements.length === 0}
+                    disabled={isLoading || complements.length === 0 || targets.length === 0}
                     className="px-5 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                 >
                     {isLoading ? "絞り込み中…" : "この条件で絞り込む"}
@@ -72,7 +81,7 @@ export default function MatchupFilterSection({
                                     <th className="sticky left-0 z-10 bg-slate-50 px-4 py-2.5 text-left font-medium text-slate-600 border-b border-r border-slate-200 whitespace-nowrap">
                                         候補ポケモン
                                     </th>
-                                    {dummyTargets.map((target) => (
+                                    {targets.map((target) => (
                                         <th
                                             key={target.opponent_name}
                                             className="px-4 py-2.5 text-center font-medium text-slate-600 border-b border-slate-200 whitespace-nowrap"
@@ -96,7 +105,7 @@ export default function MatchupFilterSection({
                                                 Rank {candidate.rank}
                                             </span>
                                         </td>
-                                        {dummyTargets.map((target) => {
+                                        {targets.map((target) => {
                                             const isGood = candidate.good_matchups.includes(
                                                 target.opponent_name
                                             );
