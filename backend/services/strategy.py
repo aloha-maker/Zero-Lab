@@ -68,6 +68,7 @@ class MatrixService:
 
         # 3. マッチアップシミュレーション（主軸 vs 環境トップ50）
         results = MatrixService._simulate_subject_vs_environment(
+            subject_name=main_name,
             subject_real_stats=main_real_stats,
             subject_types=main_types,
             subject_moves_parsed=main_moves_parsed,
@@ -149,6 +150,7 @@ class MatrixService:
             ]
 
             matrix = MatrixService._simulate_subject_vs_environment(
+                subject_name=candidate.name,
                 subject_real_stats=subject_real_stats,
                 subject_types=subject_types,
                 subject_moves_parsed=subject_moves_parsed,
@@ -224,6 +226,7 @@ class MatrixService:
 
     @staticmethod
     def _simulate_subject_vs_environment(
+        subject_name: str,
         subject_real_stats: dict,
         subject_types: list,
         subject_moves_parsed: List[dict],
@@ -323,7 +326,7 @@ class MatrixService:
 
             if verbose:
                 print(f"==================================================")
-                print(f"【対面シミュレーション】相手: {opp.name} (Rank: {opp.rank})")
+                print(f"【対面シミュレーション】攻撃側: {subject_name} vs 相手: {opp.name} (Rank: {opp.rank})")
                 print(f"  ■ S関係: 自分S={subject_real_stats['speed']} | 相手S={opp_real_stats['speed']} ➔ 行動順: {action_order.name}")
                 print(f"  ■ 自分 ➔ 相手:")
                 print(f"    - 使用技: {best_my_move.get('move_name')} ({best_my_move.get('move_type')} / 威力:{best_my_move.get('power')})")
