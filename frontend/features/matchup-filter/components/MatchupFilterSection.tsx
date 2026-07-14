@@ -8,11 +8,8 @@ import type { FilteredCandidate } from "../types";
 import type { MatrixResultRow } from "@/features/TopTierMatchups/types";
 
 interface MatchupFilterSectionProps {
-    /** 相性補完候補（① ステップの結果） */
     complements: ComplementaryPokemon[];
-    /** 既存の MatrixResultRow 型を使用する */
     targets: MatrixResultRow[];
-    /** 絞り込み結果を親に渡すコールバック */
     onFilterComplete?: (result: FilteredCandidate[]) => void;
 }
 
@@ -29,48 +26,51 @@ export default function MatchupFilterSection({
         onFilterCompleteRef.current = onFilterComplete;
     }, [onFilterComplete]);
 
-    useEffect(() => {
-        if (filteredCandidates) {
-            onFilterCompleteRef.current?.(filteredCandidates);
-        }
-    }, [filteredCandidates]);
-
     const handleClick = () => {
         runFilter(complements, targets);
     };
 
-    // 【追加】ターゲット（横軸）を「×」優先で並び替える
+    // 1. ターゲット（横軸）を「×」優先で並び替える
     const sortedTargets = useMemo(() => {
         return [...targets].sort((a, b) => {
-            // 1. "×" を優先して左側に配置
             if (a.judgment === "×" && b.judgment !== "×") return -1;
             if (a.judgment !== "×" && b.judgment === "×") return 1;
-            
-            // 2. 判定が同じ（両方×、両方△など）場合はランク順
             return (a.opponent_rank || 999) - (b.opponent_rank || 999);
         });
     }, [targets]);
 
-    // ◯の数を計算し、多い順に並び替えた配列を生成する
+    // 2. 「×に対して-」のものを除外し、◯の数で並び替える（UI表示用＆親への受け渡し用）
     const sortedCandidates = useMemo(() => {
         if (!filteredCandidates) return null;
 
-        return [...filteredCandidates].map(candidate => {
-            // このテーブルに表示されているターゲットに対して、有利（◯）な数をカウント
-            const matchCount = sortedTargets.filter(target =>
-                candidate.good_matchups.includes(target.opponent_name)
-            ).length;
-            
-            return { ...candidate, matchCount };
-        }).sort((a, b) => {
-            // 1. ◯の数が多い順（降順）
-            if (b.matchCount !== a.matchCount) {
-                return b.matchCount - a.matchCount;
-            }
-            // 2. 同点の場合はランク順（昇順＝より人気なポケモンを上へ）
-            return (a.rank || 999) - (b.rank || 999);
-        });
+        return [...filteredCandidates]
+            .filter(candidate => {
+                const hasDashAgainstCross = sortedTargets.some(target => {
+                    return target.judgment === "×" && !candidate.good_matchups.includes(target.opponent_name);
+                });
+                return !hasDashAgainstCross;
+            })
+            .map(candidate => {
+                const matchCount = sortedTargets.filter(target =>
+                    candidate.good_matchups.includes(target.opponent_name)
+                ).length;
+                return { ...candidate, matchCount };
+            })
+            .sort((a, b) => {
+                if (b.matchCount !== a.matchCount) {
+                    return b.matchCount - a.matchCount;
+                }
+                return (a.rank || 999) - (b.rank || 999);
+            });
     }, [filteredCandidates, sortedTargets]);
+
+    // 【最重要変更】親へのコールバック送信を sortedCandidates の下へ移動し、
+    // 足切り・ソート済みの配列（sortedCandidates）を渡すように変更
+    useEffect(() => {
+        if (sortedCandidates) {
+            onFilterCompleteRef.current?.(sortedCandidates);
+        }
+    }, [sortedCandidates]);
 
     return (
         <section className="mt-12 pt-8 border-t border-slate-200">
@@ -80,7 +80,7 @@ export default function MatchupFilterSection({
                         苦手な相手で絞り込む
                     </h2>
                     <p className="text-sm text-slate-500 mt-1">
-                        主軸ポケモンが苦手なポケモン（△・×）に対して有利なポケモン
+                        主軸の「×」を確実にカバーできる候補だけを厳選します
                     </p>
                 </div>
                 <button
@@ -102,7 +102,7 @@ export default function MatchupFilterSection({
             {sortedCandidates &&
                 (sortedCandidates.length === 0 ? (
                     <div className="p-6 text-center text-slate-500 bg-white rounded-lg border border-slate-200">
-                        条件を満たす候補が見つかりませんでした
+                        すべての「×」をカバーできる候補が見つかりませんでした。
                     </div>
                 ) : (
                     <div className="overflow-x-auto bg-white rounded-lg border border-slate-200 shadow-sm">
@@ -112,7 +112,6 @@ export default function MatchupFilterSection({
                                     <th className="sticky left-0 z-10 bg-slate-50 px-4 py-2.5 text-left font-medium text-slate-600 border-b border-r border-slate-200 whitespace-nowrap">
                                         候補ポケモン <span className="text-xs text-slate-400 font-normal ml-1">(有利な数)</span>
                                     </th>
-                                    {/* 【変更】sortedTargets をマッピング */}
                                     {sortedTargets.map((target) => (
                                         <th
                                             key={target.opponent_name}
@@ -149,7 +148,6 @@ export default function MatchupFilterSection({
                                                 ◯ {candidate.matchCount}
                                             </span>
                                         </td>
-                                        {/* 【変更】sortedTargets をマッピング */}
                                         {sortedTargets.map((target) => {
                                             const isGood = candidate.good_matchups.includes(
                                                 target.opponent_name

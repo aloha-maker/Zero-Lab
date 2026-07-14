@@ -1,10 +1,9 @@
 // frontend/features/candidate-screening/components/CandidateScreening.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { ConfiguredMainPokemon, MatrixResultRow } from '@/features/TopTierMatchups/types/index';
 import { PokemonCandidate } from '../types';
 import Phase1TargetList from './Phase1TargetList';
 
-// 【追加】新規フロー用のコンポーネントをインポート
 import ComplementaryPokemonResult from '@/features/type-complement/components/ComplementaryPokemonResult';
 import MatchupFilterSection from '@/features/matchup-filter/components/MatchupFilterSection';
 import MutualComplementSection from '@/features/mutual-complement/components/MutualComplementSection';
@@ -19,28 +18,28 @@ interface CandidateScreeningProps {
 
 export const CandidateScreening: React.FC<CandidateScreeningProps> = ({ 
   matrixData,
-  isScreened, // 今回は candidates.length > 0 で表示判定するため使用しませんがPropsとして維持
+  isScreened, 
   candidates,
   onScreeningComplete,
   mainPokemon
 }) => {
-  // ①のAPI（相性補完候補）の結果を保持するローカルステート
   const [complementResult, setComplementResult] = useState<any>(null);
-  
-  // Phase2のボタンが押され、①のAPIを走らせているかどうかのフラグ
   const [isFetchingComplements, setIsFetchingComplements] = useState(false);
 
-  // 主軸の実際のマトリクスデータから、苦手な相手（△・×）だけを抽出
-  const weakTargets = matrixData.filter(
-    (row) => row.judgment === "△" || row.judgment === "×"
-  );
+  // 【修正1】配列の毎回生成を防ぐため useMemo でキャッシュする
+  const weakTargets = useMemo(() => {
+    return matrixData.filter(
+      (row) => row.judgment === "△" || row.judgment === "×"
+    );
+  }, [matrixData]);
 
-  // フェーズ2：スクリーニング開始ボタンの処理
   const handleStartScreening = () => {
     setIsFetchingComplements(true);
   };
 
-  // ②の絞り込み完了時、データをMainScreenへ引き上げる
+  // 【修正2】前回送ったデータを記憶しておくためのRef
+  const prevMappedRef = useRef<string | null>(null);
+
   const handleFilterComplete = useCallback((result: any) => {
     let targetArray = [];
     if (Array.isArray(result)) {
@@ -49,18 +48,23 @@ export const CandidateScreening: React.FC<CandidateScreeningProps> = ({
       targetArray = result.filtered_candidates;
     }
 
-    // MainScreenの候補リスト(PokemonCandidate[])の型に合わせて不足プロパティを補完
     const mappedCandidates: PokemonCandidate[] = targetArray.map((c: any) => ({
       id: c.id,
       name: c.name,
       rate: 100,
-      badgeColor: "bg-blue-100 text-blue-700", // 必須プロパティの初期値
+      badgeColor: "bg-blue-100 text-blue-700",
       archetypeTags: [],
-      matchups: {} as any, // 既存のMatchups型に合わせて適宜調整
+      matchups: {} as any,
       passChecks: []
     }));
 
-    // 親コンポーネント(MainScreen)のStateを更新
+    // 【修正3】前回のデータと中身を比較し、完全に一致していれば親への通知を止める（無限ループの遮断）
+    const currentStringified = JSON.stringify(mappedCandidates);
+    if (prevMappedRef.current === currentStringified) {
+      return;
+    }
+    prevMappedRef.current = currentStringified;
+
     onScreeningComplete(mappedCandidates);
   }, [onScreeningComplete]);
 
@@ -76,10 +80,8 @@ export const CandidateScreening: React.FC<CandidateScreeningProps> = ({
           </p>
         </div>
 
-        {/* フェーズ1: ターゲットリストの表示（既存そのまま） */}
         <Phase1TargetList matrixData={matrixData} />
 
-        {/* フェーズ2: スクリーニング開始トリガー（ボタンをインライン化） */}
         <div className="border-t border-slate-100 pt-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div>
@@ -98,7 +100,6 @@ export const CandidateScreening: React.FC<CandidateScreeningProps> = ({
           </div>
         </div>
 
-        {/* ① 相性補完候補の取得（ボタン押下後に実行） */}
         {isFetchingComplements && mainPokemon && (
           <ComplementaryPokemonResult
             basePokemon={mainPokemon.pokemonInfo}
@@ -106,24 +107,20 @@ export const CandidateScreening: React.FC<CandidateScreeningProps> = ({
           />
         )}
 
-        {/* ② 苦手な相手で絞り込む（マトリクスフィルタ） */}
         {complementResult && complementResult.complements?.length > 0 && (
           <MatchupFilterSection
             complements={complementResult.complements}
-            targets={weakTargets} // 実データ(△×のみ)を渡す
+            targets={weakTargets} 
             onFilterComplete={handleFilterComplete}
           />
         )}
       </div>
 
-      {/* 下部：ランキングテーブルUI */}
       {candidates.length > 0 && mainPokemon && (
         <div className="animate-in slide-in-from-bottom-4 duration-500">
           <MutualComplementSection
             basePokemonName={mainPokemon.name}
-            baseMatrix={matrixData}
-            // 型定義に id が追加されたので、素直に c.id を参照できます
-            // 万が一 undefined の場合は 0 をフォールバックとして渡す
+            baseMatrix={matrixData} 
             filteredCandidates={candidates.map(c => ({ 
               id: c.id || 0, 
               name: c.name 
