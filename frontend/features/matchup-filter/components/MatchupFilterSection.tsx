@@ -1,36 +1,76 @@
 // frontend/features/matchup-filter/components/MatchupFilterSection.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import type { ComplementaryPokemon } from "@/features/type-complement/types";
 import { useMatchupFilter } from "../hooks/useMatchupFilter";
-import { dummyTargets } from "../utils/dummyTargets";
 import type { FilteredCandidate } from "../types";
+import type { MatrixResultRow } from "@/features/TopTierMatchups/types";
 
 interface MatchupFilterSectionProps {
-    /** 相性補完候補（① ステップの結果） */
     complements: ComplementaryPokemon[];
-    /** 絞り込み結果を親に渡すコールバック */
+    targets: MatrixResultRow[];
     onFilterComplete?: (result: FilteredCandidate[]) => void;
 }
 
 export default function MatchupFilterSection({
     complements,
+    targets,
     onFilterComplete,
 }: MatchupFilterSectionProps) {
     const { filteredCandidates, isLoading, error, runFilter } = useMatchupFilter();
 
-    // 結果が更新されたら親に通知
+    const onFilterCompleteRef = useRef(onFilterComplete);
+
     useEffect(() => {
-        if (filteredCandidates) {
-            onFilterComplete?.(filteredCandidates);
-        }
-    }, [filteredCandidates, onFilterComplete]);
+        onFilterCompleteRef.current = onFilterComplete;
+    }, [onFilterComplete]);
 
     const handleClick = () => {
-        // TODO: dummyTargets は将来マトリクス診断機能から渡される実データに差し替える
-        runFilter(complements, dummyTargets);
+        runFilter(complements, targets);
     };
+
+    // 1. ターゲット（横軸）を「×」優先で並び替える
+    const sortedTargets = useMemo(() => {
+        return [...targets].sort((a, b) => {
+            if (a.judgment === "×" && b.judgment !== "×") return -1;
+            if (a.judgment !== "×" && b.judgment === "×") return 1;
+            return (a.opponent_rank || 999) - (b.opponent_rank || 999);
+        });
+    }, [targets]);
+
+    // 2. 「×に対して-」のものを除外し、◯の数で並び替える（UI表示用＆親への受け渡し用）
+    const sortedCandidates = useMemo(() => {
+        if (!filteredCandidates) return null;
+
+        return [...filteredCandidates]
+            .filter(candidate => {
+                const hasDashAgainstCross = sortedTargets.some(target => {
+                    return target.judgment === "×" && !candidate.good_matchups.includes(target.opponent_name);
+                });
+                return !hasDashAgainstCross;
+            })
+            .map(candidate => {
+                const matchCount = sortedTargets.filter(target =>
+                    candidate.good_matchups.includes(target.opponent_name)
+                ).length;
+                return { ...candidate, matchCount };
+            })
+            .sort((a, b) => {
+                if (b.matchCount !== a.matchCount) {
+                    return b.matchCount - a.matchCount;
+                }
+                return (a.rank || 999) - (b.rank || 999);
+            });
+    }, [filteredCandidates, sortedTargets]);
+
+    // 【最重要変更】親へのコールバック送信を sortedCandidates の下へ移動し、
+    // 足切り・ソート済みの配列（sortedCandidates）を渡すように変更
+    useEffect(() => {
+        if (sortedCandidates) {
+            onFilterCompleteRef.current?.(sortedCandidates);
+        }
+    }, [sortedCandidates]);
 
     return (
         <section className="mt-12 pt-8 border-t border-slate-200">
@@ -40,13 +80,13 @@ export default function MatchupFilterSection({
                         苦手な相手で絞り込む
                     </h2>
                     <p className="text-sm text-slate-500 mt-1">
-                        △・×判定の相手に対して、実際に有利を取れる候補だけを残します
+                        主軸の「×」を確実にカバーできる候補だけを厳選します
                     </p>
                 </div>
                 <button
                     type="button"
                     onClick={handleClick}
-                    disabled={isLoading || complements.length === 0}
+                    disabled={isLoading || complements.length === 0 || targets.length === 0}
                     className="px-5 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                 >
                     {isLoading ? "絞り込み中…" : "この条件で絞り込む"}
@@ -59,10 +99,10 @@ export default function MatchupFilterSection({
                 </div>
             )}
 
-            {filteredCandidates &&
-                (filteredCandidates.length === 0 ? (
+            {sortedCandidates &&
+                (sortedCandidates.length === 0 ? (
                     <div className="p-6 text-center text-slate-500 bg-white rounded-lg border border-slate-200">
-                        条件を満たす候補が見つかりませんでした
+                        すべての「×」をカバーできる候補が見つかりませんでした。
                     </div>
                 ) : (
                     <div className="overflow-x-auto bg-white rounded-lg border border-slate-200 shadow-sm">
@@ -70,23 +110,32 @@ export default function MatchupFilterSection({
                             <thead>
                                 <tr>
                                     <th className="sticky left-0 z-10 bg-slate-50 px-4 py-2.5 text-left font-medium text-slate-600 border-b border-r border-slate-200 whitespace-nowrap">
-                                        候補ポケモン
+                                        候補ポケモン <span className="text-xs text-slate-400 font-normal ml-1">(有利な数)</span>
                                     </th>
-                                    {dummyTargets.map((target) => (
+                                    {sortedTargets.map((target) => (
                                         <th
                                             key={target.opponent_name}
                                             className="px-4 py-2.5 text-center font-medium text-slate-600 border-b border-slate-200 whitespace-nowrap"
                                         >
-                                            {target.opponent_name}
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span>{target.opponent_name}</span>
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                                                    target.judgment === "×" 
+                                                        ? "bg-red-100 text-red-700" 
+                                                        : "bg-amber-100 text-amber-700"
+                                                }`}>
+                                                    {target.judgment}
+                                                </span>
+                                            </div>
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredCandidates.map((candidate) => (
+                                {sortedCandidates.map((candidate) => (
                                     <tr
                                         key={candidate.id}
-                                        className="odd:bg-white even:bg-slate-50/50"
+                                        className="odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/30 transition-colors"
                                     >
                                         <td className="sticky left-0 z-10 bg-inherit px-4 py-2.5 border-r border-b border-slate-200 whitespace-nowrap">
                                             <span className="font-medium text-slate-900">
@@ -95,8 +144,11 @@ export default function MatchupFilterSection({
                                             <span className="ml-2 text-xs text-slate-400">
                                                 Rank {candidate.rank}
                                             </span>
+                                            <span className="ml-2 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-200">
+                                                ◯ {candidate.matchCount}
+                                            </span>
                                         </td>
-                                        {dummyTargets.map((target) => {
+                                        {sortedTargets.map((target) => {
                                             const isGood = candidate.good_matchups.includes(
                                                 target.opponent_name
                                             );

@@ -1,7 +1,10 @@
 import traceback
-from fastapi import APIRouter, HTTPException,Depends
+from fastapi import APIRouter, HTTPException, Depends
 from core.supabase import get_supabase, SupabaseClient
-from schemas.strategy import AutoMatrixRequest, MatrixResponse
+from schemas.strategy import (
+    AutoMatrixRequest, MatrixResponse,
+    BulkMatrixRequest, BulkMatrixResponse,
+)
 from services.strategy import MatrixService
 from schemas.evaluate_1v1_matchup import Step2Request, Step2Response
 from services.evaluate_1v1_matchup import execute_step2_filtering
@@ -9,12 +12,11 @@ from services.evaluate_1v1_matchup import execute_step2_filtering
 router = APIRouter()
 
 @router.post("/matrix", response_model=MatrixResponse, summary="努力値ベースの有利不利マトリクス自動計算実行")
-async def create_matrix(request: AutoMatrixRequest,supabase: SupabaseClient = Depends(get_supabase)):
+async def create_matrix(request: AutoMatrixRequest, supabase: SupabaseClient = Depends(get_supabase)):
     try:
-        return await MatrixService.generate_auto_matrix(request,supabase)
+        return await MatrixService.generate_auto_matrix(request, supabase)
     except Exception as e:
-        import traceback
-        traceback.print_exc() # 開発用にコンソールに詳細ログを残す
+        traceback.print_exc()  # 開発用にコンソールに詳細ログを残す
         raise HTTPException(status_code=500, detail=f"自動計算エラー: {str(e)}")
 
 @router.post("/step2-filter", response_model=Step2Response, summary="Step 2: 相性補完フィルタリング")
@@ -32,3 +34,21 @@ async def filter_step2_candidates(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Step 2 フィルタリングエラー: {str(e)}")
+
+@router.post("/bulk-matrix", response_model=BulkMatrixResponse, summary="Step 3: 候補ポケモン群 × 環境トップ50 の一括マトリクス計算")
+async def create_bulk_matrix(
+    request: BulkMatrixRequest,
+    supabase: SupabaseClient = Depends(get_supabase)
+):
+    """
+    Step2で絞り込んだ候補ポケモン（10〜30体想定）それぞれについて、
+    環境トップ50との相性マトリクス（◎◯△×）を一括計算します。
+
+    各候補の努力値・性格は、主軸のような手動指定ではなく、
+    使用率1位の調整（top_evs / top_nature）を自動採用します。
+    """
+    try:
+        return await MatrixService.generate_bulk_matrix(request, supabase)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"一括マトリクス計算エラー: {str(e)}")

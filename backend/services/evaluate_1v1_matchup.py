@@ -1,189 +1,132 @@
 # backend/services/evaluate_1v1_matchup.py
 import asyncio
-from typing import Tuple, Dict, Any, List
+from typing import Dict, List
+
 from core.supabase import SupabaseClient
-from schemas.evaluate_1v1_matchup import (
-    Step2Request, 
-    Step2Response, 
-    FilteredPokemon, 
-    AdvantageJudgment, 
-    DisadvantageCategory
-)
-from .matchup_core import calculate_effective_defense_index, calculate_damage_risk
-from .type_matchup import fetch_type_data, calculate_multiplier_and_message
+from schemas.evaluate_1v1_matchup import Step2Request, Step2Response, FilteredPokemon
+from schemas.pokemon import PokemonInfo, SeasonMoveInfo, SeasonPokemonInfo
+from .strategy import MatrixService
+from .pokemon_season import get_active_season_pokemon_details
 from .pokemon_detail import fetch_pokemon_data
 
-# ダメージが「通る」とみなす基準となるリスク値（環境に合わせて調整してください）
-DAMAGE_RISK_THRESHOLD = 50.0  
+# 使用率データ（top_evs/top_nature）を持たないポケモンに適用するデフォルト値
+DEFAULT_EVS = {"hp": 0, "attack": 0, "defense": 0, "sp_attack": 0, "sp_defense": 0, "speed": 0}
+DEFAULT_NATURE = "まじめ"
 
-def evaluate_1v1_matchup(
-    candidate_stats: dict, 
-    candidate_moves: List[dict],
-    target_stats: dict, 
-    target_moves: List[dict],
-    type_data_map: Dict[str, Any]
-) -> Tuple[AdvantageJudgment, DisadvantageCategory | None]:
+
+def _to_season_pokemon(info: PokemonInfo, rank: int) -> SeasonPokemonInfo:
     """
-    1対1の状況をシミュレートし、◎, ◯, △, × と その理由を返す
+    fetch_pokemon_data() が返す PokemonInfo（種族値・技のみ）を、
+    MatrixService._simulate_subject_vs_environment が要求する
+    SeasonPokemonInfo 形式に変換するアダプター。
+
+    all_environment_pokemons（シーズンの使用率データ）に存在しない
+    ポケモンのみ、このフォールバック経路を通る。
+    使用率ランキングデータ（top_evs / top_nature）は持っていないため、
+    無振り・まじめ をデフォルトとして採用する。
     """
-    
-    # ---------------------------------------------------------
-    # 1. 候補(自分) -> 敵(相手) への最大ダメージリスクを算出
-    # ---------------------------------------------------------
-    max_damage_to_target = 0.0
-    for move in candidate_moves:
-        is_physical = move.get("category") == "物理"
-        t_data = type_data_map.get(move.get("move_type"))
-        if not t_data: continue
-            
-        multiplier, _ = calculate_multiplier_and_message(t_data, target_stats.get("types", []))
-        
-        effective_def = calculate_effective_defense_index(
-            is_physical, 
-            multiplier, 
-            target_stats.get("hp_times_defense", 1), 
-            target_stats.get("hp_times_sp_defense", 1)
+    season_moves = [
+        SeasonMoveInfo(
+            move_name=m.name,
+            move_type=m.type,
+            category=m.damage_class,
+            power=m.power,
         )
-        damage_risk = calculate_damage_risk(move.get("power_times_atk", 0), effective_def)
-        if damage_risk > max_damage_to_target:
-            max_damage_to_target = damage_risk
+        for m in info.moves
+    ]
 
-    # ---------------------------------------------------------
-    # 2. 敵(相手) -> 候補(自分) への最大ダメージリスクを算出
-    # ---------------------------------------------------------
-    max_damage_from_target = 0.0
-    for move in target_moves:
-        is_physical = move.get("category") == "物理"
-        t_data = type_data_map.get(move.get("move_type"))
-        if not t_data: continue
-        
-        multiplier, _ = calculate_multiplier_and_message(t_data, candidate_stats.get("types", []))
-        
-        effective_def = calculate_effective_defense_index(
-            is_physical, 
-            multiplier, 
-            candidate_stats.get("hp_times_defense", 1), 
-            candidate_stats.get("hp_times_sp_defense", 1)
-        )
-        damage_risk = calculate_damage_risk(move.get("power_times_atk", 0), effective_def)
-        if damage_risk > max_damage_from_target:
-            max_damage_from_target = damage_risk
-        
-    # ---------------------------------------------------------
-    # 3. 素早さの比較 と 総合判定（◎/◯/△/×）
-    # ---------------------------------------------------------
-    candidate_speed = candidate_stats.get("speed", 0)
-    target_speed = target_stats.get("speed", 0)
-
-    # パターンA：上から叩かれて致命傷を受ける（速度負け）
-    if target_speed > candidate_speed and max_damage_from_target > DAMAGE_RISK_THRESHOLD:
-        return "×", "A：速度負け"
-        
-    # パターンC：相手が固すぎてこちらのダメージが全く通らない（数値受け）
-    if max_damage_to_target < (DAMAGE_RISK_THRESHOLD / 2):
-        return "△", "C：数値受け"
-        
-    # パターンB, D は特性や補助技のフラグが必要になるため、ここでは省略
-    # 必要に応じてデータモデルに 'has_priority_move' などを追加して判定します
-        
-    # どちらでもなく、こちらの火力が相手よりも十分に通るなら有利（◎）
-    if max_damage_to_target > DAMAGE_RISK_THRESHOLD and max_damage_from_target < DAMAGE_RISK_THRESHOLD:
-        return "◎", None
-        
-    # それ以外は通常の殴り合い（◯）
-    return "◯", None
+    return SeasonPokemonInfo(
+        **info.model_dump(),
+        rank=rank,
+        season_moves=season_moves,
+        season_natures=[],
+        season_evs=[],
+        max_power_times_atk_by_type={},
+        type_efficacies={},
+        top_nature=DEFAULT_NATURE,
+        top_evs=DEFAULT_EVS,
+    )
 
 
 async def execute_step2_filtering(
-    req: Step2Request, 
+    req: Step2Request,
     supabase: SupabaseClient
 ) -> Step2Response:
-    filtered_list = []
-    
+    filtered_list: List[FilteredPokemon] = []
+
     # 1. 候補ポケモンと敵ポケモンの「名前」をすべて抽出し、重複を排除
     candidate_names = [c.name for c in req.candidates]
     target_names = [t.opponent_name for t in req.targets]
     all_pokemon_names = list(set(candidate_names + target_names))
-    
-    # 2. pokemon_detail.py を使って全ポケモンの詳細データを並列取得
-    # キャッシュが効くため、高速に処理されます
-    fetch_tasks = [fetch_pokemon_data(supabase, name) for name in all_pokemon_names]
-    raw_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
-    
-    # 3. 取得したデータを、判定ロジック(evaluate_1v1_matchup)が計算しやすい形に変換
-    pokemon_details_map = {}
-    unique_move_types = set()
-    
-    for name, res in zip(all_pokemon_names, raw_results):
-        # 取得失敗（Exception）はスキップ
-        if isinstance(res, Exception):
-            continue
-            
-        stats = res.base_stats #[cite: 4]
-        
-        # 耐久指数の事前計算
-        hp_def = stats["hp"] * stats["defense"]
-        hp_spdef = stats["hp"] * stats["sp_defense"]
-        
-        # 技データの変換（変化技を除外＆攻撃指数の計算）
-        adapted_moves = []
-        for m in res.moves: #[cite: 4]
-            if m.power and m.power > 0: #[cite: 4]
-                # 物理か特殊かで掛けるステータスを変える
-                atk_stat = stats["attack"] if m.damage_class == "物理" else stats["sp_attack"] #[cite: 4]
-                
-                # タイプ一致ボーナス（STAB: 1.5倍）の計算
-                stab_multiplier = 1.5 if m.type in res.types else 1.0 #[cite: 4]
-                
-                adapted_moves.append({
-                    "move_name": m.name,
-                    "move_type": m.type,
-                    "category": m.damage_class,
-                    "power_times_atk": int(m.power * atk_stat * stab_multiplier) # 攻撃指数
-                })
-                unique_move_types.add(m.type)
-                
-        pokemon_details_map[name] = {
-            "base_stats": {
-                "hp_times_defense": hp_def,
-                "hp_times_sp_defense": hp_spdef,
-                "speed": stats["speed"],
-                "types": res.types
-            },
-            "season_moves": adapted_moves
-        }
-                
-    # 4. 必要なタイプ相性データのみを並列で取得
-    type_data_tasks = [fetch_type_data(supabase, t_ja) for t_ja in unique_move_types]
-    type_data_results = await asyncio.gather(*type_data_tasks)
-    type_data_map = dict(zip(unique_move_types, type_data_results))
-    
-    # 5. フィルタリングの実行
-    for candidate in req.candidates:
-        c_detail = pokemon_details_map.get(candidate.name)
-        if not c_detail:
-            continue
-            
-        good_against = []
-        
-        for target in req.targets:
-            t_detail = pokemon_details_map.get(target.opponent_name)
-            if not t_detail:
+
+    # 2. まずシーズン環境データ（技・top_evs・top_nature・rank を正式に持つ）から引く
+    all_environment_pokemons = await get_active_season_pokemon_details(supabase)
+    environment_map: Dict[str, SeasonPokemonInfo] = {
+        p.name: p for p in all_environment_pokemons
+    }
+
+    season_pokemon_map: Dict[str, SeasonPokemonInfo] = {}
+    missing_names: List[str] = []
+    for name in all_pokemon_names:
+        if name in environment_map:
+            season_pokemon_map[name] = environment_map[name]
+        else:
+            missing_names.append(name)
+
+    # 3. 環境データに存在しない名前のみ、pokemon_detail.py で個別取得しアダプター変換
+    if missing_names:
+        fetch_tasks = [fetch_pokemon_data(supabase, name) for name in missing_names]
+        raw_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+
+        rank_by_name: Dict[str, int] = {c.name: c.rank for c in req.candidates}
+        rank_by_name.update({t.opponent_name: t.opponent_rank for t in req.targets})
+
+        for name, res in zip(missing_names, raw_results):
+            if isinstance(res, Exception):
                 continue
-                
-            # 1対1の相性判定ロジックを実行
-            judgment, reason = evaluate_1v1_matchup(
-                candidate_stats=c_detail["base_stats"],
-                candidate_moves=c_detail["season_moves"],
-                target_stats=t_detail["base_stats"],
-                target_moves=t_detail["season_moves"],
-                type_data_map=type_data_map
-            )
-            
-            # 判定が ◎ または ◯ の場合、有利な相手として記録
-            if judgment in ["◎", "◯"]:
-                good_against.append(target.opponent_name)
-                
+            season_pokemon_map[name] = _to_season_pokemon(res, rank_by_name.get(name, 0))
+
+    # 4. 必要なタイプ相性データを一括取得（候補・敵、両方の技タイプをまとめて集約）
+    all_moves_parsed_groups = [
+        [m.model_dump() for m in p.season_moves]
+        for p in season_pokemon_map.values()
+    ]
+    type_data_map = await MatrixService._build_type_data_map(
+        supabase,
+        all_moves_parsed_groups,
+        [],  # 敵側の技タイプも上のgroupsに含めているため空でよい
+    )
+
+    target_season_pokemons = [
+        season_pokemon_map[name] for name in target_names if name in season_pokemon_map
+    ]
+
+    # 5. 候補ごとに、「候補 vs targets」で MatrixService の判定ロジックを実行
+    for candidate in req.candidates:
+        subject = season_pokemon_map.get(candidate.name)
+        if not subject:
+            continue
+
+        subject_real_stats = MatrixService._calculate_real_stats(
+            subject.base_stats, subject.top_evs, subject.top_nature
+        )
+        subject_moves_parsed = [m.model_dump() for m in subject.season_moves]
+
+        matrix = MatrixService._simulate_subject_vs_environment(
+            subject_name=candidate.name,
+            subject_real_stats=subject_real_stats,
+            subject_types=subject.types,
+            subject_moves_parsed=subject_moves_parsed,
+            active_environment_pokemons=target_season_pokemons,
+            type_data_map=type_data_map,
+            verbose=True,
+        )
+
+        # 判定が ◎ または ◯ の場合、有利な相手として記録
+        good_against = [
+            row.opponent_name for row in matrix if row.judgment in ["◎", "◯"]
+        ]
+
         # すべてに対して「△」か「×」ではない（＝有利な相手が1体以上いる）なら残す
         if len(good_against) > 0:
             filtered_list.append(FilteredPokemon(
@@ -193,5 +136,5 @@ async def execute_step2_filtering(
                 rank=candidate.rank,
                 good_matchups=good_against
             ))
-            
+
     return Step2Response(filtered_candidates=filtered_list)

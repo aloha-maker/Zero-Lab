@@ -53,3 +53,39 @@ class PokemonEVs(BaseModel):
 class AutoMatrixRequest(BaseModel):
     main_pokemon_name: str = Field(..., description="主軸ポケモン名", example="ガブリアス")
     evs: PokemonEVs
+
+
+# ---------------------------------------------------------------------------
+# ③ 候補ポケモン一括マトリクス計算（新規追加）
+# ---------------------------------------------------------------------------
+
+class BulkMatrixCandidate(BaseModel):
+    """
+    Step2（相性フィルタ）で絞り込まれた候補ポケモン1体分。
+    Step2のレスポンス（FilteredPokemon）の id / name をそのまま流用できる。
+    """
+    id: int
+    name: str = Field(..., description="候補ポケモン名")
+
+
+class BulkMatrixRequest(BaseModel):
+    """
+    候補ポケモン群（10〜30体想定）に対して、環境トップ50とのマトリクスを
+    一括計算するためのリクエスト。
+    各候補の努力値・性格は、使用率1位のもの（top_evs / top_nature）を
+    自動採用するため、EVs等の指定は不要。
+    """
+    candidates: List[BulkMatrixCandidate] = Field(
+        ..., description="Step2で絞り込んだ候補ポケモンの一覧"
+    )
+
+
+class CandidateMatrixResult(BaseModel):
+    """候補ポケモン1体分の、環境トップ50に対するマトリクス結果"""
+    id: int
+    name: str
+    matrix: List[MatrixResultRow]
+
+
+class BulkMatrixResponse(BaseModel):
+    results: List[CandidateMatrixResult]

@@ -18,11 +18,10 @@ export interface RoleCheckItem {
 
 /** スクリーニングを通過した候補ポケモン（単体 or ペア採用） */
 export interface PokemonCandidate {
-  /** 単体の場合は名前、ペアの場合は「ハッサム ＆ ヒードラン」など */
+  id?: number;          // ← 【追加】API呼び出し用にポケモンのIDを保持する
   name: string;
-  /** ペア採用かどうかのフラグ */
   isPair?: boolean;
-  matchups: Matchups;
+  matchups: any;        // ※既存のMatchups型
   archetypeTags: string[];
   passChecks: string[];
   rate: number;
