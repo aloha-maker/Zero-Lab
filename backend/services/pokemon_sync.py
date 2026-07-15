@@ -1,5 +1,6 @@
 import httpx
 import asyncio
+from bs4 import BeautifulSoup
 from core.config import settings
 from core.supabase import SupabaseClient
 
@@ -268,4 +269,89 @@ async def sync_pokemon_data(supabase: SupabaseClient):
         "abilities_count": len(abilities_dict),
         "moves_count": len(moves_dict),
         "moves_relations_count": len(db_pokemon_moves)
+    }
+    
+async def sync_scraped_moves(supabase: SupabaseClient, pokemon_id: int, target_url: str):
+    """
+    対象URLから技データをスクレイピングし、Supabaseのpokemon_movesテーブルに同期する
+    """
+    print(f"🌐 サイトから {pokemon_id} の技データをスクレイピングします:\n {target_url}")
+    
+    # 1. 先にSupabase(movesテーブル)からマスタデータを取得しておく
+    try:
+        response = supabase.table("moves").select("id, name_ja").execute()
+        db_moves = response.data
+    except Exception as e:
+        print(f"❌ movesテーブルの取得に失敗しました: {e}")
+        raise
+
+    # 技名(日本語)をキー、IDを値とする辞書を作成
+    move_name_to_id = {m["name_ja"]: m["id"] for m in db_moves if m.get("name_ja")}
+
+    # 2. サイトからのデータ取得
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(target_url, headers=headers)
+            response.raise_for_status()
+    except httpx.HTTPError as e:
+        print(f"❌ ページの取得に失敗しました: {e}")
+        raise Exception(f"ページの取得に失敗しました: {e}")
+
+    # 【重要】yakkun.com (ポケモン徹底攻略) は EUC-JP でエンコードされている。
+    # Shift_JISとして解釈すると半角カナ等が化けてしまうため、
+    # response.text (httpxの自動デコード) は使わず、生バイトをBeautifulSoupに渡して
+    # html.parser にmetaタグから文字コードを検出させる。
+    soup = BeautifulSoup(response.content, "html.parser", from_encoding="euc-jp")
+    
+    scraped_move_names = set()
+    
+    # 3. 汎用的なセレクタで取得 (クラス名に依存せず、テーブル内のaタグを全て対象にする)
+    # yakkun.com 等のWikiサイトは <td><a href="...">なみのり</a></td> という構造が多いため
+    move_elements = soup.select("table tr td a") 
+    
+    for el in move_elements:
+        name = el.text.strip()
+        # 取得したテキストが、DBの技マスタに完全に一致するものだけを「技名」として扱う
+        # （これにより、「タイプ」や「特性」などの余計なリンクを自動的に除外できます）
+        if name and name in move_name_to_id:
+            scraped_move_names.add(name)
+            
+    if not scraped_move_names:
+        # デバッグ用：何が取得されていたかをログに残す
+        sample_texts = [el.text.strip() for el in soup.select("table tr td a") if el.text.strip()][:15]
+        print(f"⚠️ 取得されたテキストのサンプル: {sample_texts}")
+        raise Exception("技名が取得できませんでした。HTML構造が変わった可能性があります。")
+        
+    print(f"🔍 {len(scraped_move_names)}件の技名を取得しました。DBに登録します...")
+    
+    records_to_upsert = []
+    
+    # 4. Upsert用データの作成
+    for move_name in scraped_move_names:
+        move_id = move_name_to_id[move_name] # inチェック済みのため必ず取得可能
+        records_to_upsert.append({
+            "pokemon_id": pokemon_id,
+            "move_id": move_id
+        })
+            
+    print(f"💾 {len(records_to_upsert)}件の技を pokemon_moves テーブルに登録(Upsert)します...")
+    
+    # 5. Supabase(pokemon_movesテーブル)へのUpsert実行
+    try:
+        supabase.table("pokemon_moves").upsert(records_to_upsert).execute()
+        print("✅ pokemon_moves テーブルへの登録が完了しました。")
+    except Exception as e:
+        print(f"❌ pokemon_moves テーブルへのUpsertに失敗しました: {e}")
+        raise
+
+    # APIのレスポンス用に結果を返す
+    return {
+        "pokemon_id": pokemon_id,
+        "scraped_count": len(scraped_move_names),
+        "upserted_count": len(records_to_upsert),
+        # 存在しない技名は最初から弾かれるため、今回は空リストを返す
+        "unmatched_names": [] 
     }

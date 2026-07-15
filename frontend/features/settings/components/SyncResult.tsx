@@ -1,3 +1,4 @@
+// frontend/features/settings/components/SyncResult.tsx
 "use client";
 
 import { CheckCircle2 } from "lucide-react";

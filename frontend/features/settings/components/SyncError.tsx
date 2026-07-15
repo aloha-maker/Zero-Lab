@@ -1,3 +1,4 @@
+// frontend/features/settings/components/SyncError.tsx
 "use client";
 
 import { AlertCircle } from "lucide-react";

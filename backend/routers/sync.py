@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
-from services.pokemon_sync import sync_pokemon_data
+from schemas.sync import ScrapeMovesRequest
+from services.pokemon_sync import sync_pokemon_data, sync_scraped_moves
 from core.config import settings
 from core.supabase import get_supabase, SupabaseClient
 
@@ -36,3 +37,23 @@ async def sync_pokemon(
     except Exception as e:
         print(f"[Error] Sync failed: {e}")
         raise HTTPException(status_code=500, detail=f"Sync process failed: {str(e)}")
+
+@router.post("/pokemon/scrape-moves")
+async def scrape_pokemon_moves(
+    request: ScrapeMovesRequest,
+    api_key: str = Depends(get_api_key),
+    supabase: SupabaseClient = Depends(get_supabase)
+):
+    """
+    指定されたURLから特定のポケモンの技をスクレイピングして同期する
+    """
+    try:
+        result = await sync_scraped_moves(supabase, request.pokemon_id, request.url)
+        return {
+            "status": "success",
+            "message": f"Successfully scraped moves for Pokemon {request.pokemon_id}",
+            "summary": result
+        }
+    except Exception as e:
+        print(f"[Error] Scraping failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Scraping process failed: {str(e)}")
