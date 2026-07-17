@@ -24,3 +24,23 @@ export interface ScrapeResult {
     message: string;
     summary: ScrapeSummary;
 }
+
+export interface ScrapeStatsValues {
+    hp: number;
+    attack: number;
+    defense: number;
+    sp_attack: number;
+    sp_defense: number;
+    speed: number;
+}
+
+export interface ScrapeStatsSummary {
+    pokemon_id: number;
+    scraped_stats: ScrapeStatsValues;
+}
+
+export interface ScrapeStatsResult {
+    status: string;
+    message: string;
+    summary: ScrapeStatsSummary;
+}

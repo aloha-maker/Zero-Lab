@@ -355,3 +355,118 @@ async def sync_scraped_moves(supabase: SupabaseClient, pokemon_id: int, target_u
         # 存在しない技名は最初から弾かれるため、今回は空リストを返す
         "unmatched_names": [] 
     }
+
+
+# 種族値テーブルの行ラベル(サイト表記) → pokemonテーブルのカラム名
+STATS_ROW_LABEL_TO_COLUMN = {
+    "HP": "hp",
+    "攻撃": "attack",
+    "防御": "defense",
+    "特攻": "sp_attack",
+    "特防": "sp_defense",
+    "素早": "speed",
+}
+
+
+async def sync_scraped_stats(
+    supabase: SupabaseClient,
+    pokemon_id: int,
+    target_url: str,
+):
+    """
+    対象URLの「種族値」テーブルをスクレイピングし、pokemonテーブルの
+    hp/attack/defense/sp_attack/sp_defense/speed を更新する。
+
+    PokeAPI(GraphQL)側にメガシンカ等のサブフォームの種族値が
+    含まれていないケースがあるため、その代替データソースとして利用する。
+
+    yakkun.comはフォームごとに専用URL(例: 通常=n260, メガ=n260m)を持っており、
+    そのページの主役(テーブル左側の基本列 td.stats_value)が対象pokemon_idの
+    種族値になる。そのためフォーム名による列の出し分けは不要で、常に基本列を読む。
+    """
+    print(f"🌐 サイトから {pokemon_id} の種族値データをスクレイピングします:\n {target_url}")
+
+    # 1. 対象ポケモンがDBに存在するか確認
+    try:
+        response = (
+            supabase.table("pokemon")
+            .select("id")
+            .eq("id", pokemon_id)
+            .single()
+            .execute()
+        )
+        target_pokemon = response.data
+    except Exception as e:
+        print(f"❌ pokemonテーブルの取得に失敗しました: {e}")
+        raise
+
+    if not target_pokemon:
+        raise Exception(
+            f"pokemon_id={pokemon_id} がDBに存在しません。先にsync_pokemon_dataを実行してください。"
+        )
+
+    # 2. サイトからのデータ取得 (EUC-JP。詳細はsync_scraped_movesのコメント参照)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(target_url, headers=headers)
+            response.raise_for_status()
+    except httpx.HTTPError as e:
+        print(f"❌ ページの取得に失敗しました: {e}")
+        raise Exception(f"ページの取得に失敗しました: {e}")
+
+    soup = BeautifulSoup(response.content, "html.parser", from_encoding="euc-jp")
+
+    # 3. 「種族値」テーブルを特定する (summary="種族値" が目印)
+    stats_table = soup.find("table", summary="種族値")
+    if stats_table is None:
+        raise Exception("種族値テーブルが見つかりませんでした。HTML構造が変わった可能性があります。")
+
+    # 4. 各ステータス行を解析 (常に基本列 td.stats_value を読む)
+    scraped_stats = {}
+    for row in stats_table.find_all("tr")[1:]:  # ヘッダー行を除く
+        label_cell = row.find("td", class_="c1")
+        if not label_cell:
+            continue
+        label = label_cell.get_text(strip=True)
+        if label not in STATS_ROW_LABEL_TO_COLUMN:
+            continue  # 「平均 / 合計」などはスキップ
+
+        value_cell = row.find("td", class_="stats_value")
+        if value_cell is None:
+            continue
+        # imgタグやランク表示(span.stats_rank)を除いた、直接のテキストノードのみ取得
+        raw_text = "".join(
+            t for t in value_cell.find_all(string=True, recursive=False)
+        ).strip()
+
+        try:
+            value = int(raw_text)
+        except ValueError:
+            print(f"⚠️ 数値化に失敗しました (label={label}, raw_text={raw_text!r})")
+            continue
+
+        scraped_stats[STATS_ROW_LABEL_TO_COLUMN[label]] = value
+
+    if len(scraped_stats) < 6:
+        raise Exception(
+            f"種族値を6項目取得できませんでした(取得できた項目: {list(scraped_stats.keys())})。"
+            "HTML構造が変わった可能性があります。"
+        )
+
+    print(f"🔍 取得した種族値: {scraped_stats}")
+
+    # 5. Supabase(pokemonテーブル)へのUpdate実行
+    try:
+        supabase.table("pokemon").update(scraped_stats).eq("id", pokemon_id).execute()
+        print("✅ pokemon テーブルの種族値を更新しました。")
+    except Exception as e:
+        print(f"❌ pokemon テーブルの更新に失敗しました: {e}")
+        raise
+
+    return {
+        "pokemon_id": pokemon_id,
+        "scraped_stats": scraped_stats,
+    }
