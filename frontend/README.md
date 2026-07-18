@@ -1,5 +1,5 @@
 ```
-src/
+frontend/
 ├── app/ # ① ルーティングと画面の定義（Next.jsのコア）
 │ ├── layout.tsx # アプリ共通レイアウト
 │ ├── page.tsx # トップページ
