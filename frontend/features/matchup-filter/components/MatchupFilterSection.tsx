@@ -1,7 +1,7 @@
 // frontend/features/matchup-filter/components/MatchupFilterSection.tsx
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react"; // useState を追加
 import type { ComplementaryPokemon } from "@/features/type-complement/types";
 import { useMatchupFilter } from "../hooks/useMatchupFilter";
 import type { FilteredCandidate } from "../types";
@@ -19,6 +19,9 @@ export default function MatchupFilterSection({
     onFilterComplete,
 }: MatchupFilterSectionProps) {
     const { filteredCandidates, isLoading, error, runFilter } = useMatchupFilter();
+
+    // フィルターのON/OFF状態を管理するState（デフォルトはON）
+    const [isStrictFilterEnabled, setIsStrictFilterEnabled] = useState(true);
 
     const onFilterCompleteRef = useRef(onFilterComplete);
 
@@ -43,13 +46,19 @@ export default function MatchupFilterSection({
     const sortedCandidates = useMemo(() => {
         if (!filteredCandidates) return null;
 
-        return [...filteredCandidates]
-            .filter(candidate => {
+        let processedCandidates = [...filteredCandidates];
+
+        // 厳密フィルターがONの場合のみ、足切り（除外処理）を実行
+        if (isStrictFilterEnabled) {
+            processedCandidates = processedCandidates.filter(candidate => {
                 const hasDashAgainstCross = sortedTargets.some(target => {
                     return target.judgment === "×" && !candidate.good_matchups.includes(target.opponent_name);
                 });
                 return !hasDashAgainstCross;
-            })
+            });
+        }
+
+        return processedCandidates
             .map(candidate => {
                 const matchCount = sortedTargets.filter(target =>
                     candidate.good_matchups.includes(target.opponent_name)
@@ -62,10 +71,9 @@ export default function MatchupFilterSection({
                 }
                 return (a.rank || 999) - (b.rank || 999);
             });
-    }, [filteredCandidates, sortedTargets]);
+    }, [filteredCandidates, sortedTargets, isStrictFilterEnabled]); // 依存配列に isStrictFilterEnabled を追加
 
-    // 【最重要変更】親へのコールバック送信を sortedCandidates の下へ移動し、
-    // 足切り・ソート済みの配列（sortedCandidates）を渡すように変更
+    // 親へのコールバック送信
     useEffect(() => {
         if (sortedCandidates) {
             onFilterCompleteRef.current?.(sortedCandidates);
@@ -74,27 +82,43 @@ export default function MatchupFilterSection({
 
     return (
         <section className="mt-12 pt-8 border-t border-slate-200">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
                 <div>
                     <h2 className="text-xl font-semibold text-slate-900">
                         苦手な相手で絞り込む
                     </h2>
                     <p className="text-sm text-slate-500 mt-1">
-                        主軸の「×」を確実にカバーできる候補だけを厳選します
+                        主軸の「×」をカバーできる候補を確認します
                     </p>
+                    
+                    {/* フィルター切り替え用のチェックボックスを追加 */}
+                    <div className="mt-3">
+                        <label className="inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={isStrictFilterEnabled}
+                                onChange={(e) => setIsStrictFilterEnabled(e.target.checked)}
+                                className="w-4 h-4 text-slate-900 bg-gray-100 border-gray-300 rounded focus:ring-slate-900 focus:ring-2"
+                            />
+                            <span className="ml-2 text-sm font-medium text-slate-700">
+                                すべての「×」をカバーできない候補を除外する
+                            </span>
+                        </label>
+                    </div>
                 </div>
+
                 <button
                     type="button"
                     onClick={handleClick}
                     disabled={isLoading || complements.length === 0 || targets.length === 0}
-                    className="px-5 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                    className="px-5 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                 >
-                    {isLoading ? "絞り込み中…" : "この条件で絞り込む"}
+                    {isLoading ? "処理中…" : "この条件で実行する"}
                 </button>
             </div>
 
             {error && (
-                <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg shadow-sm">
+                <div className="p-4 mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg shadow-sm">
                     <p className="font-medium">{error}</p>
                 </div>
             )}
@@ -102,11 +126,14 @@ export default function MatchupFilterSection({
             {sortedCandidates &&
                 (sortedCandidates.length === 0 ? (
                     <div className="p-6 text-center text-slate-500 bg-white rounded-lg border border-slate-200">
-                        すべての「×」をカバーできる候補が見つかりませんでした。
+                        {isStrictFilterEnabled 
+                            ? "すべての「×」をカバーできる候補が見つかりませんでした。チェックを外すと全候補を確認できます。" 
+                            : "候補が見つかりませんでした。"}
                     </div>
                 ) : (
                     <div className="overflow-x-auto bg-white rounded-lg border border-slate-200 shadow-sm">
                         <table className="min-w-full border-collapse text-sm">
+                            {/* ...テーブルの描画部分は変更なし... */}
                             <thead>
                                 <tr>
                                     <th className="sticky left-0 z-10 bg-slate-50 px-4 py-2.5 text-left font-medium text-slate-600 border-b border-r border-slate-200 whitespace-nowrap">
