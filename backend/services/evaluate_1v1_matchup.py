@@ -126,7 +126,7 @@ async def execute_step2_filtering(
 
         # 判定が ◎ または ◯ の場合、有利な相手として記録
         good_against = [
-            row.opponent_name for row in matrix if row.judgment in ["◎", "◯"]
+            row.opponent_name for row in matrix if row.judgment in ["◎", "◯","△"]
         ]
 
         # すべてに対して「△」か「×」ではない（＝有利な相手が1体以上いる）なら残す

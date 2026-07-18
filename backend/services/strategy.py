@@ -267,7 +267,7 @@ class MatrixService:
             subject_real_stats=main_real_stats,
             subject_types=main_types,
             subject_moves_parsed=main_moves_parsed,
-            subject_ability=main_ability, # ← 追加
+            subject_ability=main_ability,
             active_environment_pokemons=active_environment_pokemons,
             type_data_map=type_data_map,
             verbose=True,
@@ -477,15 +477,17 @@ class MatrixService:
                 subject_real_stats=subject_real_stats,
                 subject_types=subject_types,
                 subject_moves_parsed=subject_moves_parsed,
-                subject_ability=subject_ability, # ← 追加
+                subject_ability=subject_ability,
                 opp_name=opp.name,
                 opp_real_stats=opp_real_stats,
                 opp_types=opp_types,
                 opp_moves_parsed=opp_moves_parsed,
-                opp_ability=opp_ability, # ← 追加
+                opp_ability=opp_ability,
                 type_data_map=type_data_map,
                 verbose=verbose,
             )
+            
+            print(opp.name,sim_result["judgment"])
 
             results.append(MatrixResultRow(
                 opponent_rank=opp.rank,
@@ -502,20 +504,20 @@ class MatrixService:
         subject_real_stats: dict,
         subject_types: list,
         subject_moves_parsed: List[dict],
-        subject_ability: str, # ← 追加
+        subject_ability: str,
         opp_name: str,
         opp_real_stats: dict,
         opp_types: list,
         opp_moves_parsed: List[dict],
-        opp_ability: str, # ← 追加
+        opp_ability: str,
         type_data_map: Dict[str, Any],
         verbose: bool = False,
-    ) -> dict: # ※戻り値の型アノテーションを dict に修正（全てを返すため）
+    ) -> dict:
         """
         純粋な1vs1の対面シミュレーションを実行します。
         """
         # ① 自分から相手への最適技を探す
-        best_my_turns = 3
+        best_my_turns = 10
         best_my_move = {
             MOVE_KEY_NAME: "攻撃技",
             MOVE_KEY_TYPE: subject_types[0] if subject_types else "ノーマル",
@@ -540,7 +542,7 @@ class MatrixService:
                 # --- 新規追加: 特性によるダメージ無効化判定 ---
                 if opp_ability in IMMUNITY_ABILITIES and my_move_type in IMMUNITY_ABILITIES[opp_ability]:
                     multiplier = 0.0
-
+                
                 turns = MatrixService._calc_dynamic_turns_to_kill(
                     atk_stats=subject_real_stats, def_stats=opp_real_stats,
                     move=move, atk_types=subject_types, multiplier=multiplier
@@ -551,7 +553,7 @@ class MatrixService:
                     my_multiplier = multiplier
 
         # ② 相手から自分への最適技を探す
-        best_opp_turns = 3
+        best_opp_turns = 10
         best_opp_move = {
             MOVE_KEY_NAME: "攻撃技",
             MOVE_KEY_TYPE: opp_types[0] if opp_types else "ノーマル",
@@ -635,13 +637,11 @@ class MatrixService:
             logger.debug("==================================================")
 
         # 画面復元用の詳細データをすべて返す
-        
-        print("自分の特性：",subject_ability)
-        print("相手の特性：",opp_ability)
+        print(best_my_move.get(MOVE_KEY_NAME, ""),my_turns,best_opp_move.get(MOVE_KEY_NAME, ""),opp_turns)
         return {
             "action_order": action_order,
             "my_detail": {
-                "ability": subject_ability, # ← 追加
+                "ability": subject_ability,
                 "speed_real": subject_real_stats["speed"],
                 "best_move_name": best_my_move.get(MOVE_KEY_NAME, ""),
                 "best_move_type": best_my_move.get(MOVE_KEY_TYPE, ""),
@@ -650,7 +650,7 @@ class MatrixService:
                 "turns_to_kill": my_turns,
             },
             "opp_detail": {
-                "ability": opp_ability, # ← 追加
+                "ability": opp_ability,
                 "speed_real": opp_real_stats["speed"],
                 "best_move_name": best_opp_move.get(MOVE_KEY_NAME, ""),
                 "best_move_type": best_opp_move.get(MOVE_KEY_TYPE, ""),
@@ -788,7 +788,7 @@ class MatrixService:
 
         # 自ポケモンのパラメータ準備（リクエストのカスタム値を適用）
         my_evs_internal = MatrixService._convert_evs_to_internal(request.my_evs)
-        my_real_stats, my_types, my_moves_parsed, my_ability = MatrixService._prepare_battle_params( # ← 受け取り変数を追加
+        my_real_stats, my_types, my_moves_parsed, my_ability = MatrixService._prepare_battle_params(
             pokemon_data=my_base_data,
             evs_internal=my_evs_internal,
             nature_name=request.my_nature,
@@ -818,12 +818,12 @@ class MatrixService:
             subject_real_stats=my_real_stats,
             subject_types=my_types,
             subject_moves_parsed=my_moves_parsed,
-            subject_ability=my_ability, # ← 追加
+            subject_ability=my_ability,
             opp_name=opp_name,
             opp_real_stats=opp_real_stats,
             opp_types=opp_types,
             opp_moves_parsed=opp_moves_parsed,
-            opp_ability=opp_ability, # ← 追加
+            opp_ability=opp_ability,
             type_data_map=type_data_map,
             verbose=True
         )
@@ -832,7 +832,7 @@ class MatrixService:
             my_pokemon_name=my_name,
             opp_pokemon_name=opp_name,
             action_order=sim_result["action_order"].name,
-            my_detail=sim_result["my_detail"], # my_detail内にabilityが含まれるようになります
+            my_detail=sim_result["my_detail"],
             opp_detail=sim_result["opp_detail"],
             judgment=sim_result["judgment"].name,
             reason_category=sim_result["category"].name if sim_result["category"] else None
