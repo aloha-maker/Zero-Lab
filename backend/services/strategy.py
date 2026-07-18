@@ -18,8 +18,44 @@ STAT_KEY_MAP = {"H": "hp", "A": "attack", "B": "defense", "C": "sp_attack", "D":
 # 行動保障（通称：眠り粉・鬼火等の妨害）を持つ、機能停止判定の対象となる相手
 STATUS_THREAT_POKEMON_NAMES = ["ディンルー", "キョジオーン", "カバルドン", "ドヒドイデ"]
 
+# 環境トップポケモンのデフォルト取得順位上限
+DEFAULT_ENV_RANK_LIMIT = 50
+
 
 class MatrixService:
+    @staticmethod
+    async def _fetch_top_environment_pokemons(supabase: SupabaseClient, limit: int = DEFAULT_ENV_RANK_LIMIT) -> list:
+        """
+        環境上位のポケモンを非同期で一括取得します。
+        """
+        try:
+            all_environment_pokemons = await get_active_season_pokemon_details(supabase)
+            return [
+                opp for opp in all_environment_pokemons if opp.rank <= limit
+            ]
+        except Exception as e:
+            # TODO: 本番環境に合わせてロガー(logger.error等)に置き換えてください
+            print(f"[Error] 環境トップポケモンの取得中にエラーが発生しました: {e}")
+            raise ValueError(f"環境トップポケモンのデータ取得に失敗しました。詳細: {e}")
+    
+    @staticmethod
+    def _prepare_battle_params(pokemon_data: Any, evs_internal: dict, nature_name: str) -> Tuple[dict, list, list]:
+        """
+        1体分のポケモンデータ、努力値(内部キー)、性格から、
+        シミュレーションに必要な実数値・タイプ一覧・パース済み技データを生成します。
+        """
+        base_stats = pokemon_data.base_stats if hasattr(pokemon_data, 'base_stats') else pokemon_data.get('base_stats', {})
+        real_stats = MatrixService._calculate_real_stats(base_stats, evs_internal, nature_name)
+
+        types = pokemon_data.types if hasattr(pokemon_data, 'types') else pokemon_data.get('types', [])
+        
+        moves = getattr(pokemon_data, 'season_moves', [])
+        moves_parsed = [
+            m.model_dump() if hasattr(m, 'model_dump') else m for m in moves
+        ]
+
+        return real_stats, types, moves_parsed
+        
     @staticmethod
     async def generate_auto_matrix(request: AutoMatrixRequest, supabase: SupabaseClient) -> MatrixResponse:
         """
@@ -28,10 +64,7 @@ class MatrixService:
         （主軸ポケモン1体・手動EVs指定 向け）
         """
         # 0. 環境トップ50の非同期一括取得
-        all_environment_pokemons = await get_active_season_pokemon_details(supabase)
-        active_environment_pokemons = [
-            opp for opp in all_environment_pokemons if opp.rank <= 50
-        ]
+        active_environment_pokemons = await MatrixService._fetch_top_environment_pokemons(supabase)
 
         # 1. 主軸ポケモンのデータ補完と実数値計算
         main_name = request.main_pokemon_name
@@ -44,22 +77,20 @@ class MatrixService:
             except Exception as e:
                 raise ValueError(f"ポケモンのデータソースが空です。{e}")
 
+        # 呼び出し側でEVsと性格の差異を吸収
         request_nature_name = getattr(request, 'nature', 'まじめ')
-
         evs_dict = request.evs if isinstance(request.evs, dict) else request.evs.model_dump()
         main_evs_internal = {
             internal_key: int(evs_dict.get(api_key, 0))
             for api_key, internal_key in STAT_KEY_MAP.items()
         }
 
-        base_stats_source = main_base_data.base_stats if hasattr(main_base_data, 'base_stats') else main_base_data.get('base_stats', {})
-        main_real_stats = MatrixService._calculate_real_stats(base_stats_source, main_evs_internal, request_nature_name)
-
-        main_types = main_base_data.types if hasattr(main_base_data, 'types') else main_base_data.get('types', [])
-        main_moves = getattr(main_base_data, 'season_moves', [])
-        main_moves_parsed = [
-            m.model_dump() if hasattr(m, 'model_dump') else m for m in main_moves
-        ]
+        # 共通関数の呼び出し
+        main_real_stats, main_types, main_moves_parsed = MatrixService._prepare_battle_params(
+            pokemon_data=main_base_data,
+            evs_internal=main_evs_internal,
+            nature_name=request_nature_name
+        )
 
         # 2. 必要なタイプ相性データを一括取得（主軸の技 ＋ 環境全体の技）
         type_data_map = await MatrixService._build_type_data_map(
@@ -93,15 +124,12 @@ class MatrixService:
         環境トップ50データ・タイプ相性データは候補間で1回だけ取得し使い回します。
         """
         # 0. 環境トップ50の非同期一括取得（候補間で共有）
-        all_environment_pokemons = await get_active_season_pokemon_details(supabase)
-        active_environment_pokemons = [
-            opp for opp in all_environment_pokemons if opp.rank <= 50
-        ]
+        active_environment_pokemons = await MatrixService._fetch_top_environment_pokemons(supabase)
 
         # 1. 候補ポケモンのデータ補完
         #    環境データ（ランキング上位）に含まれていればそれを使い、
         #    含まれていない候補のみ個別に取得する
-        candidate_data_map: Dict[str, Any] = {p.name: p for p in all_environment_pokemons}
+        candidate_data_map: Dict[str, Any] = {p.name: p for p in active_environment_pokemons}
 
         missing_names = [
             c.name for c in request.candidates if c.name not in candidate_data_map
@@ -137,17 +165,17 @@ class MatrixService:
             if not subject_data:
                 # データソースが見つからない候補はスキップ（フロント側で欠損扱い）
                 continue
-
+            
+            # 呼び出し側でトップ採用のEVsと性格をセット
             subject_nature = getattr(subject_data, 'top_nature', 'まじめ')
             subject_evs = getattr(subject_data, 'top_evs', {}) or {}
-            subject_base_stats = subject_data.base_stats if hasattr(subject_data, 'base_stats') else subject_data.get('base_stats', {})
-            subject_real_stats = MatrixService._calculate_real_stats(subject_base_stats, subject_evs, subject_nature)
 
-            subject_types = subject_data.types if hasattr(subject_data, 'types') else subject_data.get('types', [])
-            subject_moves = getattr(subject_data, 'season_moves', [])
-            subject_moves_parsed = [
-                m.model_dump() if hasattr(m, 'model_dump') else m for m in subject_moves
-            ]
+            # 共通関数の呼び出し
+            subject_real_stats, subject_types, subject_moves_parsed = MatrixService._prepare_battle_params(
+                pokemon_data=subject_data,
+                evs_internal=subject_evs,
+                nature_name=subject_nature
+            )
 
             matrix = MatrixService._simulate_subject_vs_environment(
                 subject_name=candidate.name,
@@ -156,7 +184,7 @@ class MatrixService:
                 subject_moves_parsed=subject_moves_parsed,
                 active_environment_pokemons=active_environment_pokemons,
                 type_data_map=type_data_map,
-                verbose=False,  # 候補数×50体分のログはノイズになるため抑制
+                verbose=False,
             )
 
             results.append(CandidateMatrixResult(
@@ -324,20 +352,20 @@ class MatrixService:
                 action_order, my_turns, opp_turns, has_status_threat
             )
 
-            if verbose:
-                print(f"==================================================")
-                print(f"【対面シミュレーション】攻撃側: {subject_name} vs 相手: {opp.name} (Rank: {opp.rank})")
-                print(f"  ■ S関係: 自分S={subject_real_stats['speed']} | 相手S={opp_real_stats['speed']} ➔ 行動順: {action_order.name}")
-                print(f"  ■ 自分 ➔ 相手:")
-                print(f"    - 使用技: {best_my_move.get('move_name')} ({best_my_move.get('move_type')} / 威力:{best_my_move.get('power')})")
-                print(f"    - 相性倍率: {my_multiplier}倍")
-                print(f"    - 撃破ターン数: {my_turns}ターン")
-                print(f"  ■ 相手 ➔ 自分:")
-                print(f"    - 使用技: {best_opp_move.get('move_name')} ({best_opp_move.get('move_type')} / 威力:{best_opp_move.get('power')})")
-                print(f"    - 相性倍率: {opp_multiplier}倍")
-                print(f"    - 被撃破ターン数: {opp_turns}ターン")
-                print(f"  ➔ 判定結果: {judgment.name} (カテゴリ: {category.name if category else 'None'})")
-                print(f"==================================================")
+            # if verbose:
+            #     print(f"==================================================")
+            #     print(f"【対面シミュレーション】攻撃側: {subject_name} vs 相手: {opp.name} (Rank: {opp.rank})")
+            #     print(f"  ■ S関係: 自分S={subject_real_stats['speed']} | 相手S={opp_real_stats['speed']} ➔ 行動順: {action_order.name}")
+            #     print(f"  ■ 自分 ➔ 相手:")
+            #     print(f"    - 使用技: {best_my_move.get('move_name')} ({best_my_move.get('move_type')} / 威力:{best_my_move.get('power')})")
+            #     print(f"    - 相性倍率: {my_multiplier}倍")
+            #     print(f"    - 撃破ターン数: {my_turns}ターン")
+            #     print(f"  ■ 相手 ➔ 自分:")
+            #     print(f"    - 使用技: {best_opp_move.get('move_name')} ({best_opp_move.get('move_type')} / 威力:{best_opp_move.get('power')})")
+            #     print(f"    - 相性倍率: {opp_multiplier}倍")
+            #     print(f"    - 被撃破ターン数: {opp_turns}ターン")
+            #     print(f"  ➔ 判定結果: {judgment.name} (カテゴリ: {category.name if category else 'None'})")
+            #     print(f"==================================================")
 
             results.append(MatrixResultRow(
                 opponent_rank=opp.rank,

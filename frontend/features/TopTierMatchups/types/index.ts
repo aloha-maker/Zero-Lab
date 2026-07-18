@@ -50,6 +50,13 @@ export interface MatrixCalculationRequest {
   main_pokemon_name: string;   // 検証する主軸のポケモン名
   matchups: MatchupInput[];    // 各環境ポケモンとの対面データリスト
 }
+
+export interface MatchupMatrixRequest {
+  main_pokemon_name: string;
+  nature: string;
+  evs?: Record<string, number> | {};
+}
+
 /** POST /strategy/matrix のレスポンス内の1行分のデータ型 */
 export interface MatrixResultRow {
     opponent_rank: number;

@@ -1,11 +1,7 @@
 import { apiClient, ApiError } from "@/lib/api-client";
-import { MatrixResponse } from "../types";
+import { MatchupMatrixRequest,MatrixResponse } from "../types";
 
-export interface MatchupMatrixRequest {
-  main_pokemon_name: string;
-  nature: string;
-  evs?: Record<string, number> | {};
-}
+
 
 export async function getMatchupMatrix(params: MatchupMatrixRequest): Promise<MatrixResponse> {
   try {

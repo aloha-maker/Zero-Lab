@@ -46,45 +46,45 @@ async def calculate_real_damage_ranking(
     supabase: SupabaseClient,
     all_pokemons: List[SeasonPokemonInfo]
 ) -> List[RealDamageRankingResult]:
-    top_50_defenders = all_pokemons[:50] #[cite: 8]
+    top_50_defenders = all_pokemons[:50] 
 
-    precomputed_defenders = [ #[cite: 8]
+    precomputed_defenders = [ 
         (
-            defender.types, #[cite: 8]
-            defender.base_stats.get("hp_times_defense", 1), #[cite: 8]
-            defender.base_stats.get("hp_times_sp_defense", 1), #[cite: 8]
+            defender.types, 
+            defender.base_stats.get("hp_times_defense", 1), 
+            defender.base_stats.get("hp_times_sp_defense", 1), 
         )
-        for defender in top_50_defenders #[cite: 8]
+        for defender in top_50_defenders 
     ]
 
-    unique_move_types = set() #[cite: 8]
-    for attacker in all_pokemons: #[cite: 8]
-        for move in attacker.season_moves: #[cite: 8]
-            if move.move_type: #[cite: 8]
-                unique_move_types.add(move.move_type) #[cite: 8]
+    unique_move_types = set() 
+    for attacker in all_pokemons: 
+        for move in attacker.season_moves: 
+            if move.move_type: 
+                unique_move_types.add(move.move_type) 
     
-    type_data_tasks = [fetch_type_data(supabase, t_ja) for t_ja in unique_move_types] #[cite: 8]
-    type_data_results = await asyncio.gather(*type_data_tasks) #[cite: 8]
-    type_data_map = dict(zip(unique_move_types, type_data_results)) #[cite: 8]
+    type_data_tasks = [fetch_type_data(supabase, t_ja) for t_ja in unique_move_types] 
+    type_data_results = await asyncio.gather(*type_data_tasks) 
+    type_data_map = dict(zip(unique_move_types, type_data_results)) 
     
-    all_damage_scenarios = [] #[cite: 8]
+    all_damage_scenarios = [] 
 
-    for attacker in all_pokemons: #[cite: 8]
-        for move in attacker.season_moves: #[cite: 8]
-            if not move.power_times_atk or move.power_times_atk == 0: #[cite: 8]
-                continue #[cite: 8]
+    for attacker in all_pokemons: 
+        for move in attacker.season_moves: 
+            if not move.power_times_atk or move.power_times_atk == 0: 
+                continue 
                 
-            t_data = type_data_map.get(move.move_type) #[cite: 8]
-            if not t_data: #[cite: 8]
-                continue #[cite: 8]
+            t_data = type_data_map.get(move.move_type) 
+            if not t_data: 
+                continue 
 
-            total_weighted_defense = 0.0 #[cite: 8]
-            is_physical = move.category == "物理" #[cite: 8]
+            total_weighted_defense = 0.0 
+            is_physical = move.category == "物理" 
 
-            for defender_types, hp_def, hp_spdef in precomputed_defenders: #[cite: 8]
-                multiplier, _ = calculate_multiplier_and_message(t_data, defenders=defender_types) #[cite: 8]
+            for defender_types, hp_def, hp_spdef in precomputed_defenders: 
+                multiplier, _ = calculate_multiplier_and_message(t_data, defenders=defender_types) 
 
-                # ★ 修正ポイント：切り出した共通ロジックを使用
+                # 切り出した共通ロジックを使用
                 effective_def = calculate_effective_defense_index(
                     is_physical=is_physical,
                     multiplier=multiplier,
@@ -93,22 +93,22 @@ async def calculate_real_damage_ranking(
                 )
                 total_weighted_defense += effective_def
 
-            defense_index = int(total_weighted_defense) #[cite: 8]
+            defense_index = int(total_weighted_defense) 
 
-            # ★ 修正ポイント：切り出した共通ロジックを使用
+            # 切り出した共通ロジックを使用
             real_damage_percent = round(calculate_damage_risk(move.power_times_atk, defense_index), 2)
 
-            all_damage_scenarios.append({ #[cite: 8]
-                "pokemon_name": attacker.name, #[cite: 8]
-                "move_name": move.move_name, #[cite: 8]
-                "move_type": move.move_type, #[cite: 8]
-                "category": move.category, #[cite: 8]
-                "power_times_atk": move.power_times_atk, #[cite: 8]
-                "defense_index": defense_index, #[cite: 8]
-                "real_damage_percent": real_damage_percent #[cite: 8]
+            all_damage_scenarios.append({ 
+                "pokemon_name": attacker.name, 
+                "move_name": move.move_name, 
+                "move_type": move.move_type, 
+                "category": move.category, 
+                "power_times_atk": move.power_times_atk, 
+                "defense_index": defense_index, 
+                "real_damage_percent": real_damage_percent 
             })
 
-    sorted_scenarios = sorted(all_damage_scenarios, key=lambda x: x["real_damage_percent"], reverse=True) #[cite: 8]
+    sorted_scenarios = sorted(all_damage_scenarios, key=lambda x: x["real_damage_percent"], reverse=True) 
 
     results = [
         RealDamageRankingResult(
