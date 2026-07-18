@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from core.supabase import get_supabase, SupabaseClient
 from schemas.strategy import (
     AutoMatrixRequest, MatrixResponse,
-    BulkMatrixRequest, BulkMatrixResponse,
+    BulkMatrixRequest, BulkMatrixResponse,OneVsOneResponse,OneVsOneRequest
 )
 from services.strategy import MatrixService
 from schemas.evaluate_1v1_matchup import Step2Request, Step2Response
@@ -52,3 +52,21 @@ async def create_bulk_matrix(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"一括マトリクス計算エラー: {str(e)}")
+
+@router.post("/1v1-matrix", response_model=OneVsOneResponse, summary="1vs1専用の対面シミュレーション詳細取得")
+async def create_1v1_matrix(
+    request: OneVsOneRequest,
+    supabase: SupabaseClient = Depends(get_supabase)
+):
+    """
+    指定した自分のポケモン（努力値・性格カスタム）と、相手のポケモン（ランキング1位構成）の
+    1vs1の対面シミュレーションを実行し、素早さ関係や確定数、最適技などの詳細を返します。
+    """
+    try:
+        return await MatrixService.generate_1vs1_matrix(request, supabase)
+    except ValueError as e:
+        # データが存在しない等の業務エラー
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"1vs1シミュレーションエラー: {str(e)}")

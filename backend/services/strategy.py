@@ -9,7 +9,7 @@ from services.pokemon_season import get_active_season_pokemon_details
 from schemas.strategy import (
     AutoMatrixRequest, MatrixResponse, MatrixResultRow,
     AdvantageJudgment, DisadvantageCategory, ActionOrder,
-    BulkMatrixRequest, BulkMatrixResponse, CandidateMatrixResult,
+    BulkMatrixRequest, BulkMatrixResponse, CandidateMatrixResult,OneVsOneResponse,OneVsOneRequest
 )
 
 # H/A/B/C/D/S（フロント/リクエスト表記） ⇔ hp/attack/defense/sp_attack/sp_defense/speed（内部キー）
@@ -271,8 +271,8 @@ class MatrixService:
                 evs_internal=opp_evs_dict,
                 nature_name=opp_nature_name
             )
-
-            judgment, category = MatrixService._simulate_1vs1(
+            
+            sim_result = MatrixService._simulate_1vs1(
                 subject_name=subject_name,
                 subject_real_stats=subject_real_stats,
                 subject_types=subject_types,
@@ -288,8 +288,8 @@ class MatrixService:
             results.append(MatrixResultRow(
                 opponent_rank=opp.rank,
                 opponent_name=opp.name,
-                judgment=judgment,
-                reason_category=category
+                judgment=sim_result["judgment"],
+                reason_category=sim_result["category"]
             ))
 
         return results
@@ -393,7 +393,28 @@ class MatrixService:
             print(f"  ➔ 判定結果: {judgment.name} (カテゴリ: {category.name if category else 'None'})")
             print(f"==================================================")
 
-        return judgment, category
+        # 画面復元用の詳細データをすべて返す
+        return {
+            "action_order": action_order,
+            "my_detail": {
+                "speed_real": subject_real_stats["speed"],
+                "best_move_name": best_my_move.get("move_name", ""),
+                "best_move_type": best_my_move.get("move_type", ""),
+                "best_move_power": best_my_move.get("power", 0),
+                "type_multiplier": my_multiplier,
+                "turns_to_kill": my_turns,
+            },
+            "opp_detail": {
+                "speed_real": opp_real_stats["speed"],
+                "best_move_name": best_opp_move.get("move_name", ""),
+                "best_move_type": best_opp_move.get("move_type", ""),
+                "best_move_power": best_opp_move.get("power", 0),
+                "type_multiplier": opp_multiplier,
+                "turns_to_kill": opp_turns,
+            },
+            "judgment": judgment,
+            "category": category
+        }
 
     @staticmethod
     def _calc_dynamic_turns_to_kill(atk_stats: dict, def_stats: dict, move: dict, atk_types: list, multiplier: float) -> int:
@@ -468,3 +489,77 @@ class MatrixService:
                 category = DisadvantageCategory.B
 
         return base_judgment, category
+
+    # 1vs1専用の新規メソッドを追加
+    @staticmethod
+    async def generate_1vs1_matrix(request: OneVsOneRequest, supabase: SupabaseClient) -> OneVsOneResponse:
+        from services.pokemon_detail import fetch_pokemon_data
+        
+        my_name = request.my_pokemon_name
+        opp_name = request.opp_pokemon_name
+        
+        # 2体分のデータだけをピンポイントで並行取得
+        fetch_tasks = [
+            fetch_pokemon_data(supabase, my_name),
+            fetch_pokemon_data(supabase, opp_name)
+        ]
+        fetched_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+        
+        my_data = fetched_results[0]
+        opp_data = fetched_results[1]
+        
+        if isinstance(my_data, Exception):
+            raise ValueError(f"自ポケモン({my_name})のデータが存在しません。")
+        if isinstance(opp_data, Exception):
+            raise ValueError(f"相手ポケモン({opp_name})のデータが存在しません。")
+
+        # 自ポケモンのパラメータ準備（リクエストのカスタム値を適用）
+        my_evs_internal = {
+            internal_key: int(request.my_evs.get(api_key, 0))
+            for api_key, internal_key in STAT_KEY_MAP.items()
+        }
+        my_real_stats, my_types, my_moves_parsed = MatrixService._prepare_battle_params(
+            pokemon_data=my_data,
+            evs_internal=my_evs_internal,
+            nature_name=request.my_nature
+        )
+        
+        # 相手ポケモンのパラメータ準備（ランキングトップの値を自動適用）
+        opp_nature = getattr(opp_data, 'top_nature', 'まじめ')
+        opp_evs = getattr(opp_data, 'top_evs', {}) or {}
+        opp_real_stats, opp_types, opp_moves_parsed = MatrixService._prepare_battle_params(
+            pokemon_data=opp_data,
+            evs_internal=opp_evs,
+            nature_name=opp_nature
+        )
+        
+        # この2体の技構成に必要な相性データだけを取得（環境ポケモンは空リストで渡す）
+        type_data_map = await MatrixService._build_type_data_map(
+            supabase, 
+            [my_moves_parsed, opp_moves_parsed], 
+            [] 
+        )
+        
+        # シミュレーション実行
+        sim_result = MatrixService._simulate_1vs1(
+            subject_name=my_name,
+            subject_real_stats=my_real_stats,
+            subject_types=my_types,
+            subject_moves_parsed=my_moves_parsed,
+            opp_name=opp_name,
+            opp_real_stats=opp_real_stats,
+            opp_types=opp_types,
+            opp_moves_parsed=opp_moves_parsed,
+            type_data_map=type_data_map,
+            verbose=False
+        )
+        
+        return OneVsOneResponse(
+            my_pokemon_name=my_name,
+            opp_pokemon_name=opp_name,
+            action_order=sim_result["action_order"].name,
+            my_detail=sim_result["my_detail"],
+            opp_detail=sim_result["opp_detail"],
+            judgment=sim_result["judgment"].name,
+            reason_category=sim_result["category"].name if sim_result["category"] else None
+        )
