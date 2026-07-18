@@ -1,4 +1,5 @@
 export interface CombatantDetail {
+    ability: string;
     speed_real: number;
     best_move_name: string;
     best_move_type: string;

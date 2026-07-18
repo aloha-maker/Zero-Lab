@@ -45,6 +45,7 @@ def _to_season_pokemon(info: PokemonInfo, rank: int) -> SeasonPokemonInfo:
         type_efficacies={},
         top_nature=DEFAULT_NATURE,
         top_evs=DEFAULT_EVS,
+        top_ability="",  # ← 追加: Pydanticのバリデーションエラー回避用
     )
 
 
@@ -117,6 +118,7 @@ async def execute_step2_filtering(
             subject_real_stats=subject_real_stats,
             subject_types=subject.types,
             subject_moves_parsed=subject_moves_parsed,
+            subject_ability=subject.top_ability,  # ← 追加: 対象ポケモンの特性を渡す
             active_environment_pokemons=target_season_pokemons,
             type_data_map=type_data_map,
             verbose=True,

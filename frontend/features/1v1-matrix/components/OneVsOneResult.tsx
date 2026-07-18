@@ -10,7 +10,7 @@ export const OneVsOneResult: React.FC<Props> = ({ result }) => {
     <div className="p-4 bg-gray-900 text-green-400 font-mono text-sm rounded-md overflow-x-auto mt-4">
       <p>==================================================</p>
       <p>
-        【対面シミュレーション】攻撃側: {result.my_pokemon_name} vs 相手: {result.opp_pokemon_name}
+        【対面シミュレーション】攻撃側: {result.my_pokemon_name}：{result.my_detail.ability} vs 相手: {result.opp_pokemon_name}：{result.opp_detail.ability}
       </p>
       <p>
         &nbsp;&nbsp;■ S関係: 自分S={result.my_detail.speed_real} | 相手S={result.opp_detail.speed_real} ➔ 行動順: {result.action_order}

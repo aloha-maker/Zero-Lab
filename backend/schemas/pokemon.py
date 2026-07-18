@@ -65,7 +65,8 @@ class SeasonPokemonInfo(PokemonInfo):
         "hp": 0, "attack": 0, "defense": 0, 
         "sp_attack": 0, "sp_defense": 0, "speed": 0
     }
-
+    # ▼ 追加
+    top_ability: str = ""
 
 class PokemonListItem(BaseModel):
     """サジェスト候補表示用の軽量スキーマ"""

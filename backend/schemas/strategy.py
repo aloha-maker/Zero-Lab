@@ -97,6 +97,7 @@ class OneVsOneRequest(BaseModel):
     opp_pokemon_name: str
 
 class CombatantDetail(BaseModel):
+    ability: str = ""
     speed_real: int
     best_move_name: str
     best_move_type: str
