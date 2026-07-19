@@ -26,7 +26,7 @@ STAT_KEY_MAP = {"H": "hp", "A": "attack", "B": "defense", "C": "sp_attack", "D":
 STATUS_THREAT_POKEMON_NAMES = []  # "ディンルー", "キョジオーン", "カバルドン", "ドヒドイデ"
 
 # 環境トップポケモンのデフォルト取得順位上限
-DEFAULT_ENV_RANK_LIMIT = 30
+DEFAULT_ENV_RANK_LIMIT = 50
 
 # ダメージ計算の前提となる対戦レベル（シングルバトルのランクマ準拠）
 BATTLE_LEVEL = 50
