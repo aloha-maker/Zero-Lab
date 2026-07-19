@@ -247,7 +247,7 @@ class MatrixService:
             pokemon_data=main_base_data,
             evs_internal=main_evs_internal,
             nature_name=request_nature_name,
-            requested_ability=getattr(request, 'main_ability', None) # リクエストにあれば適用
+            requested_ability=getattr(request, 'main_ability', None)
         )
 
         if not MatrixService._has_valid_attack_move(main_moves_parsed):
@@ -465,7 +465,7 @@ class MatrixService:
             opp_nature_name = getattr(opp, 'top_nature', 'まじめ')
             opp_evs_dict = getattr(opp, 'top_evs', {}) or {}
 
-            # 新規: 相手側のパラメータも共通関数で作成
+            # 相手側のパラメータも共通関数で作成
             opp_real_stats, opp_types, opp_moves_parsed, opp_ability = MatrixService._prepare_battle_params(
                 pokemon_data=opp,
                 evs_internal=opp_evs_dict,
@@ -578,6 +578,7 @@ class MatrixService:
                     
                 # --- 新規追加: 特性によるダメージ無効化判定 ---
                 if subject_ability in IMMUNITY_ABILITIES and opp_move_type in IMMUNITY_ABILITIES[subject_ability]:
+                    print(subject_ability,"_じめん無効_",opp_move_type)
                     multiplier = 0.0
 
                 turns = MatrixService._calc_dynamic_turns_to_kill(
