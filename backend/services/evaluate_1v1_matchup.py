@@ -45,6 +45,7 @@ def _to_season_pokemon(info: PokemonInfo, rank: int) -> SeasonPokemonInfo:
         type_efficacies={},
         top_nature=DEFAULT_NATURE,
         top_evs=DEFAULT_EVS,
+        top_ability="",  # ← 追加: Pydanticのバリデーションエラー回避用
     )
 
 
@@ -117,6 +118,7 @@ async def execute_step2_filtering(
             subject_real_stats=subject_real_stats,
             subject_types=subject.types,
             subject_moves_parsed=subject_moves_parsed,
+            subject_ability=subject.top_ability,
             active_environment_pokemons=target_season_pokemons,
             type_data_map=type_data_map,
             verbose=True,
@@ -124,7 +126,11 @@ async def execute_step2_filtering(
 
         # 判定が ◎ または ◯ の場合、有利な相手として記録
         good_against = [
-            row.opponent_name for row in matrix if row.judgment in ["◎", "◯"]
+            {
+                "opponent_name": row.opponent_name,
+                "judgment": row.judgment
+            }
+            for row in matrix if row.judgment in ["◎", "◯","△"]
         ]
 
         # すべてに対して「△」か「×」ではない（＝有利な相手が1体以上いる）なら残す

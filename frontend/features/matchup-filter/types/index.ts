@@ -11,7 +11,7 @@ export interface MatchupFilterRequest {
 
 /** フィルタ後の候補ポケモン（勝てる相手の内訳付き） */
 export interface FilteredCandidate extends ComplementaryPokemon {
-    good_matchups: string[];
+    good_matchups: { opponent_name: string; judgment: string }[];
 }
 
 /** POST /api/v1/strategy/step2-filter のレスポンス */

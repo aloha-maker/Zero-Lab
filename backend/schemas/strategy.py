@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Dict,List, Optional
 from enum import Enum
 
 class ActionOrder(str, Enum):
@@ -89,3 +89,27 @@ class CandidateMatrixResult(BaseModel):
 
 class BulkMatrixResponse(BaseModel):
     results: List[CandidateMatrixResult]
+
+class OneVsOneRequest(BaseModel):
+    my_pokemon_name: str
+    my_evs: Dict[str, int]  # フロントからは {"H": 252, "A": 252, ...} の形式で受け取る
+    my_nature: str
+    opp_pokemon_name: str
+
+class CombatantDetail(BaseModel):
+    ability: str = ""
+    speed_real: int
+    best_move_name: str
+    best_move_type: str
+    best_move_power: int
+    type_multiplier: float
+    turns_to_kill: int
+
+class OneVsOneResponse(BaseModel):
+    my_pokemon_name: str
+    opp_pokemon_name: str
+    action_order: str  # "FIRST" or "SECOND"
+    my_detail: CombatantDetail
+    opp_detail: CombatantDetail
+    judgment: str
+    reason_category: Optional[str]

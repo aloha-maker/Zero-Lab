@@ -1,3 +1,4 @@
+// frontend/features/settings/components/SyncButton.tsx
 "use client";
 
 import { Loader2 } from "lucide-react";

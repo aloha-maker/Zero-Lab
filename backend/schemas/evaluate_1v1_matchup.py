@@ -24,11 +24,15 @@ class MatrixResultRow(BaseModel):
 class Step2Request(BaseModel):
     candidates: List[ComplementaryPokemon]
     targets: List[MatrixResultRow]
+    
+class MatchupDetail(BaseModel):
+    opponent_name: str
+    judgment: str
 
 # APIのレスポンス（除外されずに残ったポケモン）
 class FilteredPokemon(ComplementaryPokemon):
     # UIで表示しやすいよう「どの敵に有利(◎/◯)だったか」のリストを持たせる
-    good_matchups: List[str]
+    good_matchups: List[MatchupDetail]
 
 class Step2Response(BaseModel):
     filtered_candidates: List[FilteredPokemon]

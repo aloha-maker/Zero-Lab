@@ -1,3 +1,4 @@
+// frontend/features/settings/utils/storage.ts
 const KEY = "POKEMON_SYNC_API_KEY";
 
 export function getApiKey() {
